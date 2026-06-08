@@ -51,8 +51,10 @@ grep -m1 '"version"' package.json .claude-plugin/plugin.json 2>/dev/null
 # 4. 本地状态文件（UI/缓存，应 skip-worktree 而非提交私有改动）
 git status --short
 ls -d .obsidian .idea .vscode 2>/dev/null
-# 5. upstream 最新正式 tag（若 upstream 已配）
-git ls-remote --tags upstream 2>/dev/null | tail -5
+# 5. upstream 最新正式 tag（upstream 未配时给出提示，不静默空白）
+git remote get-url upstream >/dev/null 2>&1 \
+  && git ls-remote --tags upstream 2>/dev/null | grep -v '\^{}' | tail -5 \
+  || echo "(upstream 尚未配置，阶段3 配好后再查 tag)"
 ```
 
 汇报勘察结论，重点标出：
@@ -87,7 +89,7 @@ git remote -v   # 确认 upstream push = DISABLED
 **每个文件写入前先 `test -f`，已存在则跳过并报告「已存在，不覆盖」**（重入保护）。读 `references/maintenance-readme.template.md` 和 `references/changes-registry.template.md`，做占位符替换后写入：
 
 - `private/README.md` ← maintenance-readme 模板。替换占位符：
-  `{{ORIGIN_SLUG}}`、`{{UPSTREAM_SLUG}}`、`{{ORIGIN_URL}}`、`{{UPSTREAM_URL}}`、`{{BASE_VERSION}}`（勘察到的官方版本）、`{{HIGH_CONFLICT_LIST}}`（阶段2确认）、`{{VERSION_FILES}}`（版本号所在文件）、`{{VERIFY_CMD}}`（项目自带的测试/检查命令，没有就写「（本项目无自动化测试，靠人工验证）」）。
+  `{{ORIGIN_SLUG}}`、`{{UPSTREAM_SLUG}}`、`{{ORIGIN_URL}}`、`{{UPSTREAM_URL}}`、`{{BASE_VERSION}}`（勘察到的官方版本）、`{{TAG_FORMAT}}`（阶段2确认的私有 tag 格式，默认 `v<官方版本>-private.<N>`）、`{{HIGH_CONFLICT_LIST}}`（阶段2确认）、`{{VERSION_FILES}}`（版本号所在文件）、`{{VERIFY_CMD}}`（项目自带的测试/检查命令，没有就写「（本项目无自动化测试，靠人工验证）」）。
 - `private/CHANGES-REGISTRY.md` ← changes-registry 模板，预填本次脚手架引入的文件。
 
 ## 阶段 5 · 装私有命令（自动）

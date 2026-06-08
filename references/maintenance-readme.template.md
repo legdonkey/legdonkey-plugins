@@ -36,7 +36,7 @@ git fetch upstream --tags
 
 ## 私有版本号
 
-格式 `{{TAG_FORMAT}}`（默认 `v<官方版本>-private.<N>`）。规则：
+格式 `{{TAG_FORMAT}}`。规则：
 
 - `<官方版本>` 必须对应真实 upstream tag（如 `{{BASE_VERSION}}`）
 - `<N>` 从 1 递增；升级到新 upstream 版本后重置为 1
