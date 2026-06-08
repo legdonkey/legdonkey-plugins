@@ -1,0 +1,86 @@
+<svg width="1280" height="360" viewBox="0 0 1280 360" fill="none" xmlns="http://www.w3.org/2000/svg" font-family="'SF Pro Display','Helvetica Neue',Arial,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="0.55" stop-color="#131a26"/>
+      <stop offset="1" stop-color="#1b1430"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#58a6ff"/>
+      <stop offset="1" stop-color="#bc6bff"/>
+    </linearGradient>
+    <linearGradient id="lockg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#bc6bff"/>
+      <stop offset="1" stop-color="#7d5bff"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="360" rx="16" fill="url(#bg)"/>
+
+  <!-- subtle grid dots -->
+  <g fill="#ffffff" opacity="0.04">
+    <circle cx="60" cy="48" r="2"/><circle cx="120" cy="48" r="2"/><circle cx="180" cy="48" r="2"/>
+    <circle cx="1160" cy="312" r="2"/><circle cx="1220" cy="312" r="2"/><circle cx="1100" cy="312" r="2"/>
+  </g>
+
+  <!-- faint vertical divider between graphic column and text -->
+  <line x1="392" y1="70" x2="392" y2="290" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5"/>
+
+  <!-- ===== git graph: fork splits into upstream (locked) and private ===== -->
+  <g transform="translate(96,180)">
+    <!-- trunk -->
+    <line x1="0" y1="0" x2="92" y2="0" stroke="#3d4654" stroke-width="6" stroke-linecap="round"/>
+    <!-- branch up to upstream -->
+    <path d="M92 0 C 150 0 168 -74 226 -74" stroke="#3d4654" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <!-- branch down to private -->
+    <path d="M92 0 C 150 0 168 74 226 74" stroke="url(#accent)" stroke-width="6" fill="none" stroke-linecap="round" filter="url(#glow)"/>
+
+    <!-- root commit -->
+    <circle cx="0" cy="0" r="11" fill="#0d1117" stroke="#58a6ff" stroke-width="4"/>
+    <circle cx="92" cy="0" r="9" fill="#0d1117" stroke="#3d4654" stroke-width="4"/>
+
+    <!-- upstream node (read-only / locked) -->
+    <circle cx="240" cy="-74" r="22" fill="#161b22" stroke="#3d4654" stroke-width="3"/>
+    <g transform="translate(240,-74)">
+      <rect x="-8" y="-2" width="16" height="13" rx="2.5" fill="#8b949e"/>
+      <path d="M-5 -2 v-4 a5 5 0 0 1 10 0 v4" stroke="#8b949e" stroke-width="2.4" fill="none"/>
+    </g>
+
+    <!-- private node (key / glow) -->
+    <circle cx="240" cy="74" r="22" fill="#1b1430" stroke="url(#accent)" stroke-width="3" filter="url(#glow)"/>
+    <g transform="translate(240,74)" stroke="#d2b3ff" stroke-width="2.6" fill="none" stroke-linecap="round">
+      <circle cx="-4" cy="-4" r="5"/>
+      <path d="M0 0 L9 9 M6 6 l3 -3 M9 9 l-3 3"/>
+    </g>
+  </g>
+
+  <!-- ===== text ===== -->
+  <text x="448" y="152" font-size="56" font-weight="700" fill="#f0f6fc" letter-spacing="-1">privatize-fork</text>
+  <text x="450" y="200" font-size="23" font-weight="500" fill="#9aa7b8">开源 fork 一次性私有化脚手架</text>
+
+  <!-- tagline pills -->
+  <g font-size="18" font-weight="600">
+    <g transform="translate(450,238)">
+      <rect x="0" y="0" width="186" height="40" rx="20" fill="#161b22" stroke="#2b3340" stroke-width="1.5"/>
+      <circle cx="26" cy="20" r="5" fill="#8b949e"/>
+      <text x="44" y="26" fill="#c9d3e0">upstream 只读</text>
+    </g>
+    <g transform="translate(652,238)">
+      <rect x="0" y="0" width="148" height="40" rx="20" fill="#1b1430" stroke="#5b3da8" stroke-width="1.5"/>
+      <circle cx="26" cy="20" r="5" fill="url(#lockg)"/>
+      <text x="44" y="26" fill="#d8c6ff">私有隔离</text>
+    </g>
+    <g transform="translate(816,238)">
+      <rect x="0" y="0" width="148" height="40" rx="20" fill="#161b22" stroke="#2b3340" stroke-width="1.5"/>
+      <circle cx="26" cy="20" r="5" fill="#58a6ff"/>
+      <text x="44" y="26" fill="#c9d3e0">私有命令</text>
+    </g>
+  </g>
+
+  <!-- corner mark -->
+  <text x="1232" y="322" font-size="15" fill="#3d4654" text-anchor="end" font-weight="500">Claude Code · skill</text>
+</svg>
