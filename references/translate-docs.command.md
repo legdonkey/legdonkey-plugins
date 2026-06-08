@@ -8,7 +8,7 @@ description: 翻译 / 增量更新 upstream 官方文档到 private/translations
 
 ## 第 0 步：读约定
 
-读 `private/translations/README.md`，记住命名约定（`<原名去扩展>.zh.md`）和 frontmatter 格式（`source` / `source_version` / `translated_at`）。
+读 `private/translations/CONVENTIONS.md`，记住命名约定（`<原名去扩展>.zh.md`）和 frontmatter 格式（`source` / `source_version` / `translated_at`）。
 
 ## 第 1 步：确定 upstream 基线
 

@@ -97,7 +97,7 @@ git remote -v   # 确认 upstream push = DISABLED
 **同样：每个文件 `test -f`，已存在则跳过不覆盖。**
 
 - `.claude/commands/private-init.md` ← `references/private-init.command.md`，替换 `{{UPSTREAM_URL}}`。
-- **若启用翻译模块**：再装 `.claude/commands/translate-docs.md` ← `references/translate-docs.command.md`，并写 `private/translations/README.md` ← `references/translations-readme.template.md`（替换 `{{BASE_VERSION}}`）。翻译白名单需按目标项目实际文档调整，提示用户在命令里改白名单。
+- **若启用翻译模块**：再装 `.claude/commands/translate-docs.md` ← `references/translate-docs.command.md`，并写 `private/translations/CONVENTIONS.md` ← `references/translations-conventions.template.md`（替换 `{{BASE_VERSION}}`）。翻译白名单需按目标项目实际文档调整，提示用户在命令里改白名单。
 
 ## 阶段 6 · CLAUDE.md 指针（自动，仅当存在 CLAUDE.md）
 
