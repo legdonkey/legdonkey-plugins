@@ -19,7 +19,7 @@
 - 📖 **维护规范自动生成**：`private/README.md` 含升级流程、私有 tag 约定、版本号位置、验证命令。
 - 📒 **改动台账**：`private/CHANGES-REGISTRY.md` 登记每一处私有定制，可追溯、可审计。
 - ⌘ **私有命令脚手架**：装 `/private-init` 等私有 slash 命令到 `.claude/commands/`。
-- 🌐 **可选文档翻译模块**：按需装 `/translate-docs` + `private/translations/CONVENTIONS.md`，团队要中文参考时启用。
+- 🌐 **可选文档翻译模块（支持增量更新）**：按需装 `/translate-docs` + `private/translations/CONVENTIONS.md`，把 upstream 官方文档译成中文供团队参考。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；翻译重活还会派给并行 subagent，不把原文堆进主上下文。
 - 📌 **CLAUDE.md 指针**：仓库已有 `CLAUDE.md` 时，自动接入「私有维护规范」指针段（去重，不重复追加）。
 - 🧰 **本地状态文件 skip-worktree**：`.idea/`、`.vscode/`、`.obsidian/workspace.json` 等上游跟踪、每台机器不同的文件，逐个征得同意后让本机忽略其变化。
 - ♻️ **幂等可重入**：可重复执行，已存在的文件一律不覆盖、只补缺失；追加操作先去重。
