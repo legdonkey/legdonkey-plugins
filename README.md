@@ -35,25 +35,27 @@
 
 **这个 skill 一次性把这套规范立起来**：生成 `private/README.md` 维护规范（远端 / 分支 / 私有版本号 / upstream 同步判断 / 升级流程 / 回滚预案 / 发布前检查），配套 `private/` 隔离目录与改动台账——让私有 fork 能被团队长期、可控地维护，而不只是「躲过几个坑」。
 
-## ✨ 核心特性
+## 核心特性
 
 <p align="center">
   <img src="assets/features.svg" alt="privatize-fork 核心特性：安全隔离 · 可维护可追溯 · 跨 Claude Code/Codex · 方法论内核" width="100%">
 </p>
 
-- 🔍 **只读勘察暗礁**：动手前先扫一遍 `.gitignore` 通配误伤、故意跟踪的文件、官方版本号位置、本地状态文件、upstream 最新 tag——把项目的坑全摸清再动手。
-- 🧭 **引导问答一次问全**：upstream 地址、私有 tag 格式、remote 协议、是否启用翻译模块、高冲突文件清单，能从勘察推断的给默认值。
-- 🔒 **upstream 只读跟踪 + 禁推**：从 git 层面把 upstream 的 `push` 设成 `DISABLED`，杜绝误把私有改动推到原作者仓库。这一步即 init，幂等可重跑。
-- 🧷 **关键步骤固化为自检脚本**：勘察、配远端禁推、判断待翻清单这三处「确定性强、又最怕模型凭印象跳步」的环节，抽成了幂等/只读的小脚本（`scripts/`）——尤其禁推闸会**自检 `push = DISABLED` 是否真生效**，不对就报错退出，不再单靠模型自觉；判断与翻译等需要灵活性的部分仍交给模型。
-- 📁 **私有内容尽量隔离**：新增定制集中进 `private/`，不往 upstream 目录塞新文件；确需直接改的上游文件登记入账、定好冲突策略，升级时有据可查。
-- 📖 **维护规范自动生成**：`private/README.md` 含升级流程、私有 tag 约定、版本号位置、验证命令。
-- 📒 **改动台账**：`private/CHANGES-REGISTRY.md` 登记每一处私有定制，可追溯、可审计。
-- 🧩 **跨 CC / Codex 一键安装**：`SKILL.md` 是 [开放标准](https://agentskills.io)，一个 `install.sh` 同时软链进 `~/.claude/skills/` 和 `~/.codex/skills/`，两边通用、随 `git pull` 更新。
-- 🌐 **可选文档翻译（内联 + 增量更新）**：skill **自己内联翻译** upstream 官方文档到 `private/translations/`，无需装命令。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑 skill 时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；CC（`Task`）与 Codex（subagent）等有并行子任务能力的 agent 并行翻译，仅在确无并行能力时才顺序进行。
-- 📌 **指针段跨平台**：按团队 agent 把「私有维护规范」指针写进 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex），去重不重复追加。
-- 🧰 **本地状态文件 skip-worktree**：`.idea/`、`.vscode/`、`.obsidian/workspace.json` 等上游跟踪、每台机器不同的文件，逐个征得同意后让本机忽略其变化。
-- ♻️ **幂等可重入**：可重复执行，已存在的文件一律不覆盖、只补缺失；**重跑 skill = 重配 upstream + 增量刷新翻译**，这就是后续维护要做的全部。
-- 🏁 **本地就绪，发布交给你**：skill 只做到「本地就绪」，不替你 push、不替你打 tag，确认无误后一次性发布。
+| 特性 | 说明 |
+|------|------|
+| **只读勘察暗礁** | 动手前先扫一遍 `.gitignore` 通配误伤、故意跟踪的文件、官方版本号位置、本地状态文件、upstream 最新 tag——把项目的坑全摸清再动手。 |
+| **引导问答一次问全** | upstream 地址、私有 tag 格式、remote 协议、是否启用翻译模块、高冲突文件清单，能从勘察推断的给默认值。 |
+| **upstream 只读跟踪 + 禁推** | 从 git 层面把 upstream 的 `push` 设成 `DISABLED`，杜绝误把私有改动推到原作者仓库。这一步即 init，幂等可重跑。 |
+| **关键步骤固化为自检脚本** | 勘察、配远端禁推、判断待翻清单这三处「确定性强、又最怕模型凭印象跳步」的环节，抽成了幂等/只读的小脚本（`scripts/`）——尤其禁推闸会**自检 `push = DISABLED` 是否真生效**，不对就报错退出，不再单靠模型自觉；判断与翻译等需要灵活性的部分仍交给模型。 |
+| **私有内容尽量隔离** | 新增定制集中进 `private/`，不往 upstream 目录塞新文件；确需直接改的上游文件登记入账、定好冲突策略，升级时有据可查。 |
+| **维护规范自动生成** | `private/README.md` 含升级流程、私有 tag 约定、版本号位置、验证命令。 |
+| **改动台账** | `private/CHANGES-REGISTRY.md` 登记每一处私有定制，可追溯、可审计。 |
+| **跨 CC / Codex 一键安装** | `SKILL.md` 是 [开放标准](https://agentskills.io)，一个 `install.sh` 同时软链进 `~/.claude/skills/` 和 `~/.codex/skills/`，两边通用、随 `git pull` 更新。 |
+| **可选文档翻译（内联 + 增量更新）** | skill **自己内联翻译** upstream 官方文档到 `private/translations/`，无需装命令。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑 skill 时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；CC（`Task`）与 Codex（subagent）等有并行子任务能力的 agent 并行翻译，仅在确无并行能力时才顺序进行。 |
+| **指针段跨平台** | 按团队 agent 把「私有维护规范」指针写进 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex），去重不重复追加。 |
+| **本地状态文件 skip-worktree** | `.idea/`、`.vscode/`、`.obsidian/workspace.json` 等上游跟踪、每台机器不同的文件，逐个征得同意后让本机忽略其变化。 |
+| **幂等可重入** | 可重复执行，已存在的文件一律不覆盖、只补缺失；**重跑 skill = 重配 upstream + 增量刷新翻译**，这就是后续维护要做的全部。 |
+| **本地就绪，发布交给你** | skill 只做到「本地就绪」，不替你 push、不替你打 tag，确认无误后一次性发布。 |
 
 ## 安装与使用
 
