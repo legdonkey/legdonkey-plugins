@@ -12,6 +12,10 @@
 
 ## ✨ 核心特性
 
+<p align="center">
+  <img src="assets/features.png" alt="privatize-fork 核心特性：安全隔离 · 可维护可追溯 · 跨 Claude Code/Codex · 方法论内核" width="100%">
+</p>
+
 - 🔍 **只读勘察暗礁**：动手前先扫一遍 `.gitignore` 通配误伤、故意跟踪的文件、官方版本号位置、本地状态文件、upstream 最新 tag——把项目的坑全摸清再动手。
 - 🧭 **引导问答一次问全**：upstream 地址、私有 tag 格式、remote 协议、是否启用翻译模块、高冲突文件清单，能从勘察推断的给默认值。
 - 🔒 **upstream 只读跟踪 + 禁推**：从 git 层面把 upstream 的 `push` 设成 `DISABLED`，杜绝误把私有改动推到原作者仓库。这一步即 init，幂等可重跑。
