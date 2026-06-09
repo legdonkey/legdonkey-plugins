@@ -10,6 +10,17 @@
 
 内置了从实战中提炼的方法论：**先勘察 → 私有隔离 → 本地定型 → 最后一次性发布**。
 
+## 解决什么问题
+
+团队基于某个开源项目做私有定制，常见的坑：
+
+- 私有改动和 upstream 文件混在一起，升级时冲突地狱；
+- 误把私有改动推到了原作者仓库（upstream）；
+- 基建还没定型就打 tag + push，结果反复 `force-push` 移动已发布 tag；
+- `.gitignore` 的通配规则悄悄挡掉了你新建的文件，或误删了上游「故意跟踪」的特殊文件。
+
+这个 skill 把上述坑整理成一套有**固定顺序**的脚手架流程，一次走完。
+
 ## ✨ 核心特性
 
 <p align="center">
@@ -29,18 +40,9 @@
 - ♻️ **幂等可重入**：可重复执行，已存在的文件一律不覆盖、只补缺失；**重跑 skill = 重配 upstream + 增量刷新翻译**，这就是后续维护要做的全部。
 - 🏁 **本地就绪，发布交给你**：skill 只做到「本地就绪」，不替你 push、不替你打 tag，确认无误后一次性发布。
 
-## 解决什么问题
+## 安装与使用
 
-团队基于某个开源项目做私有定制，常见的坑：
-
-- 私有改动和 upstream 文件混在一起，升级时冲突地狱；
-- 误把私有改动推到了原作者仓库（upstream）；
-- 基建还没定型就打 tag + push，结果反复 `force-push` 移动已发布 tag；
-- `.gitignore` 的通配规则悄悄挡掉了你新建的文件，或误删了上游「故意跟踪」的特殊文件。
-
-这个 skill 把上述坑整理成一套有**固定顺序**的脚手架流程，一次走完。
-
-## 安装
+### 一键安装
 
 一个 `install.sh` 自动检测本机装了 Claude Code（`~/.claude`）还是 Codex（`~/.codex`），把本仓库软链进对应的 skills 目录（幂等、可重跑、已装则跳过、不覆盖别人的同名目录）。
 
@@ -61,6 +63,17 @@ curl -fsSL https://raw.githubusercontent.com/legdonkey/privatize-fork/main/insta
 
 > **不会自动调用**：CC 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——两边都只能由你手动触发。私有化是有副作用的操作，刻意设计成「人点头才跑」。
 
+### 开始使用
+
+1. clone 你的私有 fork 到本地（`origin` 指向你的 fork）；
+2. 在**该项目目录**里打开 CC 或 Codex（Codex 建议先 `/plan`），手动触发：
+
+```
+/privatize-fork
+```
+
+skill 会带你走完整个流程，最后把私有化基建留在**本地就绪**状态——**不替你 push、不替你打 tag**，发布留给你确认无误后手动做。后续维护（重配 upstream、刷新翻译）只需**重跑这个 skill**，无需任何额外命令。
+
 ### 兼容性
 
 `SKILL.md` 是 [agentskills.io](https://agentskills.io) 开放标准，同一份文件 CC / Codex / Gemini CLI / Cursor 等 30+ 工具通用。两边差异都已抹平：
@@ -75,18 +88,9 @@ curl -fsSL https://raw.githubusercontent.com/legdonkey/privatize-fork/main/insta
 
 > Codex 用户提示：引导问答要弹出图形化选项，需先 `/plan` 进入 Plan 模式；否则 Codex 会静默用默认值。
 
-## 使用
+## 实现方式与注意事项
 
-1. clone 你的私有 fork 到本地（`origin` 指向你的 fork）；
-2. 在**该项目目录**里打开 CC 或 Codex（Codex 建议先 `/plan`），手动触发：
-
-```
-/privatize-fork
-```
-
-skill 会带你走完整个流程，最后把私有化基建留在**本地就绪**状态——**不替你 push、不替你打 tag**，发布留给你确认无误后手动做。后续维护（重配 upstream、刷新翻译）只需**重跑这个 skill**，无需任何额外命令。
-
-## 它会做什么（8 个阶段）
+### 它会做什么（8 个阶段）
 
 | 阶段 | 动作 |
 |------|------|
@@ -100,14 +104,14 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 | 7 | 本地状态文件按需 `skip-worktree`（逐个征得同意） |
 | 8 | 收尾：汇总产物，给出发布命令但**不自动执行** |
 
-## 四条铁律
+### 四条铁律（注意事项）
 
 1. **私有内容零混入**：私有文件只进 `private/`（指针段除外），绝不混进 upstream 维护的目录。
 2. **动手前先读 `.gitignore`**：上游忽略规则会误伤你将生成的文件，也会暴露它「故意跟踪」的特殊文件。
 3. **重入安全（幂等）**：可重复执行，已存在的文件一律不覆盖，只补缺失。
 4. **本地定型后再发布**：skill 只做到「本地就绪」，push 和打 tag 留给你确认无误后手动做。
 
-## 仓库结构
+### 仓库结构
 
 ```text
 SKILL.md                                      # skill 入口（CC/Codex 共用），唯一被识别的文件
@@ -122,6 +126,6 @@ assets/                                        # README 头图
 README.md                                     # 本文件（给人看的门面，不影响 skill 运行）
 ```
 
-## 方法论内核
+### 方法论内核
 
 这个 skill 的价值不在「自动化」，而在**顺序**：先勘察（把项目的暗礁全摸清）→ 再设计（私有内容彻底隔离）→ 本地定型 → 最后一次性发布。把顺序走对，就能少走绝大部分弯路。
