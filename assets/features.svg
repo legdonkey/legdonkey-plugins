@@ -1,18 +1,18 @@
-<svg width="1280" height="580" viewBox="0 0 1280 580" fill="none" xmlns="http://www.w3.org/2000/svg" font-family="'SF Pro Display','Helvetica Neue',Arial,sans-serif">
+<svg width="1280" height="628" viewBox="0 0 1280 628" fill="none" xmlns="http://www.w3.org/2000/svg" font-family="'SF Pro Display','Helvetica Neue',Arial,sans-serif">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="580" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="628" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#0d1117"/>
       <stop offset="0.55" stop-color="#131a26"/>
       <stop offset="1" stop-color="#1b1430"/>
     </linearGradient>
   </defs>
 
-  <rect width="1280" height="580" rx="16" fill="url(#bg)"/>
+  <rect width="1280" height="628" rx="16" fill="url(#bg)"/>
 
   <!-- subtle grid dots -->
   <g fill="#ffffff" opacity="0.035">
     <circle cx="60" cy="40" r="2"/><circle cx="120" cy="40" r="2"/>
-    <circle cx="1220" cy="540" r="2"/><circle cx="1160" cy="540" r="2"/>
+    <circle cx="1220" cy="588" r="2"/><circle cx="1160" cy="588" r="2"/>
   </g>
 
   <!-- ===== header ===== -->
@@ -128,8 +128,9 @@
     </g>
   </g>
 
-  <!-- ===== footer flow strip ===== -->
-  <g transform="translate(0,512)" font-size="14.5" font-weight="600">
+  <!-- ===== footer flow strip (below the cards, cards bottom = 546) ===== -->
+  <line x1="40" y1="574" x2="1240" y2="574" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.3"/>
+  <g transform="translate(0,602)" font-size="14.5" font-weight="600">
     <text x="40" y="0" fill="#6b7686">流程：</text>
     <text x="92" y="0" fill="#58a6ff">勘察</text>
     <text x="138" y="0" fill="#4a5566">→</text>
