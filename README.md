@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="privatize-fork — 开源 fork 一次性私有化脚手架" width="100%">
+  <img src="assets/banner.svg" alt="privatize-fork — 开源 fork 一次性私有化脚手架" width="100%">
 </p>
 
 # privatize-fork
@@ -31,7 +31,7 @@
 ## ✨ 核心特性
 
 <p align="center">
-  <img src="assets/features.png" alt="privatize-fork 核心特性：安全隔离 · 可维护可追溯 · 跨 Claude Code/Codex · 方法论内核" width="100%">
+  <img src="assets/features.svg" alt="privatize-fork 核心特性：安全隔离 · 可维护可追溯 · 跨 Claude Code/Codex · 方法论内核" width="100%">
 </p>
 
 - 🔍 **只读勘察暗礁**：动手前先扫一遍 `.gitignore` 通配误伤、故意跟踪的文件、官方版本号位置、本地状态文件、upstream 最新 tag——把项目的坑全摸清再动手。
@@ -129,7 +129,9 @@ references/                                    # 按需读取的模板/流程，
 ├── changes-registry.template.md              #  → private/CHANGES-REGISTRY.md（改动台账）
 ├── translate-docs.md                         #  翻译流程（skill 内联执行）
 └── translations-conventions.template.md      #  → private/translations/CONVENTIONS.md（翻译模块）
-assets/                                        # README 头图
+assets/                                        # README 配图（outline 矢量，引用用）
+├── banner.svg / features.svg                  #  → README 引用的产物（文字已转路径）
+└── src/                                        #  可编辑源 + build-svg.sh（改图后重生成产物）
 README.md                                     # 本文件（给人看的门面，不影响 skill 运行）
 ```
 

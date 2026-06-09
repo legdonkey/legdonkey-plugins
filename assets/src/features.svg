@@ -1,0 +1,128 @@
+<svg width="1280" height="636" viewBox="0 0 1280 636" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.05" intercept="0"/></feComponentTransfer>
+    </filter>
+    <style>
+      .mono { font-family: 'Menlo','SFMono-Regular',monospace; }
+      .disp { font-family: 'Futura','Avenir Next',sans-serif; }
+      .body { font-family: 'Avenir Next','Helvetica Neue',sans-serif; }
+    </style>
+  </defs>
+
+  <!-- paper + grain -->
+  <rect width="1280" height="636" fill="#f1ebdd"/>
+  <rect width="1280" height="636" fill="#000000" filter="url(#grain)"/>
+
+  <!-- drafting frame -->
+  <rect x="20" y="20" width="1240" height="596" fill="none" stroke="#211e18" stroke-width="1.4"/>
+  <rect x="25" y="25" width="1230" height="586" fill="none" stroke="#211e18" stroke-opacity="0.3" stroke-width="0.8"/>
+  <g stroke="#c43c30" stroke-width="1.6" fill="none">
+    <path d="M20 36 V20 H36"/>
+    <path d="M1244 20 H1260 V36"/>
+    <path d="M20 600 V616 H36"/>
+    <path d="M1244 616 H1260 V600"/>
+  </g>
+
+  <!-- top meta bar -->
+  <text x="44" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#c43c30">核心特性 · CORE-FEATURES</text>
+  <text x="1236" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#6f685a" text-anchor="end">PRIVATIZE-FORK</text>
+  <line x1="44" y1="62" x2="1236" y2="62" stroke="#211e18" stroke-opacity="0.25" stroke-width="0.8"/>
+
+  <!-- title -->
+  <text x="44" y="108" class="disp" font-size="34" font-weight="600" fill="#211e18">核心特性 <tspan class="mono" font-size="15" letter-spacing="1" fill="#9a948a">/ CORE FEATURES</tspan></text>
+  <text x="44" y="140" class="body" font-size="16" fill="#5f584b">把开源 fork 私有化：安全隔离 · 可维护可追溯 · 跨 Claude Code / Codex · 一套有顺序的方法论</text>
+
+  <!-- ============ 4 spec columns ============ -->
+  <!-- A · 安全 · 隔离 (red) -->
+  <g transform="translate(40,164)">
+    <rect width="283" height="322" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+    <text x="16" y="32" class="mono" font-size="15" font-weight="700" fill="#c43c30">§A</text>
+    <text x="48" y="33" class="body" font-size="17" font-weight="700" fill="#26221b">安全 · 隔离</text>
+    <line x1="16" y1="48" x2="267" y2="48" stroke="#c43c30" stroke-width="2"/>
+    <g>
+      <text x="16" y="88" class="mono" font-size="12.5" fill="#c43c30">.01</text>
+      <text x="52" y="88" class="body" font-size="15" font-weight="600" fill="#26221b">upstream 只读 + 禁推</text>
+      <text x="52" y="108" class="body" font-size="12.5" fill="#6f685a">git push=DISABLED 杜绝误推</text>
+      <line x1="16" y1="128" x2="267" y2="128" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+      <text x="16" y="168" class="mono" font-size="12.5" fill="#c43c30">.02</text>
+      <text x="52" y="168" class="body" font-size="15" font-weight="600" fill="#26221b">private/ 隔离</text>
+      <text x="52" y="188" class="body" font-size="12.5" fill="#6f685a">新增定制集中，不混上游</text>
+      <line x1="16" y1="208" x2="267" y2="208" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+      <text x="16" y="248" class="mono" font-size="12.5" fill="#c43c30">.03</text>
+      <text x="52" y="248" class="body" font-size="15" font-weight="600" fill="#26221b">skip-worktree</text>
+      <text x="52" y="268" class="body" font-size="12.5" fill="#6f685a">本地状态文件忽略本机变化</text>
+    </g>
+  </g>
+
+  <!-- B · 可维护 · 追溯 (ink-blue) -->
+  <g transform="translate(345,164)">
+    <rect width="283" height="322" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+    <text x="16" y="32" class="mono" font-size="15" font-weight="700" fill="#2f5169">§B</text>
+    <text x="48" y="33" class="body" font-size="17" font-weight="700" fill="#26221b">可维护 · 追溯</text>
+    <line x1="16" y1="48" x2="267" y2="48" stroke="#2f5169" stroke-width="2"/>
+    <g>
+      <text x="16" y="88" class="mono" font-size="12.5" fill="#2f5169">.01</text>
+      <text x="52" y="88" class="body" font-size="15" font-weight="600" fill="#26221b">维护规范自动生成</text>
+      <text x="52" y="108" class="body" font-size="12.5" fill="#6f685a">远端/分支/版本号/升级流程</text>
+      <line x1="16" y1="128" x2="267" y2="128" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+      <text x="16" y="168" class="mono" font-size="12.5" fill="#2f5169">.02</text>
+      <text x="52" y="168" class="body" font-size="15" font-weight="600" fill="#26221b">改动台账登记</text>
+      <text x="52" y="188" class="body" font-size="12.5" fill="#6f685a">每处定制可追溯可审计</text>
+      <line x1="16" y1="208" x2="267" y2="208" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+      <text x="16" y="248" class="mono" font-size="12.5" fill="#2f5169">.03</text>
+      <text x="52" y="248" class="body" font-size="15" font-weight="600" fill="#26221b">幂等可重入</text>
+      <text x="52" y="268" class="body" font-size="12.5" fill="#6f685a">重跑只补缺失，不覆盖</text>
+    </g>
+  </g>
+
+  <!-- C · 跨 CC / Codex (olive) -->
+  <g transform="translate(650,164)">
+    <rect width="283" height="322" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+    <text x="16" y="32" class="mono" font-size="15" font-weight="700" fill="#5f7a3f">§C</text>
+    <text x="48" y="33" class="body" font-size="17" font-weight="700" fill="#26221b">跨 CC / Codex</text>
+    <line x1="16" y1="48" x2="267" y2="48" stroke="#5f7a3f" stroke-width="2"/>
+    <g>
+      <text x="16" y="88" class="mono" font-size="12.5" fill="#5f7a3f">.01</text>
+      <text x="52" y="88" class="body" font-size="15" font-weight="600" fill="#26221b">一键装两边</text>
+      <text x="52" y="108" class="body" font-size="12.5" fill="#6f685a">install.sh 软链两个目录</text>
+      <line x1="16" y1="128" x2="267" y2="128" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+      <text x="16" y="168" class="mono" font-size="12.5" fill="#5f7a3f">.02</text>
+      <text x="52" y="168" class="body" font-size="15" font-weight="600" fill="#26221b">指针段跨平台</text>
+      <text x="52" y="188" class="body" font-size="12.5" fill="#6f685a">CLAUDE.md / AGENTS.md</text>
+      <line x1="16" y1="208" x2="267" y2="208" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+      <text x="16" y="248" class="mono" font-size="12.5" fill="#5f7a3f">.03</text>
+      <text x="52" y="248" class="body" font-size="15" font-weight="600" fill="#26221b">文档翻译 · 增量</text>
+      <text x="52" y="268" class="body" font-size="12.5" fill="#6f685a">内联翻译，只补变动</text>
+    </g>
+  </g>
+
+  <!-- D · 方法论内核 (ochre) -->
+  <g transform="translate(955,164)">
+    <rect width="283" height="322" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+    <text x="16" y="32" class="mono" font-size="15" font-weight="700" fill="#b07d2b">§D</text>
+    <text x="48" y="33" class="body" font-size="17" font-weight="700" fill="#26221b">方法论内核</text>
+    <line x1="16" y1="48" x2="267" y2="48" stroke="#b07d2b" stroke-width="2"/>
+    <g>
+      <text x="16" y="88" class="mono" font-size="12.5" fill="#b07d2b">.01</text>
+      <text x="52" y="88" class="body" font-size="15" font-weight="600" fill="#26221b">先只读勘察</text>
+      <text x="52" y="108" class="body" font-size="12.5" fill="#6f685a">.gitignore / 版本号 / 状态文件</text>
+      <line x1="16" y1="128" x2="267" y2="128" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+      <text x="16" y="168" class="mono" font-size="12.5" fill="#b07d2b">.02</text>
+      <text x="52" y="168" class="body" font-size="15" font-weight="600" fill="#26221b">私有隔离 → 定型</text>
+      <text x="52" y="188" class="body" font-size="12.5" fill="#6f685a">干净隔离，本地先定型</text>
+      <line x1="16" y1="208" x2="267" y2="208" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+      <text x="16" y="248" class="mono" font-size="12.5" fill="#b07d2b">.03</text>
+      <text x="52" y="248" class="body" font-size="15" font-weight="600" fill="#26221b">发布交给你</text>
+      <text x="52" y="268" class="body" font-size="12.5" fill="#6f685a">不自动 push/tag，确认再发</text>
+    </g>
+  </g>
+
+  <!-- ===== footer workflow band ===== -->
+  <rect x="40" y="506" width="1200" height="84" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+  <text x="58" y="534" class="mono" font-size="13" letter-spacing="1.5" fill="#c43c30">脚手架流程 · WORKFLOW</text>
+  <line x1="58" y1="546" x2="1222" y2="546" stroke="#211e18" stroke-opacity="0.18" stroke-width="0.8"/>
+  <text x="58" y="572" class="mono" font-size="13.5" fill="#26221b"><tspan fill="#c43c30">01</tspan> 勘察 <tspan fill="#c43c30">→</tspan> <tspan fill="#c43c30">02</tspan> 引导问答 <tspan fill="#c43c30">→</tspan> <tspan fill="#c43c30">03</tspan> 配远端 <tspan fill="#c43c30">→</tspan> <tspan fill="#c43c30">04</tspan> private/ <tspan fill="#c43c30">→</tspan> <tspan fill="#c43c30">05</tspan> 翻译 <tspan fill="#c43c30">→</tspan> <tspan fill="#c43c30">06</tspan> 指针段 <tspan fill="#c43c30">→</tspan> <tspan fill="#c43c30">07</tspan> skip-worktree <tspan fill="#c43c30">→</tspan> <tspan fill="#c43c30">08</tspan> 本地就绪</text>
+</svg>
