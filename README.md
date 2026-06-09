@@ -4,6 +4,12 @@
 
 # privatize-fork
 
+<p align="center">
+  <a href="https://github.com/legdonkey/privatize-fork/releases"><img src="https://img.shields.io/github/v/release/legdonkey/privatize-fork?sort=semver&label=release&color=2563eb" alt="release"></a>
+  <img src="https://img.shields.io/badge/Claude%20Code-plugin-7C3AED" alt="Claude Code plugin">
+  <a href="https://agentskills.io"><img src="https://img.shields.io/badge/Agent%20Skills-Compatible-1F6FEB" alt="Agent Skills Compatible"></a>
+</p>
+
 > 一个跨 **Claude Code** 与 **Codex** 的 [skill](https://agentskills.io)：把 clone 下来的开源项目 fork **一次性私有化**。
 
 配好 upstream 只读跟踪 + 禁推、建立 `private/` 维护规范与改动台账、**由 skill 自己内联完成 upstream 初始化与文档翻译**、写好 `CLAUDE.md` / `AGENTS.md` 指针——让一个私有 fork 能长期跟踪上游稳定版，同时把私有定制干净隔离、可维护。
