@@ -49,24 +49,39 @@
 
 ## 安装与使用
 
-### 一键安装
+### 安装
 
-一个 `install.sh` 自动检测本机装了 Claude Code（`~/.claude`）还是 Codex（`~/.codex`），把本仓库软链进对应的 skills 目录（幂等、可重跑、已装则跳过、不覆盖别人的同名目录）。
+三种方式任选其一。装完重启 CC / Codex 即可；skill 不会自动调用，需你手动触发。
 
-**本地安装（首选，clone 后可先 review 再装）：**
+**① Claude Code —— 插件市场（CC 地道做法，可版本化、可更新）**
+
+```
+/plugin marketplace add legdonkey/privatize-fork
+/plugin install privatize-fork@legdonkey
+```
+
+之后用 `/plugin marketplace update` 拉取更新。注意：插件方式的 skill 触发名带命名空间，为 `/privatize-fork:privatize-fork`（软链/skills 目录方式则是干净的 `/privatize-fork`）。
+
+**② Codex —— 内置 skill-installer（Codex 地道做法）**
+
+在 Codex 里调用内置 `skill-installer`（`$skill-installer`），传入 GitHub 路径，它会 clone 进 `~/.codex/skills/`：
+
+```
+legdonkey/privatize-fork/skills/privatize-fork
+```
+
+**③ 一键装两边 —— install.sh（同时软链进 CC 与 Codex，最省事）**
+
+`install.sh` 自动检测本机装了 `~/.claude` 还是 `~/.codex`，把 skill 软链进对应 skills 目录（幂等、可重跑、已装则跳过、不覆盖同名目录；软链可随 `git pull` 原地更新）。
 
 ```bash
+# 本地（首选，clone 后可先 review 再装）：
 git clone https://github.com/legdonkey/privatize-fork
 cd privatize-fork && ./install.sh        # 加 --copy 用复制代替软链
-```
 
-**远程一键安装（便捷）：**
-
-```bash
+# 远程便捷：
 curl -fsSL https://raw.githubusercontent.com/legdonkey/privatize-fork/main/install.sh | bash
 ```
-
-装完重启 CC / Codex 即可。
 
 > **不会自动调用**：CC 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——两边都只能由你手动触发。私有化是有副作用的操作，刻意设计成「人点头才跑」。
 
@@ -121,14 +136,18 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 ### 仓库结构
 
 ```text
-SKILL.md                                      # skill 入口（CC/Codex 共用），唯一被识别的文件
-install.sh                                     # 一键安装：软链进 CC + Codex 的 skills 目录
-agents/openai.yaml                             # Codex 专属元数据（禁自动调用；CC 忽略）
-references/                                    # 按需读取的模板/流程，skill 运行时用
-├── maintenance-readme.template.md            #  → private/README.md（维护规范）
-├── changes-registry.template.md              #  → private/CHANGES-REGISTRY.md（改动台账）
-├── translate-docs.md                         #  翻译流程（skill 内联执行）
-└── translations-conventions.template.md      #  → private/translations/CONVENTIONS.md（翻译模块）
+.claude-plugin/                                # CC 插件市场清单（/plugin 安装用）
+├── marketplace.json                           #  市集：列出本仓库这个 plugin
+└── plugin.json                                #  插件清单：privatize-fork
+skills/privatize-fork/                         # skill 本体（CC/Codex 共用，软链/插件都指它）
+├── SKILL.md                                   #  入口，唯一被识别的文件
+├── agents/openai.yaml                         #  Codex 专属元数据（禁自动调用；CC 忽略）
+└── references/                                #  按需读取的模板/流程，skill 运行时用
+    ├── maintenance-readme.template.md         #   → private/README.md（维护规范）
+    ├── changes-registry.template.md           #   → private/CHANGES-REGISTRY.md（改动台账）
+    ├── translate-docs.md                      #   翻译流程（skill 内联执行）
+    └── translations-conventions.template.md   #   → private/translations/CONVENTIONS.md（翻译模块）
+install.sh                                     # 一键装两边：软链进 CC + Codex 的 skills 目录
 assets/                                        # README 配图（outline 矢量，引用用）
 ├── banner.svg / features.svg                  #  → README 引用的产物（文字已转路径）
 └── src/                                        #  可编辑源 + build-svg.sh（改图后重生成产物）

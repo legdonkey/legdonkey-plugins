@@ -33,16 +33,20 @@ for arg in "$@"; do
 done
 
 # --- 1. 定位 skill 源目录 -------------------------------------------------
-# 优先用脚本所在目录（本地 clone 场景）；脚本旁没有 SKILL.md 说明是 curl 远程
+# skill 在仓库里的子路径（同时也是 CC plugin 的 skills/<name> 约定布局）。
+SKILL_SUBPATH="skills/$SKILL_NAME"
+
+# 优先用脚本所在仓库（本地 clone 场景）；脚本旁没有该 skill 说明是 curl 远程
 # 执行（脚本在临时管道里），此时 clone 仓库到 PRIVATIZE_FORK_HOME。
+# 返回的是 skill 目录（仓库/$SKILL_SUBPATH），软链它即可。
 resolve_src() {
   # 解析脚本自身的真实路径（兼容软链）
   local src="${BASH_SOURCE[0]:-}"
   if [ -n "$src" ]; then
     local dir
     dir="$(cd "$(dirname "$src")" >/dev/null 2>&1 && pwd)" || dir=""
-    if [ -n "$dir" ] && [ -f "$dir/SKILL.md" ]; then
-      printf '%s\n' "$dir"
+    if [ -n "$dir" ] && [ -f "$dir/$SKILL_SUBPATH/SKILL.md" ]; then
+      printf '%s\n' "$dir/$SKILL_SUBPATH"
       return 0
     fi
   fi
@@ -57,7 +61,7 @@ resolve_src() {
     mkdir -p "$(dirname "$home")"
     git clone --depth 1 "$REPO_URL" "$home" >&2
   fi
-  printf '%s\n' "$home"
+  printf '%s\n' "$home/$SKILL_SUBPATH"
 }
 
 SRC="$(resolve_src)"

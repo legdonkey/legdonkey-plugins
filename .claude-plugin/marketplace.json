@@ -1,0 +1,13 @@
+{
+  "name": "legdonkey",
+  "owner": { "name": "legdonkey" },
+  "description": "legdonkey 的 Claude Code 工具集市，目前收录 privatize-fork（开源 fork 一次性私有化脚手架）。",
+  "plugins": [
+    {
+      "name": "privatize-fork",
+      "source": "./",
+      "description": "把 clone 下来的开源 fork 一次性私有化的脚手架：upstream 只读跟踪+禁推、private/ 隔离与维护规范、跨 Claude Code 与 Codex。",
+      "version": "1.0.0"
+    }
+  ]
+}
