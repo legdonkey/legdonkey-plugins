@@ -4,9 +4,9 @@
 
 # privatize-fork
 
-> 一个 Claude Code [skill](https://docs.claude.com/en/docs/claude-code/skills)：把 clone 下来的开源项目 fork **一次性私有化**。
+> 一个跨 **Claude Code** 与 **Codex** 的 [skill](https://agentskills.io)：把 clone 下来的开源项目 fork **一次性私有化**。
 
-配好 upstream 只读跟踪 + 禁推、建立 `private/` 维护规范与改动台账、安装 `/private-init` 等私有命令、写好 `CLAUDE.md` 指针——让一个私有 fork 能长期跟踪上游稳定版，同时把私有定制干净隔离、可维护。
+配好 upstream 只读跟踪 + 禁推、建立 `private/` 维护规范与改动台账、**由 skill 自己内联完成 upstream 初始化与文档翻译**（不再往 fork 里塞 slash 命令）、写好 `CLAUDE.md` / `AGENTS.md` 指针——让一个私有 fork 能长期跟踪上游稳定版，同时把私有定制干净隔离、可维护。
 
 内置了从实战中提炼的方法论：**先勘察 → 私有隔离 → 本地定型 → 最后一次性发布**。
 
@@ -14,15 +14,15 @@
 
 - 🔍 **只读勘察暗礁**：动手前先扫一遍 `.gitignore` 通配误伤、故意跟踪的文件、官方版本号位置、本地状态文件、upstream 最新 tag——把项目的坑全摸清再动手。
 - 🧭 **引导问答一次问全**：upstream 地址、私有 tag 格式、remote 协议、是否启用翻译模块、高冲突文件清单，能从勘察推断的给默认值。
-- 🔒 **upstream 只读跟踪 + 禁推**：从 git 层面把 upstream 的 `push` 设成 `DISABLED`，杜绝误把私有改动推到原作者仓库。
-- 📁 **私有内容彻底隔离**：所有定制只进 `private/` 和 `.claude/commands/`，绝不混进 upstream 维护的目录，升级时不再冲突地狱。
+- 🔒 **upstream 只读跟踪 + 禁推**：从 git 层面把 upstream 的 `push` 设成 `DISABLED`，杜绝误把私有改动推到原作者仓库。这一步即 init，幂等可重跑。
+- 📁 **私有内容彻底隔离**：所有定制只进 `private/`（指针段除外），绝不混进 upstream 维护的目录，升级时不再冲突地狱。
 - 📖 **维护规范自动生成**：`private/README.md` 含升级流程、私有 tag 约定、版本号位置、验证命令。
 - 📒 **改动台账**：`private/CHANGES-REGISTRY.md` 登记每一处私有定制，可追溯、可审计。
-- ⌘ **私有命令脚手架**：装 `/private-init` 等私有 slash 命令到 `.claude/commands/`。
-- 🌐 **可选文档翻译模块（支持增量更新）**：按需装 `/translate-docs` + `private/translations/CONVENTIONS.md`，把 upstream 官方文档译成中文供团队参考。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；翻译重活还会派给并行 subagent，不把原文堆进主上下文。
-- 📌 **CLAUDE.md 指针**：仓库已有 `CLAUDE.md` 时，自动接入「私有维护规范」指针段（去重，不重复追加）。
+- 🧩 **跨 CC / Codex 一键安装**：`SKILL.md` 是 [开放标准](https://agentskills.io)，一个 `install.sh` 同时软链进 `~/.claude/skills/` 和 `~/.codex/skills/`，两边通用、随 `git pull` 更新。
+- 🌐 **可选文档翻译（内联 + 增量更新）**：skill **自己内联翻译** upstream 官方文档到 `private/translations/`，无需装命令。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑 skill 时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；支持并行子任务的 agent（如 CC 的 `Task`）并行翻译，否则顺序进行。
+- 📌 **指针段跨平台**：按团队 agent 把「私有维护规范」指针写进 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex），去重不重复追加。
 - 🧰 **本地状态文件 skip-worktree**：`.idea/`、`.vscode/`、`.obsidian/workspace.json` 等上游跟踪、每台机器不同的文件，逐个征得同意后让本机忽略其变化。
-- ♻️ **幂等可重入**：可重复执行，已存在的文件一律不覆盖、只补缺失；追加操作先去重。
+- ♻️ **幂等可重入**：可重复执行，已存在的文件一律不覆盖、只补缺失；**重跑 skill = 重配 upstream + 增量刷新翻译**，这就是后续维护要做的全部。
 - 🏁 **本地就绪，发布交给你**：skill 只做到「本地就绪」，不替你 push、不替你打 tag，确认无误后一次性发布。
 
 ## 解决什么问题
@@ -38,25 +38,49 @@
 
 ## 安装
 
-skill 靠目录里的 `SKILL.md` 被 Claude Code 识别。把本仓库软链到用户级 skills 目录即可：
+一个 `install.sh` 自动检测本机装了 Claude Code（`~/.claude`）还是 Codex（`~/.codex`），把本仓库软链进对应的 skills 目录（幂等、可重跑、已装则跳过、不覆盖别人的同名目录）。
+
+**本地安装（首选，clone 后可先 review 再装）：**
 
 ```bash
-git clone <this-repo> ~/Projects/privatize-fork
-ln -s ~/Projects/privatize-fork ~/.claude/skills/privatize-fork
+git clone https://github.com/legdonkey/privatize-fork
+cd privatize-fork && ./install.sh        # 加 --copy 用复制代替软链
 ```
 
-> 本 skill 带 `disable-model-invocation: true` —— **Claude 不会自动调用它**，只能由你手动触发。私有化是有副作用的操作，刻意设计成「人点头才跑」。
+**远程一键安装（便捷）：**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/legdonkey/privatize-fork/main/install.sh | bash
+```
+
+装完重启 CC / Codex 即可。
+
+> **不会自动调用**：CC 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——两边都只能由你手动触发。私有化是有副作用的操作，刻意设计成「人点头才跑」。
+
+### 兼容性
+
+`SKILL.md` 是 [agentskills.io](https://agentskills.io) 开放标准，同一份文件 CC / Codex / Gemini CLI / Cursor 等 30+ 工具通用。两边差异都已抹平：
+
+| | Claude Code | Codex |
+|---|---|---|
+| skills 目录 | `~/.claude/skills/` | `~/.codex/skills/` |
+| 禁自动调用 | `disable-model-invocation: true`（frontmatter） | `agents/openai.yaml` → `allow_implicit_invocation: false` |
+| 选项弹窗 | `AskUserQuestion` | `request_user_input`（需先 `/plan` 才弹窗） |
+| 并行子任务 | `Task` | 顺序执行 |
+| 指令文件（指针段） | `CLAUDE.md` | `AGENTS.md` |
+
+> Codex 用户提示：引导问答要弹出图形化选项，需先 `/plan` 进入 Plan 模式；否则 Codex 会静默用默认值。
 
 ## 使用
 
 1. clone 你的私有 fork 到本地（`origin` 指向你的 fork）；
-2. 在**该项目目录**里打开 Claude Code，手动输入：
+2. 在**该项目目录**里打开 CC 或 Codex（Codex 建议先 `/plan`），手动触发：
 
 ```
 /privatize-fork
 ```
 
-skill 会带你走完整个流程，最后把私有化基建留在**本地就绪**状态——**不替你 push、不替你打 tag**，发布留给你确认无误后手动做。
+skill 会带你走完整个流程，最后把私有化基建留在**本地就绪**状态——**不替你 push、不替你打 tag**，发布留给你确认无误后手动做。后续维护（重配 upstream、刷新翻译）只需**重跑这个 skill**，无需任何额外命令。
 
 ## 它会做什么（8 个阶段）
 
@@ -64,17 +88,17 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 |------|------|
 | 0 | 前置检查 + 重入守卫（已初始化则进增量模式，只补缺失、绝不覆盖） |
 | 1 | 勘察（只读）：远端协议、`.gitignore` 暗礁、版本号位置、本地状态文件、upstream tag |
-| 2 | 引导问答：upstream 地址、私有 tag 格式、协议、是否启用翻译模块、高冲突文件清单 |
-| 3 | 配 git 远端：upstream 只读跟踪 + `push = DISABLED` |
+| 2 | 引导问答：upstream 地址、私有 tag 格式、协议、是否启用翻译、团队用哪个 agent、高冲突文件清单 |
+| 3 | 配 git 远端（即 init）：upstream 只读跟踪 + `push = DISABLED` |
 | 4 | 建 `private/`：维护规范 `README.md` + 改动台账 `CHANGES-REGISTRY.md` |
-| 5 | 装私有命令：`/private-init`（+ 可选 `/translate-docs` 文档翻译模块） |
-| 6 | 写 `CLAUDE.md` 指针段（仅当仓库已有 `CLAUDE.md`） |
+| 5 | 翻译（若启用）：skill 内联翻译 upstream 文档，增量更新（**不装任何命令**） |
+| 6 | 写指针段：`CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex） |
 | 7 | 本地状态文件按需 `skip-worktree`（逐个征得同意） |
 | 8 | 收尾：汇总产物，给出发布命令但**不自动执行** |
 
 ## 四条铁律
 
-1. **私有内容零混入**：私有文件只进 `private/` 和 `.claude/commands/`，绝不混进 upstream 维护的目录。
+1. **私有内容零混入**：私有文件只进 `private/`（指针段除外），绝不混进 upstream 维护的目录。
 2. **动手前先读 `.gitignore`**：上游忽略规则会误伤你将生成的文件，也会暴露它「故意跟踪」的特殊文件。
 3. **重入安全（幂等）**：可重复执行，已存在的文件一律不覆盖，只补缺失。
 4. **本地定型后再发布**：skill 只做到「本地就绪」，push 和打 tag 留给你确认无误后手动做。
@@ -82,13 +106,15 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 ## 仓库结构
 
 ```text
-SKILL.md                                      # skill 入口（给 Claude 执行用），唯一被识别的文件
-references/                                    # 按需读取的模板，做占位符替换后写入目标项目
+SKILL.md                                      # skill 入口（CC/Codex 共用），唯一被识别的文件
+install.sh                                     # 一键安装：软链进 CC + Codex 的 skills 目录
+agents/openai.yaml                             # Codex 专属元数据（禁自动调用；CC 忽略）
+references/                                    # 按需读取的模板/流程，skill 运行时用
 ├── maintenance-readme.template.md            #  → private/README.md（维护规范）
 ├── changes-registry.template.md              #  → private/CHANGES-REGISTRY.md（改动台账）
-├── private-init.command.md                   #  → .claude/commands/private-init.md
-├── translate-docs.command.md                 #  → .claude/commands/translate-docs.md（翻译模块）
+├── translate-docs.md                         #  翻译流程（skill 内联执行，不再装成命令）
 └── translations-conventions.template.md      #  → private/translations/CONVENTIONS.md（翻译模块）
+assets/                                        # README 头图
 README.md                                     # 本文件（给人看的门面，不影响 skill 运行）
 ```
 

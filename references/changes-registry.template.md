@@ -13,8 +13,7 @@ git diff --stat upstream/{{BASE_VERSION}}...main
 |------|--------------|--------|--------------|----------|
 | 私有维护规范 | `private/README.md` | fork 维护流程，upstream 没有 | 保私有版 | {{BASE_VERSION}}-private.1 |
 | 私有目录 | `private/` | 台账/规范（可选译文），与 upstream 隔离 | upstream 无此目录，不冲突 | {{BASE_VERSION}}-private.1 |
-| 私有 slash 命令 | `.claude/commands/` | `/private-init` 等私有命令 | upstream 一般不动 `.claude/commands/`，低冲突 | {{BASE_VERSION}}-private.1 |
-| CLAUDE.md 指针段 | `CLAUDE.md`（若存在） | 让 CC 遵循私有规范 | 保私有段，再并入 upstream 新内容 | {{BASE_VERSION}}-private.1 |
+| 指针段 | `CLAUDE.md` / `AGENTS.md`（按团队 agent） | 让 CC/Codex 自动遵循私有规范 | 保私有段，再并入 upstream 新内容 | {{BASE_VERSION}}-private.1 |
 
 ## 高冲突文件清单
 

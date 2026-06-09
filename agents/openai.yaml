@@ -1,0 +1,9 @@
+# Codex 专属元数据（Claude Code 会忽略本文件）。
+# 与 SKILL.md 的 frontmatter `disable-model-invocation: true` 等价：
+# 私有化是有副作用的操作，刻意设计成「只能由人手动触发，模型不会自动调用」。
+interface:
+  display_name: "privatize-fork"
+  short_description: "把 clone 下来的开源 fork 一次性私有化的脚手架"
+
+policy:
+  allow_implicit_invocation: false
