@@ -47,7 +47,7 @@ test -f private/README.md && echo "ALREADY_INITIALIZED" || echo "FRESH"
 **这一步只读不改**，固化成脚本保证每条命令都真跑、不漏项：
 
 ```bash
-SKILL_DIR=$(ls -d ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork 2>/dev/null | head -1)
+SKILL_DIR=""; for d in ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork; do [ -d "$d" ] && { SKILL_DIR="$d"; break; }; done
 bash "$SKILL_DIR/scripts/recon.sh"
 ```
 
@@ -88,7 +88,7 @@ bash "$SKILL_DIR/scripts/recon.sh"
 
 ```bash
 # 先定位本 skill 目录（软链/复制安装都适用），再调脚本
-SKILL_DIR=$(ls -d ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork 2>/dev/null | head -1)
+SKILL_DIR=""; for d in ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork; do [ -d "$d" ] && { SKILL_DIR="$d"; break; }; done
 
 # 配 upstream + 设防误推闸 + fetch tag + 自检；地址用阶段2确认的 upstream 地址
 bash "$SKILL_DIR/scripts/setup-remote.sh" "<阶段2确认的upstream地址>"

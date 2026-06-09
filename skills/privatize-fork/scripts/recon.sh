@@ -40,7 +40,9 @@ echo
 
 echo "## 4. 本地状态文件（候选 skip-worktree 对象）"
 git status --short || true
-ls -d .obsidian .idea .vscode 2>/dev/null || echo "（未见 .obsidian/.idea/.vscode）"
+found_state=0
+for d in .obsidian .idea .vscode; do [ -e "$d" ] && { echo "found: $d"; found_state=1; }; done
+[ "$found_state" = 0 ] && echo "（未见 .obsidian/.idea/.vscode）"
 echo
 
 echo "## 5. upstream 最新正式 tag"

@@ -32,7 +32,7 @@ git describe --tags --abbrev=0 "$(git rev-parse --abbrev-ref upstream/HEAD)" 2>/
 这步要读每篇译文 frontmatter 的 `source_version` 再跑 `git diff` 跟基线比对——模型最易在此偷懒（凭印象说「没变」），故固化成脚本：
 
 ```bash
-SKILL_DIR=$(ls -d ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork 2>/dev/null | head -1)
+SKILL_DIR=""; for d in ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork; do [ -d "$d" ] && { SKILL_DIR="$d"; break; }; done
 # 入参为第2步白名单里的源文件；脚本对每个判出状态
 bash "$SKILL_DIR/scripts/translate-plan.sh" README.md CONTRIBUTING.md docs/setup.md
 ```
