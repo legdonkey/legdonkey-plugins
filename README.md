@@ -7,6 +7,7 @@
 <p align="center">
   <a href="https://github.com/legdonkey/privatize-fork/releases"><img src="https://img.shields.io/github/v/release/legdonkey/privatize-fork?sort=semver&label=release&color=2563eb" alt="release"></a>
   <img src="https://img.shields.io/badge/Claude%20Code-plugin-7C3AED" alt="Claude Code plugin">
+  <img src="https://img.shields.io/badge/Codex-ready-10A37F" alt="Codex ready">
   <a href="https://agentskills.io"><img src="https://img.shields.io/badge/Agent%20Skills-Compatible-1F6FEB" alt="Agent Skills Compatible"></a>
 </p>
 
