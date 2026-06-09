@@ -52,7 +52,7 @@
 
   <!-- ===== title ===== -->
   <text x="448" y="118" font-size="54" font-weight="700" fill="#f0f6fc" letter-spacing="-1">privatize-fork</text>
-  <text x="450" y="160" font-size="22" font-weight="500" fill="#9aa7b8">开源 fork 一次性私有化脚手架 · Claude Code + Codex</text>
+  <text x="450" y="160" font-size="22" font-weight="500" fill="#9aa7b8">开源 fork 私有化 · 立一套可长期维护的规范 · Claude Code + Codex</text>
 
   <!-- ===== feature grid: 2 rows x 3 cols, covers every stage ===== -->
   <g font-size="17" font-weight="600">
@@ -107,14 +107,14 @@
       </g>
       <text x="46" y="30" fill="#c9d3e0">可选文档翻译</text>
     </g>
-    <!-- 6. idempotent / re-entrant -->
+    <!-- 6. maintenance spec (remote / branch / version conventions) -->
     <g transform="translate(980,256)">
-      <rect width="248" height="48" rx="12" fill="#161b22" stroke="#2b3340" stroke-width="1.5"/>
-      <g transform="translate(24,24)" fill="none" stroke="#7ee787" stroke-width="2.2" stroke-linecap="round">
-        <path d="M8 -3 a9 9 0 1 0 1 7"/>
-        <path d="M8 -9 v6 h-6"/>
+      <rect width="248" height="48" rx="12" fill="#10161f" stroke="#2b3340" stroke-width="1.5"/>
+      <g transform="translate(24,24)" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M0 -10 l9 4 v6 c0 6 -5 8.5 -9 10.5 c-4 -2 -9 -4.5 -9 -10.5 v-6 z"/>
+        <path d="M-4 0 l3 3 l6 -6.5"/>
       </g>
-      <text x="46" y="30" fill="#c9d3e0">幂等·可重入</text>
+      <text x="46" y="30" fill="#c9d3e0">维护规范</text>
     </g>
   </g>
 
