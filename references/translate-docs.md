@@ -1,7 +1,6 @@
-# 文档翻译流程（skill 内联执行，非独立命令）
+# 文档翻译流程
 
-> 这是 privatize-fork skill 在「启用翻译模块」时**自己读取并执行**的流程，不再装成 slash 命令。
-> 用户重跑 skill 即可做增量刷新。
+> privatize-fork skill 在启用翻译模块时读取并执行本流程；用户重跑 skill 即做增量刷新。
 
 把 upstream 官方文档翻译成中文，产出到 `private/translations/`。
 **增量更新**：已最新的译文跳过，只翻缺失的和源文件有变动的。

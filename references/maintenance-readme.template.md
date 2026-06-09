@@ -61,7 +61,7 @@ git fetch upstream --tags
 private/                 # 私有数据：本规范、台账、（可选）译文
 ```
 
-upstream 初始化与文档翻译由 privatize-fork skill 内联完成（重跑即可），fork 里**不落任何 slash 命令文件**。让 AI 自动遵循本规范的指针段写在 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex）。
+upstream 初始化与文档翻译由 privatize-fork skill 内联完成（重跑即可）。让 AI 自动遵循本规范的指针段写在 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex）。
 
 ## 升级流程
 

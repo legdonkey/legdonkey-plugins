@@ -1,12 +1,12 @@
 ---
 name: privatize-fork
-description: 把一个 clone 下来的开源项目 fork 私有化的脚手架工作流——配置 upstream 只读跟踪+禁推、建立 private/ 目录与维护规范、内联完成 upstream 初始化与文档翻译（无需再装 slash 命令）、写 CLAUDE.md/AGENTS.md 指针。跨 Claude Code 与 Codex（SKILL.md 开放标准）。内置实战提炼的方法论：先勘察（.gitignore/版本号/本地状态文件）→ 私有隔离 → 本地定型 → 最后一次性发布。
+description: 把一个 clone 下来的开源项目 fork 私有化的脚手架工作流——配置 upstream 只读跟踪+禁推、建立 private/ 目录与维护规范、内联完成 upstream 初始化与文档翻译、写 CLAUDE.md/AGENTS.md 指针。跨 Claude Code 与 Codex（SKILL.md 开放标准）。内置实战提炼的方法论：先勘察（.gitignore/版本号/本地状态文件）→ 私有隔离 → 本地定型 → 最后一次性发布。
 disable-model-invocation: true
 ---
 
 # privatize-fork — 开源 fork 私有化脚手架
 
-把当前目录（一个 clone 下来的开源项目 fork）一次性私有化：配 git 远端、建私有目录与维护规范，**并由 skill 自己内联完成 upstream 初始化与文档翻译**（不再往 fork 里装 slash 命令）。**不替用户 push 或打 tag**——基建在本地就绪，发布留给用户确认后一次性做。
+把当前目录（一个 clone 下来的开源项目 fork）一次性私有化：配 git 远端、建私有目录与维护规范，**并由 skill 自己内联完成 upstream 初始化与文档翻译**。**不替用户 push 或打 tag**——基建在本地就绪，发布留给用户确认后一次性做。
 
 模板文件都在本 skill 的 `references/` 下，按需读取并做占位符替换。
 
@@ -18,7 +18,7 @@ disable-model-invocation: true
 
 1. **私有内容零混入**：所有私有文件只进 `private/`（指针段除外，写进 `CLAUDE.md`/`AGENTS.md`），绝不混进 upstream 维护的目录。
 2. **动手前先读 `.gitignore`**：upstream 的忽略规则会误伤你将生成的文件，也会暴露它「故意跟踪」的特殊文件。
-3. **重入安全（幂等）**：本 skill 可能被重复执行。所有写操作前必须 `test -f` 检查——**已存在的文件一律不覆盖**（用户可能已手动改过规范、登记过台账）；追加类操作（`CLAUDE.md`/`AGENTS.md` 指针）先 `grep` 去重。git 远端配置本就幂等。重复执行只补缺失，绝不破坏已有内容。**重跑本 skill = 重配 upstream（幂等）+ 增量刷新翻译**——这正是用户后续维护时该做的，无需任何额外命令。
+3. **重入安全（幂等）**：本 skill 可能被重复执行。所有写操作前必须 `test -f` 检查——**已存在的文件一律不覆盖**（用户可能已手动改过规范、登记过台账）；追加类操作（`CLAUDE.md`/`AGENTS.md` 指针）先 `grep` 去重。git 远端配置本就幂等。重复执行只补缺失，绝不破坏已有内容。**重跑本 skill = 重配 upstream（幂等）+ 增量刷新翻译**——这正是用户后续维护时该做的。
 
 > 另一条操作约定：**本 skill 只做到「本地就绪」，绝不替用户 push 或打 tag**——发布交给用户确认无误后手动做（详见阶段 8）。
 
@@ -38,7 +38,7 @@ test -f private/README.md && echo "ALREADY_INITIALIZED" || echo "FRESH"
   - **绝不覆盖任何已存在的文件**——用户可能已手动改过 `private/README.md`、登记过 `CHANGES-REGISTRY.md`。
   - 逐项检查缺什么（`private/` 文件齐不齐、`CLAUDE.md`/`AGENTS.md` 指针在不在），**只补缺失项**，每个已存在的逐条报告「已存在，跳过」。
   - git 远端配置可安全重跑（幂等，等于重新初始化 upstream）。
-  - **若启用了翻译模块**：照阶段 5 做增量刷新（只重译 upstream 有变动的文档）。这一步替代了过去的 `/translate-docs`。
+  - **若启用了翻译模块**：照阶段 5 做增量刷新（只重译 upstream 有变动的文档）。
   - 动手补齐前，先把「检测到已初始化 + 打算补哪些」告诉用户，确认后再动。
 - **`FRESH`** → 全新项目，正常走完整流程。
 
@@ -82,7 +82,7 @@ git remote get-url upstream >/dev/null 2>&1 \
 
 ## 阶段 3 · 配置 git 远端（自动）
 
-> 这一步就是 upstream 初始化本身（过去那个 `/private-init` 命令做的事，现在由 skill 直接做、且幂等可重跑）。
+> 这一步就是 upstream 初始化本身：由 skill 直接完成，幂等可重跑。
 
 ```bash
 UPSTREAM_URL="<阶段2确认的地址>"
@@ -101,15 +101,15 @@ git remote -v   # 确认 upstream push = DISABLED
   `{{ORIGIN_SLUG}}`、`{{UPSTREAM_SLUG}}`、`{{ORIGIN_URL}}`、`{{UPSTREAM_URL}}`、`{{BASE_VERSION}}`（勘察到的官方版本）、`{{TAG_FORMAT}}`（阶段2确认的私有 tag 格式，默认 `v<官方版本>-private.<N>`）、`{{HIGH_CONFLICT_LIST}}`（阶段2确认）、`{{VERSION_FILES}}`（版本号所在文件）、`{{VERIFY_CMD}}`（项目自带的测试/检查命令，没有就写「（本项目无自动化测试，靠人工验证）」）。
 - `private/CHANGES-REGISTRY.md` ← changes-registry 模板，预填本次脚手架引入的文件。
 
-## 阶段 5 · 翻译（若启用，skill 内联做；不再装任何命令）
+## 阶段 5 · 翻译（若启用，skill 内联执行）
 
-upstream 初始化已在阶段 3 完成。**本阶段不往 fork 里写任何 slash 命令文件**——这是去掉 `/private-init`、`/translate-docs` 后的核心变化。
+upstream 初始化已在阶段 3 完成；本阶段只在启用翻译模块时处理翻译。
 
 - **未启用翻译模块** → 跳过本阶段。
 - **启用了翻译模块**：
   1. 写 `private/translations/CONVENTIONS.md` ← `references/translations-conventions.template.md`（替换 `{{BASE_VERSION}}`；`test -f`，已存在不覆盖）。
   2. 读 `references/translate-docs.md`，**按其流程内联执行翻译**：先判断待翻清单（缺失/源文件有变动的），再翻译（支持并行子任务的 agent 如 CC 的 `Task` 并行做，否则顺序做）。**增量更新**——已最新的译文跳过。
-  3. 提示用户：翻译白名单需按目标项目实际文档调整（见 `references/translate-docs.md` 第 2 步），以后**重跑本 skill 即做增量刷新**，无需任何额外命令。
+  3. 提示用户：翻译白名单需按目标项目实际文档调整（见 `references/translate-docs.md` 第 2 步），以后**重跑本 skill 即做增量刷新**。
 
 ## 阶段 6 · 指针段（自动，跨 CC / Codex）
 
