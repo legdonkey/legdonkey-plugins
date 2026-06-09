@@ -10,30 +10,38 @@
 
 读 `private/translations/CONVENTIONS.md`，记住命名约定（`<原名去扩展>.zh.md`）和 frontmatter 格式（`source` / `source_version` / `translated_at`）。
 
-## 第 1 步：确定 upstream 基线
+## 第 1 步：确定 upstream 基线（已并入第3步脚本，无需手动）
+
+本轮所有译文的 `source_version` 都对齐到 upstream 最新 tag。该值由第3步的 `translate-plan.sh` 自动求出——它会**探测 upstream 默认分支（main 或 master 都支持，不硬编码）**再取最新 tag，等价于：
 
 ```bash
-git describe --tags --abbrev=0 upstream/main 2>/dev/null || echo "（无 tag，先 git fetch upstream --tags）"
+git describe --tags --abbrev=0 "$(git rev-parse --abbrev-ref upstream/HEAD)" 2>/dev/null || echo "（无 tag，先 git fetch upstream --tags）"
 ```
 
-作为本轮所有译文的 `source_version`。
+## 第 2 步：翻译范围（读 CONVENTIONS.md 的白名单，不再手改模板）
 
-## 第 2 步：翻译范围（白名单 —— 按本项目实际文档调整！）
+翻译范围以 `private/translations/CONVENTIONS.md` 的「翻译范围（白名单）」区块为准——该清单在 skill 阶段2由「翻译范围选择框」扫描本项目文档后确认并落地。**直接读它**：白名单逐个翻、黑名单一律跳过。
 
-只翻面向用户的文档。**首次启用后请改成你项目的实际文档清单**，例如：
+需要增删范围时，改 `CONVENTIONS.md` 的白名单区块即可（不要改本流程文件），重跑 skill 照此刷新。
 
-- `README.md`、`CONTRIBUTING.md`、`docs/*.md` 等
+> 兜底：若 `CONVENTIONS.md` 尚无该区块（老版本初始化的项目），退回默认——只翻面向用户的文档（`README.md`、`CONTRIBUTING.md`、`docs/*.md` 等），排除变更/历史记录（CHANGELOG、audits）与本就中文的文档。
+> （AI 指令文件 CLAUDE.md / AGENTS.md / GEMINI.md：若团队要参考可纳入；译文为 `.zh.md` 放 `private/translations/`，在子目录、改了名，不会被 AI 当指令加载。）
 
-**显式排除**：变更/历史记录（CHANGELOG、audits）、本就是中文的私有文档。
-（AI 指令文件 CLAUDE.md / AGENTS.md / GEMINI.md：若团队要参考可纳入；译文为 `.zh.md` 放 `private/translations/`，在子目录、改了名，不会被 AI 当指令加载。）
+## 第 3 步：判断待翻清单（调脚本，先别翻全文）
 
-## 第 3 步：判断待翻清单（轻活，先别翻全文）
+这步要读每篇译文 frontmatter 的 `source_version` 再跑 `git diff` 跟基线比对——模型最易在此偷懒（凭印象说「没变」），故固化成脚本：
 
-对白名单每个源文件 `<src>`，目标 `private/translations/<basename>.zh.md`：
-- 译文不存在 → 「待翻译」。
-- 译文已存在：读 frontmatter 的 `source_version`，跑 `git diff --stat <旧版本>..<当前基线> -- <src>`；非空→「待重译」，空→「跳过」。
+```bash
+SKILL_DIR=$(ls -d ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork 2>/dev/null | head -1)
+# 入参为第2步白名单里的源文件；脚本对每个判出状态
+bash "$SKILL_DIR/scripts/translate-plan.sh" README.md CONTRIBUTING.md docs/setup.md
+```
 
-清单为空 → 报告「全部最新」并结束，不翻译。
+脚本对每个源文件输出状态：`TRANSLATE`（译文缺失，待翻）/ `RETRANSLATE`（源文件较基线有改动，待重译）/ `SKIP`（已最新）/ `NEEDS-CHECK`（无基线无法比对）/ `MISSING-SRC`（源文件不存在）。**只翻 `TRANSLATE` 和 `RETRANSLATE`**，`SKIP` 跳过。
+
+汇总行显示各类计数；待翻 + 待重译 + 待确认均为 0 → 报告「全部最新」并结束，不翻译。
+
+> 第1步「确定 upstream 基线」已并入本脚本（内部跑 `git describe --tags --abbrev=0 upstream/main`），无需单独执行。
 
 ## 第 4 步：翻译（并行优先，否则顺序）
 

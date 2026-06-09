@@ -37,6 +37,7 @@
 - 🔍 **只读勘察暗礁**：动手前先扫一遍 `.gitignore` 通配误伤、故意跟踪的文件、官方版本号位置、本地状态文件、upstream 最新 tag——把项目的坑全摸清再动手。
 - 🧭 **引导问答一次问全**：upstream 地址、私有 tag 格式、remote 协议、是否启用翻译模块、高冲突文件清单，能从勘察推断的给默认值。
 - 🔒 **upstream 只读跟踪 + 禁推**：从 git 层面把 upstream 的 `push` 设成 `DISABLED`，杜绝误把私有改动推到原作者仓库。这一步即 init，幂等可重跑。
+- 🧷 **关键步骤固化为自检脚本**：勘察、配远端禁推、判断待翻清单这三处「确定性强、又最怕模型凭印象跳步」的环节，抽成了幂等/只读的小脚本（`scripts/`）——尤其禁推闸会**自检 `push = DISABLED` 是否真生效**，不对就报错退出，不再单靠模型自觉；判断与翻译等需要灵活性的部分仍交给模型。
 - 📁 **私有内容尽量隔离**：新增定制集中进 `private/`，不往 upstream 目录塞新文件；确需直接改的上游文件登记入账、定好冲突策略，升级时有据可查。
 - 📖 **维护规范自动生成**：`private/README.md` 含升级流程、私有 tag 约定、版本号位置、验证命令。
 - 📒 **改动台账**：`private/CHANGES-REGISTRY.md` 登记每一处私有定制，可追溯、可审计。
@@ -117,11 +118,11 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 | 阶段 | 动作 |
 |------|------|
 | 0 | 前置检查 + 重入守卫（已初始化则进增量模式，只补缺失、绝不覆盖） |
-| 1 | 勘察（只读）：远端协议、`.gitignore` 暗礁、版本号位置、本地状态文件、upstream tag |
+| 1 | 勘察（只读，跑 `recon.sh`）：远端协议、`.gitignore` 暗礁、版本号位置、本地状态文件、upstream tag |
 | 2 | 引导问答：upstream 地址、私有 tag 格式、协议、是否启用翻译、团队用哪个 agent、高冲突文件清单 |
-| 3 | 配 git 远端（即 init）：upstream 只读跟踪 + `push = DISABLED` |
+| 3 | 配 git 远端（即 init，跑 `setup-remote.sh`）：upstream 只读跟踪 + `push = DISABLED` + 自检 |
 | 4 | 建 `private/`：维护规范 `README.md` + 改动台账 `CHANGES-REGISTRY.md` |
-| 5 | 翻译（若启用）：skill 内联翻译 upstream 文档，增量更新 |
+| 5 | 翻译（若启用）：`translate-plan.sh` 判增量清单 → skill 内联翻译变动文档 |
 | 6 | 写指针段：`CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex） |
 | 7 | 本地状态文件按需 `skip-worktree`（逐个征得同意） |
 | 8 | 收尾：汇总产物，给出发布命令但**不自动执行** |
@@ -142,6 +143,10 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 skills/privatize-fork/                         # skill 本体（CC/Codex 共用，软链/插件都指它）
 ├── SKILL.md                                   #  入口，唯一被识别的文件
 ├── agents/openai.yaml                         #  Codex 专属元数据（禁自动调用；CC 忽略）
+├── scripts/                                   #  关键步骤固化的自检脚本（幂等/只读 + 自检）
+│   ├── setup-remote.sh                        #   阶段3：配 upstream + 禁推闸 + 自检
+│   ├── recon.sh                               #   阶段1：只读勘察，结构化输出
+│   └── translate-plan.sh                      #   阶段5：判断待翻清单（增量比对）
 └── references/                                #  按需读取的模板/流程，skill 运行时用
     ├── maintenance-readme.template.md         #   → private/README.md（维护规范）
     ├── changes-registry.template.md           #   → private/CHANGES-REGISTRY.md（改动台账）
