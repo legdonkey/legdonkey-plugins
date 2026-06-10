@@ -71,7 +71,7 @@ bash "$SKILL_DIR/scripts/recon.sh"
    - **启用后立即弹「翻译范围」选择框（关键交互）**：拿阶段1扫到的文档清单做**自动预分类**——
      - *建议翻译（白名单）*：面向用户的文档，如 `README*`、`CONTRIBUTING*`、`docs/` 下的指南类、顶层介绍类 `*.md`。
      - *建议排除（黑名单）*：变更/历史记录（`CHANGELOG*`/`HISTORY*`/含 `audit` 的）、正文本就是中文的文档（抽样含大量中日韩字符）、`private/` 下的、纯模板（如 `.github/` issue 模板）。
-     - *AI 指令文件*（`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`）默认归黑名单，但提示用户「团队要参考可勾入，译文为 `.zh.md` 放 `private/translations/`，在子目录、改了名，不会被 AI 当指令加载」。
+     - *AI 指令文件*（`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`）**默认归白名单（建议翻译）**——译文为 `.zh.md` 放 `private/translations/`，在子目录、改了名，不会被 AI 当指令加载，故纳入翻译是安全的；不想翻的可在弹窗里勾出。
    - 把预分类结果（建议翻译 N 篇 / 建议排除 M 篇，各列文件名）连同四个选项弹给用户（CC=`AskUserQuestion` 单选、Codex=`request_user_input` 需 `/plan`、其它退化为普通问答）：
      1. **采用建议清单**（默认）。
      2. **逐个调整**：把两组清单完整列出，用普通问答让用户报「加哪个、删哪个」，得到最终白名单。

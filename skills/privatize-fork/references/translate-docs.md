@@ -24,8 +24,8 @@ git describe --tags --abbrev=0 "$(git rev-parse --abbrev-ref upstream/HEAD)" 2>/
 
 需要增删范围时，改 `CONVENTIONS.md` 的白名单区块即可（不要改本流程文件），重跑 skill 照此刷新。
 
-> 兜底：若 `CONVENTIONS.md` 尚无该区块（老版本初始化的项目），退回默认——只翻面向用户的文档（`README.md`、`CONTRIBUTING.md`、`docs/*.md` 等），排除变更/历史记录（CHANGELOG、audits）与本就中文的文档。
-> （AI 指令文件 CLAUDE.md / AGENTS.md / GEMINI.md：若团队要参考可纳入；译文为 `.zh.md` 放 `private/translations/`，在子目录、改了名，不会被 AI 当指令加载。）
+> 兜底：若 `CONVENTIONS.md` 尚无该区块（老版本初始化的项目），退回默认——翻面向用户的文档（`README.md`、`CONTRIBUTING.md`、`docs/*.md` 等）与 AI 指令文件（`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`），排除变更/历史记录（CHANGELOG、audits）与本就中文的文档。
+> （AI 指令文件 CLAUDE.md / AGENTS.md / GEMINI.md：**默认纳入翻译**；译文为 `.zh.md` 放 `private/translations/`，在子目录、改了名，不会被 AI 当指令加载。）
 
 ## 第 3 步：判断待翻清单（调脚本，先别翻全文）
 
