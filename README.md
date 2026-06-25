@@ -53,7 +53,7 @@
 | **维护规范自动生成** | `private/README.md` 含升级流程、私有 tag 约定、版本号位置、验证命令。 |
 | **改动台账** | `private/CHANGES-REGISTRY.md` 登记每一处私有定制，可追溯、可审计。 |
 | **CC / Codex 双插件市场** | 同一仓库既是 Claude Code 插件、也是 Codex 插件（`SKILL.md` 遵循 [开放标准](https://agentskills.io)）；从各自插件市场一键安装，可版本化、可更新。 |
-| **可选文档翻译（内联 + 增量更新）** | skill **自己内联翻译** upstream 官方文档到 `private/translations/`，无需装命令。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑 skill 时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；CC（`Task`）与 Codex（subagent）等有并行子任务能力的 agent 并行翻译，仅在确无并行能力时才顺序进行。 |
+| **可选文档翻译（内联 + 增量更新）** | skill **自己内联翻译** upstream 官方文档到 `private/translations/`，无需装命令。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑 skill 时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；CC（`Agent` 子代理）与 Codex（subagent）等有并行子任务能力的 agent 并行翻译，仅在确无并行能力时才顺序进行。 |
 | **指针段跨平台** | 按团队 agent 把「私有维护规范」指针写进 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex），去重不重复追加。 |
 | **本地状态文件 skip-worktree** | `.idea/`、`.vscode/`、`.obsidian/workspace.json` 等上游跟踪、每台机器不同的文件，逐个征得同意后让本机忽略其变化。 |
 | **幂等可重入** | 可重复执行，已存在的文件一律不覆盖、只补缺失；**重跑 skill = 重配 upstream + 增量刷新翻译**，这就是后续维护要做的全部。 |
@@ -127,7 +127,7 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 | 插件位置 | `~/.claude/plugins/` | `~/.codex/plugins/` |
 | 禁自动调用 | `disable-model-invocation: true`（frontmatter） | `agents/openai.yaml` → `allow_implicit_invocation: false` |
 | 选项弹窗 | `AskUserQuestion` | `request_user_input`（交互式会话即可，无需 `/plan`；仅 `codex exec` 非交互模式不支持） |
-| 并行子任务 | `Task` | subagent |
+| 并行子任务 | `Agent`（子代理） | subagent |
 | 指令文件（指针段） | `CLAUDE.md` | `AGENTS.md` |
 
 > Codex 提示：`request_user_input` 在交互式会话（桌面端或交互式 CLI）下直接弹出图形化选项，无需 `/plan`；只有 `codex exec` 非交互/脚本模式不支持，会退化为普通问答。
