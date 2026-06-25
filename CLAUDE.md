@@ -30,12 +30,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 标准子目录布局，任意 Codex 版本可装（不再用「仓库根即插件」那种需 ≥0.142.0 的写法）。**加新插件** = 在 `plugins/` 下建目录（两个 plugin.json + `skills/<name>/`，再在两个 marketplace.json 各加一条）。
 
 ### assets SVG 是生成物
-`assets/*.svg` 由 `assets/src/build-svg.sh` 从 `assets/src/*.svg` 生成。改图要改 src 再重跑脚本，别手改产物。
+每个插件的 `plugins/<plugin>/assets/*.svg` 由根 `assets/build-svg.sh` 从该插件的 `assets/src/*.svg` 生成（脚本遍历所有插件）。改图要改 src 再重跑脚本，别手改产物。安装截图 `assets/install-*.png` 是市场级共享、手动维护。每个插件还各有自己的 `README.md`（被根 README 引用）。
 
 ## 验证（无 CI，本地自查）
 
 ```bash
-shellcheck install-plugins.sh plugins/*/skills/*/scripts/*.sh assets/src/*.sh   # shell 静态检查（应零告警）
+shellcheck install-plugins.sh assets/build-svg.sh plugins/*/skills/*/scripts/*.sh   # shell 静态检查（应零告警）
 for f in .claude-plugin/marketplace.json .agents/plugins/marketplace.json \
          plugins/*/.claude-plugin/plugin.json plugins/*/.codex-plugin/plugin.json; do
   python3 -m json.tool "$f" >/dev/null && echo "OK $f"      # 每个清单都验一遍
