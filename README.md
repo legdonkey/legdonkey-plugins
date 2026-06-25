@@ -11,7 +11,7 @@
   <a href="https://agentskills.io"><img src="https://img.shields.io/badge/Agent%20Skills-Compatible-1F6FEB" alt="Agent Skills Compatible"></a>
 </p>
 
-> 一个跨 **Claude Code** 与 **Codex** 的 [skill](https://agentskills.io)：把 clone 下来的开源项目 fork **一次性私有化**。
+> 一个跨 **Claude Code** 与 **Codex** 的插件（基于开放标准 [skill](https://agentskills.io)）：把 clone 下来的开源项目 fork **一次性私有化**。
 
 配好 upstream 只读跟踪 + 禁推、建立 `private/` 维护规范与改动台账、**由 skill 自己内联完成 upstream 初始化与文档翻译**、写好 `CLAUDE.md` / `AGENTS.md` 指针——让一个私有 fork 能长期跟踪上游稳定版，同时把私有定制干净隔离、可维护。
 
@@ -124,7 +124,7 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 
 | | Claude Code | Codex |
 |---|---|---|
-| skills 目录 | `~/.claude/skills/` | `~/.codex/skills/` |
+| 插件位置 | `~/.claude/plugins/` | `~/.codex/plugins/` |
 | 禁自动调用 | `disable-model-invocation: true`（frontmatter） | `agents/openai.yaml` → `allow_implicit_invocation: false` |
 | 选项弹窗 | `AskUserQuestion` | `request_user_input`（需先 `/plan` 才弹窗） |
 | 并行子任务 | `Task` | subagent |
