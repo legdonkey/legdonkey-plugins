@@ -1,0 +1,9 @@
+# Codex 专属元数据（Claude Code 会忽略本文件）。
+# 与 SKILL.md 的 frontmatter `disable-model-invocation: true` 等价：
+# 上下文审计刻意设计成「只能由人手动点名触发，模型不会自动调用」。
+interface:
+  display_name: "codex-context-doctor"
+  short_description: "审计 Codex 安装的插件 / App / MCP / 技能 / 市场源"
+
+policy:
+  allow_implicit_invocation: false

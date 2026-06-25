@@ -1,0 +1,8 @@
+{
+  "name": "codex-context-doctor",
+  "description": "审计 Codex 安装的插件 / App·连接器 / MCP / 技能 / 市场源（纯本地磁盘扫描，不联网），可选对照当前会话可见态。只在手动点名时运行。",
+  "version": "1.0.0",
+  "author": { "name": "legdonkey" },
+  "homepage": "https://github.com/legdonkey/privatize-fork",
+  "repository": "https://github.com/legdonkey/privatize-fork"
+}

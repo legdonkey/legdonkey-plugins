@@ -1,7 +1,7 @@
 {
   "name": "privatize-fork",
   "description": "把 clone 下来的开源 fork 一次性私有化的脚手架：upstream 只读跟踪+禁推、private/ 隔离与维护规范、内联完成 upstream 初始化与文档翻译、写 CLAUDE.md/AGENTS.md 指针。跨 Claude Code 与 Codex。",
-  "version": "1.3.0",
+  "version": "1.5.0",
   "author": { "name": "legdonkey" },
   "homepage": "https://github.com/legdonkey/privatize-fork",
   "repository": "https://github.com/legdonkey/privatize-fork"

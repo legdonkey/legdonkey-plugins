@@ -1,0 +1,119 @@
+<svg width="1280" height="520" viewBox="0 0 1280 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.05" intercept="0"/></feComponentTransfer>
+    </filter>
+    <style>
+      .mono { font-family: 'Menlo','SFMono-Regular',monospace; }
+      .disp { font-family: 'Futura','Avenir Next',sans-serif; }
+      .body { font-family: 'Avenir Next','Helvetica Neue',sans-serif; }
+    </style>
+  </defs>
+
+  <!-- paper + grain -->
+  <rect width="1280" height="520" fill="#f1ebdd"/>
+  <rect width="1280" height="520" fill="#000000" filter="url(#grain)"/>
+
+  <!-- drafting frame -->
+  <rect x="20" y="20" width="1240" height="480" fill="none" stroke="#211e18" stroke-width="1.4"/>
+  <rect x="25" y="25" width="1230" height="470" fill="none" stroke="#211e18" stroke-opacity="0.3" stroke-width="0.8"/>
+  <g stroke="#c43c30" stroke-width="1.6" fill="none">
+    <path d="M20 36 V20 H36"/>
+    <path d="M1244 20 H1260 V36"/>
+    <path d="M20 484 V500 H36"/>
+    <path d="M1244 500 H1260 V484"/>
+  </g>
+
+  <!-- top meta bar -->
+  <text x="44" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#c43c30">审计什么 · WHAT-IT-AUDITS</text>
+  <text x="1236" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#6f685a" text-anchor="end">CODEX-CONTEXT-DOCTOR</text>
+  <line x1="44" y1="62" x2="1236" y2="62" stroke="#211e18" stroke-opacity="0.25" stroke-width="0.8"/>
+
+  <!-- title -->
+  <text x="44" y="108" class="disp" font-size="34" font-weight="600" fill="#211e18">审计什么 <tspan class="mono" font-size="15" letter-spacing="1" fill="#9a948a">/ WHAT IT AUDITS</tspan></text>
+  <text x="44" y="140" class="body" font-size="16" fill="#5f584b">本地只读扫描 <tspan class="mono" font-size="14">~/.codex</tspan>，盘点 5 类对象、给出卫生建议——不联网、无外部依赖</text>
+
+  <!-- ===== 5 audit-target cards ===== -->
+  <!-- 1 插件 (red) -->
+  <g transform="translate(40,164)">
+    <rect width="224" height="208" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+    <text x="16" y="32" class="mono" font-size="15" font-weight="700" fill="#c43c30">01</text>
+    <text x="46" y="33" class="body" font-size="16.5" font-weight="700" fill="#26221b">插件 Plugins</text>
+    <line x1="16" y1="48" x2="208" y2="48" stroke="#c43c30" stroke-width="2"/>
+    <text x="16" y="92" class="mono" font-size="12" fill="#c43c30">.a</text>
+    <text x="42" y="92" class="body" font-size="14.5" font-weight="600" fill="#26221b">来源与版本</text>
+    <text x="42" y="111" class="body" font-size="11.5" fill="#6f685a">缓存 / 本地市场，含版本号</text>
+    <line x1="16" y1="132" x2="208" y2="132" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+    <text x="16" y="166" class="mono" font-size="12" fill="#c43c30">.b</text>
+    <text x="42" y="166" class="body" font-size="14.5" font-weight="600" fill="#26221b">启停 + UI 可见</text>
+    <text x="42" y="185" class="body" font-size="11.5" fill="#6f685a">config.toml + 旧缓存推断</text>
+  </g>
+
+  <!-- 2 App·连接器 (ink-blue) -->
+  <g transform="translate(284,164)">
+    <rect width="224" height="208" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+    <text x="16" y="32" class="mono" font-size="15" font-weight="700" fill="#2f5169">02</text>
+    <text x="46" y="33" class="body" font-size="16.5" font-weight="700" fill="#26221b">App · 连接器</text>
+    <line x1="16" y1="48" x2="208" y2="48" stroke="#2f5169" stroke-width="2"/>
+    <text x="16" y="92" class="mono" font-size="12" fill="#2f5169">.a</text>
+    <text x="42" y="92" class="body" font-size="14.5" font-weight="600" fill="#26221b">插件声明</text>
+    <text x="42" y="111" class="body" font-size="11.5" fill="#6f685a">哪个插件带来的连接器</text>
+    <line x1="16" y1="132" x2="208" y2="132" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+    <text x="16" y="166" class="mono" font-size="12" fill="#2f5169">.b</text>
+    <text x="42" y="166" class="body" font-size="14.5" font-weight="600" fill="#26221b">工具缓存 + 配置</text>
+    <text x="42" y="185" class="body" font-size="11.5" fill="#6f685a">启用 / 禁用对照</text>
+  </g>
+
+  <!-- 3 MCP (olive) -->
+  <g transform="translate(528,164)">
+    <rect width="224" height="208" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+    <text x="16" y="32" class="mono" font-size="15" font-weight="700" fill="#5f7a3f">03</text>
+    <text x="46" y="33" class="body" font-size="16.5" font-weight="700" fill="#26221b">MCP 服务器</text>
+    <line x1="16" y1="48" x2="208" y2="48" stroke="#5f7a3f" stroke-width="2"/>
+    <text x="16" y="92" class="mono" font-size="12" fill="#5f7a3f">.a</text>
+    <text x="42" y="92" class="body" font-size="14.5" font-weight="600" fill="#26221b">配置 + 插件声明</text>
+    <text x="42" y="111" class="body" font-size="11.5" fill="#6f685a">config.toml 与插件两路</text>
+    <line x1="16" y1="132" x2="208" y2="132" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+    <text x="16" y="166" class="mono" font-size="12" fill="#5f7a3f">.b</text>
+    <text x="42" y="166" class="body" font-size="14.5" font-weight="600" fill="#26221b">会话可见</text>
+    <text x="42" y="185" class="body" font-size="11.5" fill="#6f685a">可选快照对照本次会话</text>
+  </g>
+
+  <!-- 4 技能 (ochre) -->
+  <g transform="translate(772,164)">
+    <rect width="224" height="208" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+    <text x="16" y="32" class="mono" font-size="15" font-weight="700" fill="#b07d2b">04</text>
+    <text x="46" y="33" class="body" font-size="16.5" font-weight="700" fill="#26221b">技能 Skills</text>
+    <line x1="16" y1="48" x2="208" y2="48" stroke="#b07d2b" stroke-width="2"/>
+    <text x="16" y="92" class="mono" font-size="12" fill="#b07d2b">.a</text>
+    <text x="42" y="92" class="body" font-size="14.5" font-weight="600" fill="#26221b">插件内嵌</text>
+    <text x="42" y="111" class="body" font-size="11.5" fill="#6f685a">plugin:skill 命名</text>
+    <line x1="16" y1="132" x2="208" y2="132" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+    <text x="16" y="166" class="mono" font-size="12" fill="#b07d2b">.b</text>
+    <text x="42" y="166" class="body" font-size="14.5" font-weight="600" fill="#26221b">独立安装</text>
+    <text x="42" y="185" class="body" font-size="11.5" fill="#6f685a">~/.codex/skills 等</text>
+  </g>
+
+  <!-- 5 市场源 (plum) -->
+  <g transform="translate(1016,164)">
+    <rect width="224" height="208" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+    <text x="16" y="32" class="mono" font-size="15" font-weight="700" fill="#7a5c8a">05</text>
+    <text x="46" y="33" class="body" font-size="16.5" font-weight="700" fill="#26221b">市场源</text>
+    <line x1="16" y1="48" x2="208" y2="48" stroke="#7a5c8a" stroke-width="2"/>
+    <text x="16" y="92" class="mono" font-size="12" fill="#7a5c8a">.a</text>
+    <text x="42" y="92" class="body" font-size="14.5" font-weight="600" fill="#26221b">本地市场</text>
+    <text x="42" y="111" class="body" font-size="11.5" fill="#6f685a">local-marketplaces</text>
+    <line x1="16" y1="132" x2="208" y2="132" stroke="#211e18" stroke-opacity="0.12" stroke-width="0.8"/>
+    <text x="16" y="166" class="mono" font-size="12" fill="#7a5c8a">.b</text>
+    <text x="42" y="166" class="body" font-size="14.5" font-weight="600" fill="#26221b">远程缓存</text>
+    <text x="42" y="185" class="body" font-size="11.5" fill="#6f685a">curated / remote</text>
+  </g>
+
+  <!-- ===== footer data-flow band ===== -->
+  <rect x="40" y="400" width="1200" height="80" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
+  <text x="58" y="428" class="mono" font-size="13" letter-spacing="1.5" fill="#c43c30">数据流 · DATA-FLOW</text>
+  <line x1="58" y1="440" x2="1222" y2="440" stroke="#211e18" stroke-opacity="0.18" stroke-width="0.8"/>
+  <text x="58" y="466" class="mono" font-size="13" fill="#26221b">扫描 ~/.codex（插件缓存 · 本地市场 · config.toml · App 工具缓存 · 独立技能） <tspan fill="#c43c30">→</tspan> 盘点 5 类 <tspan fill="#c43c30">→</tspan> 卫生检查（重名 / 旧缓存 / 配置与磁盘不一致） <tspan fill="#c43c30">→</tspan> report.md + inventory.json</text>
+</svg>
