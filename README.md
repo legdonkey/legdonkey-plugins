@@ -17,7 +17,7 @@
 
 内置了从实战中提炼的方法论：**先勘察 → 私有隔离 → 本地定型 → 最后一次性发布**。
 
-> **附带技能 · codex-context-doctor**：本仓库（及 `privatize-fork` 插件）还收录一个独立技能 `codex-context-doctor`——审计 Codex 安装的插件 / App·连接器 / MCP / 技能 / 市场源（纯本地磁盘扫描，不联网），并可选对照当前会话可见态。同样**只在手动点名时运行**，不会自动调用。详见下文「附带技能」一节。
+> **第二个插件 · codex-context-doctor**：本仓库还提供独立插件 `codex-context-doctor`——审计 Codex 安装的插件 / App·连接器 / MCP / 技能 / 市场源（纯本地磁盘扫描，不联网），并可选对照当前会话可见态。同样**只在手动点名时运行**，不会自动调用。详见下文「第二个插件」一节。
 
 ## 解决什么问题
 
@@ -63,11 +63,9 @@
 
 ### 安装
 
-本仓库既是 **Claude Code 插件**，也是 **Codex 插件**。两个平台二选一（或都装），命令行与桌面端图形界面都行。装完重启对应客户端即可；skill 不会自动调用，需你手动触发。
+本仓库提供**两个独立插件**——`privatize-fork`（开源 fork 私有化）与 `codex-context-doctor`（Codex 上下文审计），各 1 个技能、互不依赖。CC 与 Codex 都能装，命令行与桌面端图形界面都行；装完重启对应客户端即可，skill 不会自动调用、需你手动触发。
 
-> 一个插件即打包 `privatize-fork` 与 `codex-context-doctor` 两个技能。
-
-> **想一键装两边？** 跑 `./install-plugins.sh`，它用各自 CLI 把插件装进 Claude Code 与 Codex。每个平台的 CLI 与桌面端共享配置，装一次即覆盖两者。需本机有 `claude` / `codex` CLI、Codex ≥ 0.142.0。
+> **想一键装两边？** 跑 `./install-plugins.sh`，它用各自 CLI 把两个插件装进 Claude Code 与 Codex。每个平台的 CLI 与桌面端共享配置，装一次即覆盖两者。需本机有 `claude` / `codex` CLI。
 
 #### ① Claude Code —— 插件市场
 
@@ -76,34 +74,36 @@
 ```
 /plugin marketplace add legdonkey/privatize-fork
 /plugin install privatize-fork@legdonkey
+/plugin install codex-context-doctor@legdonkey   # 按需，可只装一个
 ```
 
 之后用 `/plugin marketplace update` 拉取更新。
 
 **桌面端图形界面**
 
-打开插件设置里的「Add marketplace」对话框，在 URL 填 `legdonkey/privatize-fork`，点 **Sync** 添加市场；再到插件列表安装 `privatize-fork`。
+打开插件设置里的「Add marketplace」对话框，在 URL 填 `legdonkey/privatize-fork`，点 **Sync** 添加市场；再到插件列表按需安装 `privatize-fork` / `codex-context-doctor`。
 
 ![Claude Code 添加插件市场](assets/install-claude-gui.png)
 
-> 插件方式的 skill 触发名带命名空间：`/privatize-fork:privatize-fork`、`/privatize-fork:codex-context-doctor`。
+> 插件方式的 skill 触发名带命名空间：`/privatize-fork:privatize-fork`、`/codex-context-doctor:codex-context-doctor`。
 
-#### ② Codex —— 插件市场（需 Codex ≥ 0.142.0）
+#### ② Codex —— 插件市场
 
 **命令行**
 
 ```bash
 codex plugin marketplace add legdonkey/privatize-fork --ref main
 codex plugin add privatize-fork@legdonkey
+codex plugin add codex-context-doctor@legdonkey   # 按需，可只装一个
 ```
 
 **桌面端图形界面**
 
-设置 →「添加插件市场」，来源填 `legdonkey/privatize-fork`、Git 引用 `main`（稀疏路径留空），点「添加市场」；再到插件列表安装 `privatize-fork`。
+设置 →「添加插件市场」，来源填 `legdonkey/privatize-fork`、Git 引用 `main`（稀疏路径留空），点「添加市场」；再到插件列表按需安装 `privatize-fork` / `codex-context-doctor`。
 
 ![Codex 添加插件市场](assets/install-codex-gui.png)
 
-> 本仓库用「仓库根即插件」布局（市场清单 `.agents/plugins/marketplace.json` 的 `source.path` 为 `"./"`），需 Codex ≥ 0.142.0。
+> 两个插件分别在 `plugins/privatize-fork`、`plugins/codex-context-doctor` 子目录（标准布局），任意 Codex 版本都能装。
 
 > **不会自动调用**：CC 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——两边都只能由你手动触发。私有化是有副作用的操作，刻意设计成「人点头才跑」。
 
@@ -132,16 +132,16 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 
 > Codex 提示：`request_user_input` 在交互式会话（桌面端或交互式 CLI）下直接弹出图形化选项，无需 `/plan`；只有 `codex exec` 非交互/脚本模式不支持，会退化为普通问答。
 
-## 附带技能：codex-context-doctor
+## 第二个插件：codex-context-doctor
 
-除了 privatize-fork，本仓库还收录一个独立的小技能 `codex-context-doctor`，用于**审计 Codex 的上下文构成**：它本地扫描 `~/.codex`（插件缓存、本地市场、`config.toml`、App 工具缓存、独立技能等）以及独立 skills 目录，盘点当前装了哪些**插件 / App·连接器 / MCP 服务器 / 技能 / 市场源**，并给出重名插件、旧缓存、配置与磁盘不一致等卫生建议。
+本仓库的第二个独立插件 `codex-context-doctor`，用于**审计 Codex 的上下文构成**：它本地扫描 `~/.codex`（插件缓存、本地市场、`config.toml`、App 工具缓存、独立技能等）以及独立 skills 目录，盘点当前装了哪些**插件 / App·连接器 / MCP 服务器 / 技能 / 市场源**，并给出重名插件、旧缓存、配置与磁盘不一致等卫生建议。
 
 - **纯本地**：只读磁盘，不联网；纯 Python 3 + Bash，无外部依赖。
 - **手动点名才跑**：和 privatize-fork 一样禁自动调用（CC `disable-model-invocation: true` / Codex `allow_implicit_invocation: false`）。
 - **输出克制**：默认把 `report.md` 和 `inventory.json` 写到带时间戳的临时目录，对话里只回路径和短摘要；要持久保存才落到工作区 `outputs/`。
 - **可选会话快照**：传入精简的会话工具/技能 JSON，即可对照「磁盘装了 vs 本次会话真正可见」。
 
-本技能随 `privatize-fork` 插件一同安装、就位即用，触发名为 `/codex-context-doctor`（插件命名空间下为 `/privatize-fork:codex-context-doctor`）。
+作为独立插件单独安装（见上方安装区），触发名为 `/codex-context-doctor`（插件命名空间下为 `/codex-context-doctor:codex-context-doctor`）。
 
 ## 实现方式与注意事项
 
@@ -169,34 +169,38 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 ### 仓库结构
 
 ```text
-.claude-plugin/                                # CC 插件市场清单（/plugin 安装用）
-├── marketplace.json                           #  市集：列出本仓库这个 plugin
-└── plugin.json                                #  插件清单：privatize-fork（含下方两个 skill）
-.agents/plugins/marketplace.json               # Codex 市场清单（codex plugin marketplace add 用，source.path "./"）
-.codex-plugin/plugin.json                      # Codex 插件清单：privatize-fork（skills 指向 ./skills/，含两个 skill）
-skills/privatize-fork/                         # skill 本体（CC/Codex 共用，两个插件都指它）
-├── SKILL.md                                   #  入口，唯一被识别的文件
-├── agents/openai.yaml                         #  Codex 专属元数据（禁自动调用；CC 忽略）
-├── scripts/                                   #  关键步骤固化的自检脚本（幂等/只读 + 自检）
-│   ├── setup-remote.sh                        #   阶段3：配 upstream + 禁推闸 + 自检
-│   ├── recon.sh                               #   阶段1：只读勘察，结构化输出
-│   └── translate-plan.sh                      #   阶段5：判断待翻清单（增量比对）
-└── references/                                #  按需读取的模板/流程，skill 运行时用
-    ├── maintenance-readme.template.md         #   → private/README.md（维护规范）
-    ├── changes-registry.template.md           #   → private/CHANGES-REGISTRY.md（改动台账）
-    ├── translate-docs.md                      #   翻译流程（skill 内联执行）
-    └── translations-conventions.template.md   #   → private/translations/CONVENTIONS.md（翻译模块）
-skills/codex-context-doctor/                   # 附带技能：审计 Codex 上下文（插件/App/MCP/技能/市场源）
-├── SKILL.md                                   #  入口（禁自动调用，只手动点名才跑）
-├── agents/openai.yaml                         #  Codex 专属元数据（禁自动调用；CC 忽略）
-└── scripts/                                   #  纯 Python3 + Bash，无外部依赖
-    ├── run.sh                                 #   包装：建临时输出目录、调 Python、打印短摘要
-    └── codex_context_doctor.py               #   本地扫描 ~/.codex 并生成 report.md / inventory.json
-install-plugins.sh                             # 一键把插件装进 CC + Codex（各平台 CLI 与桌面端共享配置）
-assets/                                        # README 配图（outline 矢量，引用用）
-├── banner.svg / features.svg                  #  → README 引用的产物（文字已转路径）
+.claude-plugin/marketplace.json                # CC 市场清单（/plugin marketplace add 用，列出 2 个插件）
+.agents/plugins/marketplace.json               # Codex 市场清单（codex plugin marketplace add 用，列出 2 个插件）
+plugins/
+├── privatize-fork/                            # 插件①：开源 fork 私有化
+│   ├── .claude-plugin/plugin.json             #   CC 插件清单
+│   ├── .codex-plugin/plugin.json              #   Codex 插件清单（skills 指向 ./skills/）
+│   └── skills/privatize-fork/                 #   技能本体（CC/Codex 共用）
+│       ├── SKILL.md                           #     入口，唯一被识别的文件
+│       ├── agents/openai.yaml                 #     Codex 专属元数据（禁自动调用；CC 忽略）
+│       ├── scripts/                           #     关键步骤固化的自检脚本（幂等/只读 + 自检）
+│       │   ├── setup-remote.sh                #       阶段3：配 upstream + 禁推闸 + 自检
+│       │   ├── recon.sh                       #       阶段1：只读勘察
+│       │   └── translate-plan.sh              #       阶段5：判断待翻清单（增量比对）
+│       └── references/                        #     按需读取的模板/流程
+│           ├── maintenance-readme.template.md     #   → private/README.md（维护规范）
+│           ├── changes-registry.template.md       #   → private/CHANGES-REGISTRY.md（改动台账）
+│           ├── translate-docs.md                  #   翻译流程（skill 内联执行）
+│           └── translations-conventions.template.md  # → private/translations/CONVENTIONS.md
+└── codex-context-doctor/                      # 插件②：审计 Codex 上下文（插件/App/MCP/技能/市场源）
+    ├── .claude-plugin/plugin.json             #   CC 插件清单
+    ├── .codex-plugin/plugin.json              #   Codex 插件清单
+    └── skills/codex-context-doctor/
+        ├── SKILL.md                           #     入口（禁自动调用，只手动点名才跑）
+        ├── agents/openai.yaml                 #     Codex 专属元数据
+        └── scripts/                           #     纯 Python3 + Bash，无外部依赖
+            ├── run.sh                         #       包装：建临时输出目录、调 Python、打印短摘要
+            └── codex_context_doctor.py        #       本地扫描 ~/.codex 生成 report.md / inventory.json
+install-plugins.sh                             # 一键把两个插件装进 CC + Codex（各平台 CLI 与桌面端共享配置）
+assets/                                        # README 配图（outline 矢量 + 安装截图）
+├── banner.svg / features.svg / install-*.png  #  → README 引用的产物
 └── src/                                        #  可编辑源 + build-svg.sh（改图后重生成产物）
-README.md                                     # 本文件（给人看的门面，不影响 skill 运行）
+README.md                                      # 本文件（门面，不影响插件运行）
 ```
 
 ### 方法论内核
