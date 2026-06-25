@@ -295,9 +295,12 @@ def collect_plugins(codex_home: Path, config: JsonDict) -> tuple[list[JsonDict],
         plugin["mcp_count"] = len(mcp_declarations)
 
         plugins.append(plugin)
-        all_app_declarations.extend(app_declarations)
-        all_mcp_declarations.extend(mcp_declarations)
-        all_plugin_skills.extend(plugin_skills)
+        all_plugin_skills.extend(plugin_skills)  # 技能带 installed 标记，计数已按已装过滤
+        if plugin["installed"]:
+            # App / MCP 声明只计已装插件：local-marketplace 的可装快照里声明的
+            # 连接器 / MCP 服务器不应被当成「已装」计入全局 apps / mcp_servers。
+            all_app_declarations.extend(app_declarations)
+            all_mcp_declarations.extend(mcp_declarations)
 
     return plugins, all_app_declarations, all_mcp_declarations, all_plugin_skills
 
