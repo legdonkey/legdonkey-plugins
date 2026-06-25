@@ -680,6 +680,14 @@ def build_inventory(
     codex_home = home / ".codex"
     config_path = codex_home / "config.toml"
     config = read_toml(config_path)
+    config_unavailable = tomllib is None and config_path.exists()
+    if config_unavailable:
+        py_version = ".".join(str(part) for part in sys.version_info[:3])
+        print(
+            f"警告：config.toml 未解析（python3 {py_version} 无标准库 tomllib，需 ≥ 3.11）；"
+            "本次报告只含磁盘扫描，配置态被跳过。",
+            file=sys.stderr,
+        )
 
     plugins, app_declarations, plugin_mcp_declarations, plugin_skills = collect_plugins(
         codex_home, config
@@ -692,12 +700,25 @@ def build_inventory(
     mcp_servers = collect_mcp_servers(config, plugin_mcp_declarations, session_snapshot)
     marketplaces = collect_marketplaces(codex_home, config)
     recommendations = build_recommendations(plugins, apps, mcp_servers)
+    if config_unavailable:
+        recommendations.insert(
+            0,
+            {
+                "severity": "review",
+                "area": "config",
+                "subject": str(config_path),
+                "reason": f"config.toml 未解析：python3 {py_version} 缺少标准库 tomllib（需 Python ≥ 3.11）",
+                "evidence": "配置态（插件启停 / App / MCP / 市场源）本次被跳过，下列计数仅基于磁盘扫描",
+                "action": "用 Python ≥ 3.11 重跑本技能以获得完整审计",
+            },
+        )
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "home": str(home),
         "codex_home": str(codex_home),
         "config_path": str(config_path),
+        "config_unavailable": config_unavailable,
         "counts": {
             "plugins": len(plugins),
             "apps": len(apps),
