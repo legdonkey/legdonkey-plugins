@@ -7,7 +7,8 @@
 # 所以每个平台用 CLI 装一次，就同时覆盖了它的命令行和桌面端。
 #
 # 前提：本机有 claude 和/或 codex CLI。
-# 幂等：已添加/已安装时只提示、不中断。装完可能需重启对应客户端。
+# 安装命令的输出会原样打印（认证/网络等真失败能看到），随后用 `plugin list`
+# 实测是否真就位——以此判断成败，而不是靠 add 命令的退出码。装完可能需重启客户端。
 #
 # 用法：./install-plugins.sh
 set -uo pipefail
@@ -17,46 +18,61 @@ MARKETPLACE="legdonkey"
 REF="main"
 PLUGINS=(privatize-fork codex-context-doctor)
 
-# run <描述> <命令...>：成功打 ✓，失败（多半是已存在）打 ·，都不中断。
-run() {
-  local desc="$1"; shift
-  if "$@" >/dev/null 2>&1; then
-    echo "  ✓ $desc"
+ok=0
+fail=0
+did_cc=0
+did_codex=0
+
+# verify_and_report <cli> <plugin>：以 plugin list 实测是否就位（已装/刚装都算 ✓；真没装上算 ✗）
+verify_and_report() {
+  if "$1" plugin list 2>/dev/null | grep -q "$2"; then
+    echo "  ✓ $2 已就位"
+    ok=$((ok + 1))
   else
-    echo "  · $desc（已存在或跳过）"
+    echo "  ✗ $2 未就位（上面的命令输出里有原因：认证 / 网络 / 版本等）"
+    fail=$((fail + 1))
   fi
 }
 
-installed_any=0
-
 # --- Claude Code ---
 if command -v claude >/dev/null 2>&1; then
-  echo "Claude Code：从市场安装插件（覆盖 CLI + 桌面端）"
-  run "添加市场 $REPO" claude plugin marketplace add "$REPO"
+  did_cc=1
+  echo "Claude Code：添加市场 + 安装插件（覆盖 CLI + 桌面端）"
+  claude plugin marketplace add "$REPO" 2>&1 | sed 's/^/  /' || true
   for p in "${PLUGINS[@]}"; do
-    run "安装插件 $p@$MARKETPLACE" claude plugin install "$p@$MARKETPLACE"
+    claude plugin install "$p@$MARKETPLACE" 2>&1 | sed 's/^/  /' || true
+    verify_and_report claude "$p"
   done
-  installed_any=1
 else
   echo "Claude Code：未检测到 claude CLI，跳过"
 fi
 
 # --- Codex ---
 if command -v codex >/dev/null 2>&1; then
-  echo "Codex：从市场安装插件（覆盖 CLI + 桌面端）"
-  run "添加市场 $REPO@$REF" codex plugin marketplace add "$REPO" --ref "$REF"
+  did_codex=1
+  echo "Codex：添加市场 + 安装插件（覆盖 CLI + 桌面端）"
+  codex plugin marketplace add "$REPO" --ref "$REF" 2>&1 | sed 's/^/  /' || true
   for p in "${PLUGINS[@]}"; do
-    run "安装插件 $p@$MARKETPLACE" codex plugin add "$p@$MARKETPLACE"
+    codex plugin add "$p@$MARKETPLACE" 2>&1 | sed 's/^/  /' || true
+    verify_and_report codex "$p"
   done
-  installed_any=1
 else
   echo "Codex：未检测到 codex CLI，跳过"
 fi
 
 echo
-if [ "$installed_any" = "1" ]; then
-  echo "完成。重启 Claude Code / Codex 后，/privatize-fork 与 /codex-context-doctor 即可手动触发。"
-else
+if [ "$did_cc" = 0 ] && [ "$did_codex" = 0 ]; then
   echo "未检测到 claude 或 codex CLI，未安装任何插件。"
   exit 1
 fi
+
+echo "—— 就位 $ok，失败 $fail ——"
+if [ "$fail" -gt 0 ]; then
+  echo "有插件未就位，请按上面每条命令的输出排查后重跑。"
+fi
+echo "触发方式（重启对应客户端后手动触发，技能不会自动调用）："
+[ "$did_cc" = 1 ] && echo "  Claude Code：/privatize-fork    /codex-context-doctor"
+[ "$did_codex" = 1 ] && echo "  Codex：      \$privatize-fork   \$codex-context-doctor"
+
+[ "$fail" -gt 0 ] && exit 1
+exit 0

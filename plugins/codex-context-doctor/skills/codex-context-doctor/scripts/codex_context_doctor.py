@@ -166,10 +166,25 @@ def load_plugin_app_declarations(plugin: JsonDict) -> list[JsonDict]:
 def load_plugin_mcp_declarations(plugin: JsonDict) -> list[JsonDict]:
     path = Path(plugin["mcp_manifest_path"])
     data = read_json(path)
+    # .mcp.json 文档化形状有多种：{"mcpServers": {...}}、{"mcp_servers": {...}}，
+    # 或顶层直接就是 server map（无包裹键）。三种都认，避免漏算 bundled MCP。
+    raw = data.get("mcpServers")
+    if not isinstance(raw, dict):
+        raw = data.get("mcp_servers")
+    if not isinstance(raw, dict):
+        if isinstance(data, dict) and data and all(isinstance(v, dict) for v in data.values()):
+            raw = data
+        else:
+            raw = {}
+    # 插件级 MCP 配置覆盖：config.toml 的 [plugins."<name>@<mkt>".mcp_servers.<server>]
+    config_mcp = plugin.get("config_mcp_servers")
+    config_mcp = config_mcp if isinstance(config_mcp, dict) else {}
     declarations: list[JsonDict] = []
-    for name, server in (data.get("mcpServers") or {}).items():
+    for name, server in raw.items():
         if not isinstance(server, dict):
             continue
+        override = config_mcp.get(name)
+        config_enabled = bool(override.get("enabled")) if isinstance(override, dict) and "enabled" in override else None
         declarations.append(
             {
                 "id": f"{name}@{plugin['id']}",
@@ -180,6 +195,8 @@ def load_plugin_mcp_declarations(plugin: JsonDict) -> list[JsonDict]:
                 "server_type": server.get("type") or ("command" if server.get("command") else "unknown"),
                 "command": server.get("command"),
                 "url": server.get("url"),
+                "config_enabled": config_enabled,
+                "config_state": "enabled" if config_enabled is True else "disabled" if config_enabled is False else "not-configured",
                 "path": str(path),
             }
         )
@@ -200,6 +217,7 @@ def collect_plugin_skills(plugin: JsonDict) -> list[JsonDict]:
                 "name": qualified_name,
                 "raw_name": raw_name,
                 "origin": "plugin",
+                "installed": bool(plugin.get("installed", True)),
                 "plugin_id": plugin["id"],
                 "plugin_display_name": plugin["display_name"],
                 "description": str(header.get("description") or ""),
@@ -233,6 +251,7 @@ def collect_plugins(codex_home: Path, config: JsonDict) -> tuple[list[JsonDict],
         config_enabled = None
         if isinstance(config_entry, dict) and "enabled" in config_entry:
             config_enabled = bool(config_entry.get("enabled"))
+        config_mcp_servers = config_entry.get("mcp_servers") if isinstance(config_entry, dict) else None
 
         app_manifest_path = resolve_manifest_relative(plugin_root, manifest.get("apps"), ".app.json")
         mcp_manifest_path = resolve_manifest_relative(
@@ -250,6 +269,9 @@ def collect_plugins(codex_home: Path, config: JsonDict) -> tuple[list[JsonDict],
             "version": str(manifest.get("version") or source.get("version_dir") or ""),
             "marketplace": marketplace,
             "source_class": source["source_class"],
+            # 已安装 = 在 ~/.codex/plugins/cache 下；local-marketplace 下的只是「可装」快照，非已装
+            "installed": source["source_class"] == "plugin-cache",
+            "config_mcp_servers": config_mcp_servers if isinstance(config_mcp_servers, dict) else {},
             "ui_bucket": ui_bucket_for_plugin(marketplace, source["source_class"]),
             "path": str(plugin_root),
             "manifest_path": str(manifest_path),
@@ -266,6 +288,7 @@ def collect_plugins(codex_home: Path, config: JsonDict) -> tuple[list[JsonDict],
         app_declarations = load_plugin_app_declarations(plugin)
         mcp_declarations = load_plugin_mcp_declarations(plugin)
         plugin_skills = collect_plugin_skills(plugin)
+        plugin.pop("config_mcp_servers", None)  # 只为传给上面两个 loader，不进最终输出
 
         plugin["skill_count"] = len(plugin_skills)
         plugin["app_count"] = len(app_declarations)
@@ -308,6 +331,7 @@ def collect_standalone_skills(home: Path) -> list[JsonDict]:
                 "name": name,
                 "raw_name": name,
                 "origin": "standalone" if kind != "system" else "system",
+                "installed": True,
                 "skill_root": kind,
                 "description": str(header.get("description") or ""),
                 "path": str(skill_file),
@@ -558,6 +582,29 @@ def collect_marketplaces(codex_home: Path, config: JsonDict) -> list[JsonDict]:
                         "path_exists": True,
                     },
                 )
+
+    # 隐式市场清单文件（Codex 也会考虑）：个人级 ~/.agents/plugins/marketplace.json
+    # 与当前工作区仓库级 <cwd>/.agents/plugins/marketplace.json。
+    home = codex_home.parent
+    for origin, mfile in [
+        ("agents-personal", home / ".agents" / "plugins" / "marketplace.json"),
+        ("agents-repo", Path.cwd() / ".agents" / "plugins" / "marketplace.json"),
+    ]:
+        if not mfile.exists():
+            continue
+        data = read_json(mfile)
+        mname = str(data.get("name") or mfile.parent.parent.name)
+        marketplaces.setdefault(
+            mname,
+            {
+                "name": mname,
+                "origin": origin,
+                "source_type": "agents-marketplace-file",
+                "source": str(mfile),
+                "last_updated": None,
+                "path_exists": True,
+            },
+        )
     return sorted(marketplaces.values(), key=lambda item: item["name"])
 
 
@@ -720,10 +767,12 @@ def build_inventory(
         "config_path": str(config_path),
         "config_unavailable": config_unavailable,
         "counts": {
-            "plugins": len(plugins),
+            "plugins": len([p for p in plugins if p.get("installed")]),
+            "available_plugins": len([p for p in plugins if not p.get("installed")]),
             "apps": len(apps),
             "mcp_servers": len(mcp_servers),
-            "skills": len(skills),
+            "skills": len([s for s in skills if s.get("installed", True)]),
+            "available_skills": len([s for s in skills if not s.get("installed", True)]),
             "marketplaces": len(marketplaces),
         },
         "session": summarize_session(session_snapshot),

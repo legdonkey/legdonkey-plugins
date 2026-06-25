@@ -41,12 +41,14 @@ recommendations = data.get("recommendations", [])
 
 print(f"报告={report_path}")
 print(f"JSON={inventory_path}")
+avail_p = counts.get("available_plugins", 0)
+avail_s = counts.get("available_skills", 0)
 print(
     "统计="
-    f"插件:{counts['plugins']} "
+    f"插件:{counts['plugins']}{f'(+{avail_p}可装)' if avail_p else ''} "
     f"App/连接器:{counts['apps']} "
     f"MCP:{counts['mcp_servers']} "
-    f"技能:{counts['skills']} "
+    f"技能:{counts['skills']}{f'(+{avail_s}可装)' if avail_s else ''} "
     f"市场源:{counts['marketplaces']}"
 )
 if duplicates:
