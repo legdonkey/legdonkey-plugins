@@ -57,11 +57,11 @@
 
 ```bash
 # Claude Code
-/plugin marketplace add legdonkey/privatize-fork
+/plugin marketplace add legdonkey/legdonkey-plugins
 /plugin install privatize-fork@legdonkey
 
 # Codex
-codex plugin marketplace add legdonkey/privatize-fork --ref main
+codex plugin marketplace add legdonkey/legdonkey-plugins --ref main
 codex plugin add privatize-fork@legdonkey
 ```
 

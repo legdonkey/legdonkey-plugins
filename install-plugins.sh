@@ -14,7 +14,7 @@
 # 用法：./install-plugins.sh
 set -uo pipefail
 
-REPO="legdonkey/privatize-fork"
+REPO="legdonkey/legdonkey-plugins"
 MARKETPLACE="legdonkey"
 REF="main"
 PLUGINS=(privatize-fork codex-context-doctor)

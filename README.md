@@ -1,7 +1,7 @@
-# privatize-fork — legdonkey 插件集市
+# legdonkey-plugins — Claude Code 与 Codex 插件集市
 
 <p align="center">
-  <a href="https://github.com/legdonkey/privatize-fork/releases"><img src="https://img.shields.io/github/v/release/legdonkey/privatize-fork?sort=semver&label=release&color=2563eb" alt="release"></a>
+  <a href="https://github.com/legdonkey/legdonkey-plugins/releases"><img src="https://img.shields.io/github/v/release/legdonkey/legdonkey-plugins?sort=semver&label=release&color=2563eb" alt="release"></a>
   <img src="https://img.shields.io/badge/Claude%20Code-plugin-7C3AED" alt="Claude Code plugin">
   <img src="https://img.shields.io/badge/Codex-ready-10A37F" alt="Codex ready">
   <a href="https://agentskills.io"><img src="https://img.shields.io/badge/Agent%20Skills-Compatible-1F6FEB" alt="Agent Skills Compatible"></a>
@@ -38,14 +38,14 @@
 **命令行**
 
 ```
-/plugin marketplace add legdonkey/privatize-fork
+/plugin marketplace add legdonkey/legdonkey-plugins
 /plugin install privatize-fork@legdonkey
 /plugin install codex-context-doctor@legdonkey   # 按需，可只装一个
 ```
 
 之后用 `/plugin marketplace update` 拉取更新。
 
-**桌面端图形界面**：打开插件设置里的「Add marketplace」对话框，在 URL 填 `legdonkey/privatize-fork`，点 **Sync** 添加市场；再到插件列表按需安装。
+**桌面端图形界面**：打开插件设置里的「Add marketplace」对话框，在 URL 填 `legdonkey/legdonkey-plugins`，点 **Sync** 添加市场；再到插件列表按需安装。
 
 ![Claude Code 添加插件市场](assets/install-claude-gui.png)
 
@@ -56,12 +56,12 @@
 **命令行**
 
 ```bash
-codex plugin marketplace add legdonkey/privatize-fork --ref main
+codex plugin marketplace add legdonkey/legdonkey-plugins --ref main
 codex plugin add privatize-fork@legdonkey
 codex plugin add codex-context-doctor@legdonkey   # 按需，可只装一个
 ```
 
-**桌面端图形界面**：设置 →「添加插件市场」，来源填 `legdonkey/privatize-fork`、Git 引用 `main`（稀疏路径留空），点「添加市场」；再到插件列表按需安装。
+**桌面端图形界面**：设置 →「添加插件市场」，来源填 `legdonkey/legdonkey-plugins`、Git 引用 `main`（稀疏路径留空），点「添加市场」；再到插件列表按需安装。
 
 ![Codex 添加插件市场](assets/install-codex-gui.png)
 
