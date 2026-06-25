@@ -4,7 +4,7 @@
 
 把 upstream 官方文档翻译成中文，产出到 `private/translations/`。
 **增量更新**：已最新的译文跳过，只翻缺失的和源文件有变动的。
-**执行方式**：先做「判断清单」（轻活），再翻全文。若当前 agent 有并行子任务能力（CC 的 `Task`、Codex 的 subagent 等），用其原生原语把翻译重活并行派给子任务、不把原文/译文堆进主上下文；**只有确实没有并行能力时才顺序逐个翻译**（别因工具名不同就自判为不支持）——判断与增量逻辑完全一致。
+**执行方式**：先做「判断清单」（轻活），再翻全文。若当前 agent 有并行子任务能力（CC 的 `Agent`、Codex 的 subagent 等），用其原生原语把翻译重活并行派给子任务、不把原文/译文堆进主上下文；**只有确实没有并行能力时才顺序逐个翻译**（别因工具名不同就自判为不支持）——判断与增量逻辑完全一致。
 
 ## 第 0 步：读约定
 
@@ -45,7 +45,7 @@ bash "$SKILL_DIR/scripts/translate-plan.sh" README.md CONTRIBUTING.md docs/setup
 
 ## 第 4 步：翻译（并行优先，否则顺序）
 
-对清单里每个文档执行翻译——**有并行子任务能力的 agent（CC 的 `Task`、Codex 的 subagent 等）一次性并行派出；确无并行能力的才顺序逐个做**。每个翻译任务：
+对清单里每个文档执行翻译——**有并行子任务能力的 agent（CC 的 `Agent`、Codex 的 subagent 等）一次性并行派出；确无并行能力的才顺序逐个做**。每个翻译任务：
 
 - 任务：把 `<src>` 译成简体中文，写到 `private/translations/<basename>.zh.md`（先读源文件 → 翻译 → 写出）。
 - frontmatter：`source: <src>` / `source_version: <基线>` / `translated_at: <今天日期>`。
