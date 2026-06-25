@@ -1,0 +1,32 @@
+{
+  "name": "privatize-fork",
+  "version": "1.4.0",
+  "description": "把 clone 下来的开源 fork 一次性私有化的脚手架；另附带 codex-context-doctor（审计 Codex 安装的插件/App/MCP/技能/市场源）。跨 Claude Code 与 Codex。",
+  "author": {
+    "name": "legdonkey",
+    "url": "https://github.com/legdonkey"
+  },
+  "homepage": "https://github.com/legdonkey/privatize-fork",
+  "repository": "https://github.com/legdonkey/privatize-fork",
+  "keywords": [
+    "fork",
+    "privatize",
+    "upstream",
+    "skills",
+    "codex-context-doctor",
+    "audit"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "privatize-fork",
+    "shortDescription": "开源 fork 一次性私有化脚手架 + Codex 上下文审计",
+    "longDescription": "privatize-fork：把 clone 下来的开源项目 fork 私有化——upstream 只读跟踪+禁推、private/ 隔离与维护规范、文档增量翻译、写 CLAUDE.md/AGENTS.md 指针。附带 codex-context-doctor：本地审计 Codex 安装的插件/App·连接器/MCP/技能/市场源。两个技能都只在手动点名时运行，不会自动调用。",
+    "developerName": "legdonkey",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ]
+  }
+}
