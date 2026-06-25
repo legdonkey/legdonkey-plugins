@@ -65,15 +65,16 @@ codex plugin marketplace add legdonkey/privatize-fork --ref main
 codex plugin add privatize-fork@legdonkey
 ```
 
-装完重启对应客户端。触发名 `/privatize-fork`（插件命名空间下为 `/privatize-fork:privatize-fork`）。**不会自动调用**——CC 靠 frontmatter `disable-model-invocation: true`、Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动触发。
+装完重启对应客户端。触发名：**Claude Code** 用 `/privatize-fork`（插件命名空间下 `/privatize-fork:privatize-fork`）；**Codex** 用 `$privatize-fork`。**不会自动调用**——CC 靠 frontmatter `disable-model-invocation: true`、Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动触发。
 
 ## 开始使用
 
 1. clone 你的私有 fork 到本地（`origin` 指向你的 fork）；
-2. 在**该项目目录**里打开 CC 或 Codex，手动触发：
+2. 在**该项目目录**里打开 CC 或 Codex，手动触发（Claude Code 用 `/`、Codex 用 `$`）：
 
 ```
-/privatize-fork
+/privatize-fork      # Claude Code
+$privatize-fork      # Codex
 ```
 
 skill 会带你走完整个流程，最后把私有化基建留在**本地就绪**状态——**不替你 push、不替你打 tag**，发布留给你确认无误后手动做。后续维护（重配 upstream、刷新翻译）只需**重跑这个 skill**。

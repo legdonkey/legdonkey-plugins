@@ -586,12 +586,16 @@ def collect_marketplaces(codex_home: Path, config: JsonDict) -> list[JsonDict]:
                     },
                 )
 
-    # 隐式市场清单文件（Codex 也会考虑）：个人级 ~/.agents/plugins/marketplace.json
-    # 与当前工作区仓库级 <cwd>/.agents/plugins/marketplace.json。
+    # 隐式市场清单文件（Codex 也会考虑）：个人级 ~/.agents/plugins/marketplace.json，
+    # 以及仓库根的 .agents/plugins/marketplace.json 与兼容旧版的 .claude-plugin/marketplace.json。
+    # 仓库根 = 从当前工作目录向上找含 .git 的目录（从子目录启动也能命中），找不到就退回 cwd。
+    cwd = Path.cwd()
+    repo_root = next((d for d in [cwd, *cwd.parents] if (d / ".git").exists()), cwd)
     home = codex_home.parent
     for origin, mfile in [
         ("agents-personal", home / ".agents" / "plugins" / "marketplace.json"),
-        ("agents-repo", Path.cwd() / ".agents" / "plugins" / "marketplace.json"),
+        ("agents-repo", repo_root / ".agents" / "plugins" / "marketplace.json"),
+        ("claude-repo-legacy", repo_root / ".claude-plugin" / "marketplace.json"),
     ]:
         if not mfile.exists():
             continue

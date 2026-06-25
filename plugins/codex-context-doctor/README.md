@@ -39,14 +39,15 @@ codex plugin marketplace add legdonkey/privatize-fork --ref main
 codex plugin add codex-context-doctor@legdonkey
 ```
 
-装完重启对应客户端。触发名 `/codex-context-doctor`（插件命名空间下为 `/codex-context-doctor:codex-context-doctor`）。**不会自动调用**——CC 靠 frontmatter `disable-model-invocation: true`、Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动点名。
+装完重启对应客户端。触发名：**Claude Code** 用 `/codex-context-doctor`（插件命名空间下 `/codex-context-doctor:codex-context-doctor`）；**Codex** 用 `$codex-context-doctor`。**不会自动调用**——CC 靠 frontmatter `disable-model-invocation: true`、Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动点名。
 
 ## 用法
 
-手动触发：
+手动触发（Claude Code 用 `/`、Codex 用 `$`）：
 
 ```
-/codex-context-doctor
+/codex-context-doctor      # Claude Code
+$codex-context-doctor      # Codex
 ```
 
 它会本地扫描、在带时间戳的临时目录写出 `report.md`（人类可读报告）和 `inventory.json`（完整数据），对话里只回**输出路径 + 一行短摘要**（统计数、重名、建议数）。除非你明确要求，不会把完整报告糊进聊天。
