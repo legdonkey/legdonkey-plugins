@@ -52,7 +52,7 @@
 | **私有内容尽量隔离** | 新增定制集中进 `private/`，不往 upstream 目录塞新文件；确需直接改的上游文件登记入账、定好冲突策略，升级时有据可查。 |
 | **维护规范自动生成** | `private/README.md` 含升级流程、私有 tag 约定、版本号位置、验证命令。 |
 | **改动台账** | `private/CHANGES-REGISTRY.md` 登记每一处私有定制，可追溯、可审计。 |
-| **跨 CC / Codex 一键安装** | `SKILL.md` 是 [开放标准](https://agentskills.io)，一个 `install.sh` 同时软链进 `~/.claude/skills/` 和 `~/.codex/skills/`，两边通用、随 `git pull` 更新。 |
+| **CC / Codex 双插件市场** | 同一仓库既是 Claude Code 插件、也是 Codex 插件（`SKILL.md` 遵循 [开放标准](https://agentskills.io)）；从各自插件市场一键安装，可版本化、可更新。 |
 | **可选文档翻译（内联 + 增量更新）** | skill **自己内联翻译** upstream 官方文档到 `private/translations/`，无需装命令。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑 skill 时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；CC（`Task`）与 Codex（subagent）等有并行子任务能力的 agent 并行翻译，仅在确无并行能力时才顺序进行。 |
 | **指针段跨平台** | 按团队 agent 把「私有维护规范」指针写进 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex），去重不重复追加。 |
 | **本地状态文件 skip-worktree** | `.idea/`、`.vscode/`、`.obsidian/workspace.json` 等上游跟踪、每台机器不同的文件，逐个征得同意后让本机忽略其变化。 |
@@ -63,51 +63,45 @@
 
 ### 安装
 
-本仓库既是 **CC 插件**，也是 **Codex 插件**，还能当**纯 skill** 装。四种方式任选其一即可；装完重启 CC / Codex，skill 不会自动调用，需你手动触发。
+本仓库既是 **Claude Code 插件**，也是 **Codex 插件**。两个平台二选一（或都装），命令行与桌面端图形界面都行。装完重启对应客户端即可；skill 不会自动调用，需你手动触发。
 
-> **别重复装**：同一个 agent 上「插件」和「skill 软链」二选一就好。两种都装会让同样的技能被加载两次（codex-context-doctor 会把这判为重名/重复）。
+> 一个插件即打包 `privatize-fork` 与 `codex-context-doctor` 两个技能。
 
-**① Claude Code —— 插件市场（CC 地道做法，可版本化、可更新）**
+#### ① Claude Code —— 插件市场
+
+**命令行**
 
 ```
 /plugin marketplace add legdonkey/privatize-fork
 /plugin install privatize-fork@legdonkey
 ```
 
-之后用 `/plugin marketplace update` 拉取更新。注意：插件方式的 skill 触发名带命名空间，为 `/privatize-fork:privatize-fork`、`/privatize-fork:codex-context-doctor`（软链/skills 目录方式则是干净的 `/privatize-fork`、`/codex-context-doctor`）。
+之后用 `/plugin marketplace update` 拉取更新。
 
-**② Codex —— 插件市场（Codex 地道做法，需 Codex ≥ 0.142.0）**
+**桌面端图形界面**
 
-GUI：设置 →「添加插件市场」，来源填 `legdonkey/privatize-fork`、Git 引用 `main`（稀疏路径留空即可）；添加后在插件列表里安装 `privatize-fork`。等价 CLI：
+打开插件设置里的「Add marketplace」对话框，在 URL 填 `legdonkey/privatize-fork`，点 **Sync** 添加市场；再到插件列表安装 `privatize-fork`。
+
+![Claude Code 添加插件市场](assets/install-claude-gui.png)
+
+> 插件方式的 skill 触发名带命名空间：`/privatize-fork:privatize-fork`、`/privatize-fork:codex-context-doctor`。
+
+#### ② Codex —— 插件市场（需 Codex ≥ 0.142.0）
+
+**命令行**
 
 ```bash
 codex plugin marketplace add legdonkey/privatize-fork --ref main
 codex plugin add privatize-fork@legdonkey
 ```
 
-> 本仓库用「仓库根即插件」布局（市场清单 `.agents/plugins/marketplace.json` 的 `source.path` 为 `"./"`），这需要 Codex ≥ 0.142.0。更早版本请改用下面第③/④种 skill 安装方式。一个插件即打包 `privatize-fork` 与 `codex-context-doctor` 两个技能。
+**桌面端图形界面**
 
-**③ Codex —— 内置 skill-installer（只装技能，任意版本）**
+设置 →「添加插件市场」，来源填 `legdonkey/privatize-fork`、Git 引用 `main`（稀疏路径留空），点「添加市场」；再到插件列表安装 `privatize-fork`。
 
-在 Codex 里调用内置 `skill-installer`（`$skill-installer`），传入 GitHub 路径，它会 clone 进 `~/.codex/skills/`：
+![Codex 添加插件市场](assets/install-codex-gui.png)
 
-```
-legdonkey/privatize-fork/skills/privatize-fork
-legdonkey/privatize-fork/skills/codex-context-doctor   # 附带技能，按需单独安装
-```
-
-**④ 一键装两边 —— install.sh（同时软链进 CC 与 Codex，最省事）**
-
-`install.sh` 自动检测本机装了 `~/.claude` 还是 `~/.codex`，把本仓库**所有 skill** 软链进对应 skills 目录（幂等、可重跑、已装则跳过、不覆盖同名目录；软链可随 `git pull` 原地更新）。
-
-```bash
-# 本地（首选，clone 后可先 review 再装）：
-git clone https://github.com/legdonkey/privatize-fork
-cd privatize-fork && ./install.sh        # 加 --copy 用复制代替软链
-
-# 远程便捷：
-curl -fsSL https://raw.githubusercontent.com/legdonkey/privatize-fork/main/install.sh | bash
-```
+> 本仓库用「仓库根即插件」布局（市场清单 `.agents/plugins/marketplace.json` 的 `source.path` 为 `"./"`），需 Codex ≥ 0.142.0。
 
 > **不会自动调用**：CC 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——两边都只能由你手动触发。私有化是有副作用的操作，刻意设计成「人点头才跑」。
 
@@ -145,7 +139,7 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 - **输出克制**：默认把 `report.md` 和 `inventory.json` 写到带时间戳的临时目录，对话里只回路径和短摘要；要持久保存才落到工作区 `outputs/`。
 - **可选会话快照**：传入精简的会话工具/技能 JSON，即可对照「磁盘装了 vs 本次会话真正可见」。
 
-`install.sh` 会把本仓库的**所有 skill**（含本技能）一并软链进 `~/.claude/skills/` 与 `~/.codex/skills/`；插件方式安装时它随 `privatize-fork` 插件一同就位，触发名为 `/codex-context-doctor`（插件命名空间下为 `/privatize-fork:codex-context-doctor`）。
+本技能随 `privatize-fork` 插件一同安装、就位即用，触发名为 `/codex-context-doctor`（插件命名空间下为 `/privatize-fork:codex-context-doctor`）。
 
 ## 实现方式与注意事项
 
@@ -178,7 +172,7 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 └── plugin.json                                #  插件清单：privatize-fork（含下方两个 skill）
 .agents/plugins/marketplace.json               # Codex 市场清单（codex plugin marketplace add 用，source.path "./"）
 .codex-plugin/plugin.json                      # Codex 插件清单：privatize-fork（skills 指向 ./skills/，含两个 skill）
-skills/privatize-fork/                         # skill 本体（CC/Codex 共用，软链/插件都指它）
+skills/privatize-fork/                         # skill 本体（CC/Codex 共用，两个插件都指它）
 ├── SKILL.md                                   #  入口，唯一被识别的文件
 ├── agents/openai.yaml                         #  Codex 专属元数据（禁自动调用；CC 忽略）
 ├── scripts/                                   #  关键步骤固化的自检脚本（幂等/只读 + 自检）
@@ -196,7 +190,6 @@ skills/codex-context-doctor/                   # 附带技能：审计 Codex 上
 └── scripts/                                   #  纯 Python3 + Bash，无外部依赖
     ├── run.sh                                 #   包装：建临时输出目录、调 Python、打印短摘要
     └── codex_context_doctor.py               #   本地扫描 ~/.codex 并生成 report.md / inventory.json
-install.sh                                     # 一键装两边：把本仓库所有 skill 软链进 CC + Codex 的 skills 目录
 assets/                                        # README 配图（outline 矢量，引用用）
 ├── banner.svg / features.svg                  #  → README 引用的产物（文字已转路径）
 └── src/                                        #  可编辑源 + build-svg.sh（改图后重生成产物）
