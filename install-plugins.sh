@@ -7,8 +7,9 @@
 # 所以每个平台用 CLI 装一次，就同时覆盖了它的命令行和桌面端。
 #
 # 前提：本机有 claude 和/或 codex CLI。
-# 成败判断：以安装命令的退出码为准（成功即 0）；非 0 时再用 `plugin list` 兜底
-# 确认是否「已存在」，避免把真失败（认证/网络）当成功。装完可能需重启客户端。
+# 安装命令直接跑、输出实时流式打印（若插件需 ON_INSTALL 交互认证，提示能即时显示、
+# 可应答，不会假死）；成败以命令退出码为准，非 0 时再用 `plugin list` 兜底区分
+# 「已存在」与真失败。装完可能需重启客户端。
 #
 # 用法：./install-plugins.sh
 set -uo pipefail
@@ -24,12 +25,12 @@ did_cc=0
 did_codex=0
 
 # install_one <cli> <安装子命令: install|add> <plugin>
-# 跑安装命令、原样打印输出；退出码 0 即就位；非 0 再用 plugin list 兜底区分「已存在」与真失败。
+# 直接跑安装命令（输出流式、stdin 连终端，交互认证提示可见可答），退出码 0 即就位；
+# 非 0 再用 plugin list 兜底区分「已存在」与真失败。
 install_one() {
-  local cli="$1" sub="$2" p="$3" out rc
-  out="$("$cli" plugin "$sub" "$p@$MARKETPLACE" 2>&1)"
+  local cli="$1" sub="$2" p="$3" rc
+  "$cli" plugin "$sub" "$p@$MARKETPLACE"
   rc=$?
-  printf '%s\n' "$out" | sed 's/^/  /'
   if [ "$rc" -eq 0 ]; then
     echo "  ✓ ${p} 已就位"
     ok=$((ok + 1))
@@ -46,7 +47,7 @@ install_one() {
 if command -v claude >/dev/null 2>&1; then
   did_cc=1
   echo "Claude Code：添加市场 + 安装插件（覆盖 CLI + 桌面端）"
-  claude plugin marketplace add "$REPO" 2>&1 | sed 's/^/  /' || true
+  claude plugin marketplace add "$REPO" || true
   for p in "${PLUGINS[@]}"; do
     install_one claude install "$p"
   done
@@ -58,7 +59,7 @@ fi
 if command -v codex >/dev/null 2>&1; then
   did_codex=1
   echo "Codex：添加市场 + 安装插件（覆盖 CLI + 桌面端）"
-  codex plugin marketplace add "$REPO" --ref "$REF" 2>&1 | sed 's/^/  /' || true
+  codex plugin marketplace add "$REPO" --ref "$REF" || true
   for p in "${PLUGINS[@]}"; do
     install_one codex add "$p"
   done
