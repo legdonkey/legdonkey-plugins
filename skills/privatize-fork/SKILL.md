@@ -11,7 +11,7 @@ disable-model-invocation: true
 模板文件都在本 skill 的 `references/` 下，按需读取并做占位符替换。
 
 > **跨平台**：本 skill 用 `SKILL.md` 开放标准，CC（`~/.claude/skills/`）与 Codex（`~/.codex/skills/`）通用。正文提到的交互/并发工具按 agent 取等价物，逻辑不变：
-> - **结构化选项弹窗**：CC = `AskUserQuestion`；Codex = `request_user_input`（分页问卷弹窗，**仅在 `/plan` 模式下生效**，默认模式会静默用默认值——故 Codex 用户建议先 `/plan` 再跑本 skill）；都没有则退化为普通问答。
+> - **结构化选项弹窗**：CC = `AskUserQuestion`；Codex = `request_user_input`（分页问卷弹窗，交互式会话即可弹出、无需 `/plan`；仅 `codex exec` 非交互模式不支持）；都没有则退化为普通问答。
 > - **并行子任务**：CC = `Task` 工具，Codex = 其 subagent 能力——用当前 agent 自己的并发原语把多篇翻译并行派出。**只有确实没有并行能力的 agent 才退化为顺序**（别因为「工具名不叫 Task」就自判为不支持——CC 与 Codex 都能并行）。
 
 ## 三条铁律（贯穿全程，先记住）
@@ -62,7 +62,7 @@ bash "$SKILL_DIR/scripts/recon.sh"
 
 ## 阶段 2 · 引导问答（一次性问清，之后自动跑）
 
-一次性问清以下决策（CC 用 `AskUserQuestion`、Codex 用 `request_user_input`（需 `/plan` 模式才弹窗）、其它退化为普通问答；能从勘察推断的给默认值）：
+一次性问清以下决策（CC 用 `AskUserQuestion`、Codex 用 `request_user_input`（交互式会话即可弹窗）、其它退化为普通问答；能从勘察推断的给默认值）：
 
 1. **upstream 仓库地址**（原作者仓库；勘察没找到才问）。
 2. **私有 tag 格式**：默认 `v<官方版本>-private.<N>`，确认或自定义。
@@ -72,7 +72,7 @@ bash "$SKILL_DIR/scripts/recon.sh"
      - *建议翻译（白名单）*：面向用户的文档，如 `README*`、`CONTRIBUTING*`、`docs/` 下的指南类、顶层介绍类 `*.md`。
      - *建议排除（黑名单）*：变更/历史记录（`CHANGELOG*`/`HISTORY*`/含 `audit` 的）、正文本就是中文的文档（抽样含大量中日韩字符）、`private/` 下的、纯模板（如 `.github/` issue 模板）。
      - *AI 指令文件*（`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`）**默认归白名单（建议翻译）**——译文为 `.zh.md` 放 `private/translations/`，在子目录、改了名，不会被 AI 当指令加载，故纳入翻译是安全的；不想翻的可在弹窗里勾出。
-   - 把预分类结果（建议翻译 N 篇 / 建议排除 M 篇，各列文件名）连同四个选项弹给用户（CC=`AskUserQuestion` 单选、Codex=`request_user_input` 需 `/plan`、其它退化为普通问答）：
+   - 把预分类结果（建议翻译 N 篇 / 建议排除 M 篇，各列文件名）连同四个选项弹给用户（CC=`AskUserQuestion` 单选、Codex=`request_user_input` 交互式即可、其它退化为普通问答）：
      1. **采用建议清单**（默认）。
      2. **逐个调整**：把两组清单完整列出，用普通问答让用户报「加哪个、删哪个」，得到最终白名单。
      3. **全部文档都翻**：白名单 = 扫到的全部文档。

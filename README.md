@@ -110,7 +110,7 @@ codex plugin add privatize-fork@legdonkey
 ### 开始使用
 
 1. clone 你的私有 fork 到本地（`origin` 指向你的 fork）；
-2. 在**该项目目录**里打开 CC 或 Codex（Codex 建议先 `/plan`），手动触发：
+2. 在**该项目目录**里打开 CC 或 Codex，手动触发：
 
 ```
 /privatize-fork
@@ -126,11 +126,11 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 |---|---|---|
 | 插件位置 | `~/.claude/plugins/` | `~/.codex/plugins/` |
 | 禁自动调用 | `disable-model-invocation: true`（frontmatter） | `agents/openai.yaml` → `allow_implicit_invocation: false` |
-| 选项弹窗 | `AskUserQuestion` | `request_user_input`（需先 `/plan` 才弹窗） |
+| 选项弹窗 | `AskUserQuestion` | `request_user_input`（交互式会话即可，无需 `/plan`；仅 `codex exec` 非交互模式不支持） |
 | 并行子任务 | `Task` | subagent |
 | 指令文件（指针段） | `CLAUDE.md` | `AGENTS.md` |
 
-> Codex 用户提示：引导问答要弹出图形化选项，需先 `/plan` 进入 Plan 模式；否则 Codex 会静默用默认值。
+> Codex 提示：`request_user_input` 在交互式会话（桌面端或交互式 CLI）下直接弹出图形化选项，无需 `/plan`；只有 `codex exec` 非交互/脚本模式不支持，会退化为普通问答。
 
 ## 附带技能：codex-context-doctor
 
