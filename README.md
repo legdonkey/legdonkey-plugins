@@ -67,6 +67,8 @@
 
 > 一个插件即打包 `privatize-fork` 与 `codex-context-doctor` 两个技能。
 
+> **想一键装两边？** 跑 `./install-plugins.sh`，它用各自 CLI 把插件装进 Claude Code 与 Codex。每个平台的 CLI 与桌面端共享配置，装一次即覆盖两者。需本机有 `claude` / `codex` CLI、Codex ≥ 0.142.0。
+
 #### ① Claude Code —— 插件市场
 
 **命令行**
@@ -190,6 +192,7 @@ skills/codex-context-doctor/                   # 附带技能：审计 Codex 上
 └── scripts/                                   #  纯 Python3 + Bash，无外部依赖
     ├── run.sh                                 #   包装：建临时输出目录、调 Python、打印短摘要
     └── codex_context_doctor.py               #   本地扫描 ~/.codex 并生成 report.md / inventory.json
+install-plugins.sh                             # 一键把插件装进 CC + Codex（各平台 CLI 与桌面端共享配置）
 assets/                                        # README 配图（outline 矢量，引用用）
 ├── banner.svg / features.svg                  #  → README 引用的产物（文字已转路径）
 └── src/                                        #  可编辑源 + build-svg.sh（改图后重生成产物）

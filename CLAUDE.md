@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 这是什么
 
-privatize-fork 是一个跨 Claude Code 与 Codex 的「插件 + 技能」仓库，同时以三种形态分发：CC 插件、Codex 插件、纯 skill。没有包管理 / CI / 构建系统——内容是 Markdown + bash + python。文档与提交信息用简体中文。
+privatize-fork 是一个跨 Claude Code 与 Codex 的「插件 + 技能」仓库，同时作为 CC 插件与 Codex 插件分发（底层是开放标准 SKILL.md，技能本身也可独立使用）。没有包管理 / CI / 构建系统——内容是 Markdown + bash + python。文档与提交信息用简体中文。
 
 收录两个技能：
 - `skills/privatize-fork/` — 开源 fork 一次性私有化脚手架。
@@ -34,7 +34,7 @@ privatize-fork 是一个跨 Claude Code 与 Codex 的「插件 + 技能」仓库
 ## 验证（无 CI，本地自查）
 
 ```bash
-shellcheck skills/*/scripts/*.sh assets/src/*.sh          # shell 静态检查（应零告警）
+shellcheck install-plugins.sh skills/*/scripts/*.sh assets/src/*.sh   # shell 静态检查（应零告警）
 python3 -m json.tool .claude-plugin/plugin.json           # 每个 JSON 清单都验一遍
 python3 -m json.tool .claude-plugin/marketplace.json
 python3 -m json.tool .codex-plugin/plugin.json
