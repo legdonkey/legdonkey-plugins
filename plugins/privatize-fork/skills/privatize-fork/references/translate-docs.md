@@ -47,7 +47,7 @@ bash "$SKILL_DIR/scripts/translate-plan.sh" README.md CONTRIBUTING.md docs/setup
 
 对清单里每个文档执行翻译——**有并行子任务能力的 agent（CC 的 `Agent`、Codex 的 subagent 等）一次性并行派出；确无并行能力的才顺序逐个做**。每个翻译任务：
 
-- 任务：把 `<src>` 译成简体中文，写到 `private/translations/<basename>.zh.md`（先读源文件 → 翻译 → 写出）。
+- 任务：把 `<src>` 译成简体中文，写到 `translate-plan.sh` 输出的「译文」列路径（命名见 CONVENTIONS：源相对路径 `/`→`-` 再加 `.zh.md`，平铺在 `private/translations/`）。先读源文件 → 翻译 → 写出。
 - frontmatter：`source: <src>` / `source_version: <基线>` / `translated_at: <今天日期>`。
 - 翻译要求：忠实通顺简体中文；**保留原文不译**——代码块、命令、配置字段、API 名、URL、包名、模型名、产品名；保留标题层级。
 - **重写资源相对路径（重要，否则图片/资源裂掉）**：译文落在 `private/translations/` 下，与源文件目录不同，markdown 里指向图片/资源/同仓库文件的**相对路径**会失效。把这类相对引用改写成从译文位置仍能命中原始资源的路径——前缀 = `../../` + 源文件所在目录。

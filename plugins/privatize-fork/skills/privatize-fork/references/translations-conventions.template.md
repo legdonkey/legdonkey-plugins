@@ -17,7 +17,7 @@ upstream 官方文档的中文译文，仅作团队参考，**不回推 upstream
 
 ## 命名约定
 
-- 译文文件名：`<原文件名去扩展>.zh.md`，例如 `README.zh.md`。
+- 译文文件名：源相对路径去扩展、`/` 换成 `-`，再加 `.zh.md`——顶层 `README.md` → `README.zh.md`；子目录 `docs/api.md` → `docs-api.zh.md`（避免不同目录同名文件撞车）。译文仍平铺在 `private/translations/` 顶层。
 - 译文头部加 frontmatter，标注译自哪个源文件、哪个 upstream 版本：
 
 ```yaml

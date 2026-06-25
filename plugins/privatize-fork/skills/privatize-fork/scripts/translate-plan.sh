@@ -9,7 +9,8 @@
 #
 # 用法：translate-plan.sh <src1.md> [<src2.md> ...]
 #   入参为白名单源文件（模型从 CONVENTIONS.md 的白名单区块读出后传入）。
-#   译文目标固定为 private/translations/<basename 去扩展>.zh.md。
+#   译文目标为 private/translations/<源相对路径去扩展，'/'换成'-'>.zh.md
+#   （顶层文件即 README.zh.md；子目录文件如 docs/api.md → docs-api.zh.md，避免同名冲突）。
 #
 set -uo pipefail
 
@@ -45,8 +46,10 @@ printf '# 状态\t源文件\t译文\t说明\n'
 
 n_translate=0; n_retranslate=0; n_skip=0; n_check=0
 for src in "$@"; do
-  base="$(basename "$src")"
-  dst="private/translations/${base%.*}.zh.md"
+  # 译文名编码源的相对路径以避免同名冲突：顶层 README.md→README.zh.md；
+  # 子目录 docs/README.md→docs-README.zh.md（译文仍平铺在 translations/ 顶层，资源相对路径改写规则不变）。
+  rel="${src#./}"
+  dst="private/translations/$(printf '%s' "${rel%.*}" | tr '/' '-').zh.md"
 
   if [ ! -f "$src" ]; then
     printf 'MISSING-SRC\t%s\t%s\t源文件不存在，跳过\n' "$src" "$dst"

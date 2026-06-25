@@ -47,7 +47,8 @@ test -f private/README.md && echo "ALREADY_INITIALIZED" || echo "FRESH"
 **这一步只读不改**，固化成脚本保证每条命令都真跑、不漏项：
 
 ```bash
-SKILL_DIR=""; for d in ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork; do [ -d "$d" ] && { SKILL_DIR="$d"; break; }; done
+# SKILL_DIR = 本 SKILL.md 所在目录的绝对路径——你（agent）已经知道它：插件安装时在插件缓存目录里、软链安装时在 skills 目录里，统一用这个真实路径，别写死成 ~/.claude/skills。
+SKILL_DIR="<当前 SKILL.md 所在目录的绝对路径>"
 bash "$SKILL_DIR/scripts/recon.sh"
 ```
 
@@ -87,8 +88,8 @@ bash "$SKILL_DIR/scripts/recon.sh"
 > 这一步就是 upstream 初始化本身：含「禁止 push upstream」的安全闸——写错或漏掉会把私有改动误推回开源上游，且不可逆。故**不手敲命令，改调本 skill 自带的确定性脚本**（幂等、自带安全自检），杜绝靠自觉。
 
 ```bash
-# 先定位本 skill 目录（软链/复制安装都适用），再调脚本
-SKILL_DIR=""; for d in ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork; do [ -d "$d" ] && { SKILL_DIR="$d"; break; }; done
+# SKILL_DIR = 本 SKILL.md 所在目录的绝对路径——你（agent）已经知道它：插件安装时在插件缓存目录里、软链安装时在 skills 目录里，统一用这个真实路径，别写死成 ~/.claude/skills。
+SKILL_DIR="<当前 SKILL.md 所在目录的绝对路径>"
 
 # 配 upstream + 设防误推闸 + fetch tag + 自检；地址用阶段2确认的 upstream 地址
 bash "$SKILL_DIR/scripts/setup-remote.sh" "<阶段2确认的upstream地址>"
