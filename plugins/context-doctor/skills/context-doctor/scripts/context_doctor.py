@@ -261,6 +261,8 @@ def collect_claude(home: Path, cwd: Path) -> JsonDict:
                         or item.get("installLocation")
                         or ""
                     ),
+                    # GitHub/git 源 pin 了分支或 tag 时才有
+                    "ref": str(item.get("ref") or ""),
                     "source": "cli",
                 }
             )
@@ -591,12 +593,14 @@ def render_platform_section(section: JsonDict) -> list[str]:
     lines.append(f"### 市场源（{len(section['marketplaces'])}）")
     lines.append("")
     if section["marketplaces"]:
-        lines.append(
-            md_table(
-                ["名称", "类型", "来源/仓库"],
-                [[m.get("name"), m.get("source_type") or "", m.get("repo") or ""] for m in section["marketplaces"]],
-            )
-        )
+        rows = []
+        for m in section["marketplaces"]:
+            origin = m.get("repo") or ""
+            ref = m.get("ref") or ""
+            if origin and ref:
+                origin = f"{origin} @{ref}"
+            rows.append([m.get("name"), m.get("source_type") or "", origin])
+        lines.append(md_table(["名称", "类型", "来源/仓库"], rows))
     else:
         lines.append("（无）")
     lines.append("")
