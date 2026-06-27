@@ -465,22 +465,26 @@ def build_recommendations(sections: list[JsonDict]) -> list[JsonDict]:
     for section in sections:
         platform = section["label"]
 
-        # 同名技能跨级共存：官方按 enterprise > personal > project 覆盖，只有最高级生效。
-        # 技能走目录、不依赖 CLI，故放在 cli_present 判断之前。
-        scopes_by_skill: dict[str, set[str]] = defaultdict(set)
+        # 同名技能覆盖：官方按 enterprise > personal > project 覆盖，向上遍历时同为 project
+        # 的多层目录也只有一个生效。按「实例数」判断而非 scope 集合——否则同 scope 多目录
+        # （子目录与 repo 根都有同名技能）会被 set 折叠而漏报。技能走目录、不依赖 CLI，
+        # 故放在 cli_present 判断之前。
+        instances_by_skill: dict[str, list[JsonDict]] = defaultdict(list)
         for sk in section["skills"]:
             name = str(sk.get("name") or "")
             if name:
-                scopes_by_skill[name].add(str(sk.get("scope") or ""))
-        for name, scopes in sorted(scopes_by_skill.items()):
-            if len(scopes) > 1:
+                instances_by_skill[name].append(sk)
+        for name, insts in sorted(instances_by_skill.items()):
+            if len(insts) > 1:
+                scopes = sorted({str(s.get("scope") or "") for s in insts})
+                where = "、".join(scopes) if len(scopes) > 1 else f"{scopes[0]} ×{len(insts)}"
                 recs.append(
                     {
                         "severity": "review",
                         "platform": platform,
                         "area": "skill",
                         "subject": name,
-                        "reason": f"同名技能在多个范围共存（{', '.join(sorted(scopes))}），实际只有最高优先级生效",
+                        "reason": f"同名技能存在 {len(insts)} 处（{where}），实际只有最高优先级/最近目录的一个生效",
                         "action": "确认是否有意覆盖，删掉多余的以免混淆",
                     }
                 )
