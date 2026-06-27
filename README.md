@@ -19,13 +19,13 @@
 
 把 clone 下来的开源项目 fork 私有化：upstream 只读跟踪 + 禁推、`private/` 隔离与维护规范、文档增量翻译、写 `CLAUDE.md`/`AGENTS.md` 指针——让私有 fork 能长期跟踪上游、又把定制干净隔离。**→ [详细说明](plugins/privatize-fork/README.md)**
 
-### [codex-context-doctor](plugins/codex-context-doctor/) — Codex 上下文审计
+### [context-doctor](plugins/context-doctor/) — 跨平台上下文审计
 
 <p align="center">
-  <a href="plugins/codex-context-doctor/"><img src="plugins/codex-context-doctor/assets/banner.svg" alt="codex-context-doctor" width="100%"></a>
+  <a href="plugins/context-doctor/"><img src="plugins/context-doctor/assets/banner.svg" alt="context-doctor" width="100%"></a>
 </p>
 
-本地只读扫描 `~/.codex`，盘点装了哪些插件 / App·连接器 / MCP / 技能 / 市场源，给出重名、旧缓存、配置不一致等卫生建议。纯 Python 3 + Bash，不联网。**→ [详细说明](plugins/codex-context-doctor/README.md)**
+用各平台**官方 CLI 治理入口**盘点 **Claude Code 与 Codex** 的插件 / MCP / 市场源（技能走目录治理入口），输出一份含两个分区的报告，给出重名、禁用、token 开销偏大等卫生建议。纯 Python 3 + Bash，只读。**→ [详细说明](plugins/context-doctor/README.md)**
 
 ## 安装
 
@@ -40,7 +40,7 @@
 ```
 /plugin marketplace add legdonkey/legdonkey-plugins
 /plugin install privatize-fork@legdonkey
-/plugin install codex-context-doctor@legdonkey   # 按需，可只装一个
+/plugin install context-doctor@legdonkey   # 按需，可只装一个
 ```
 
 之后用 `/plugin marketplace update` 拉取更新。
@@ -49,7 +49,7 @@
 
 ![Claude Code 添加插件市场](assets/install-claude-gui.png)
 
-> 插件方式的 skill 触发名带命名空间：`/privatize-fork:privatize-fork`、`/codex-context-doctor:codex-context-doctor`。
+> 插件方式的 skill 触发名带命名空间：`/privatize-fork:privatize-fork`、`/context-doctor:context-doctor`。
 
 ### ② Codex —— 插件市场
 
@@ -58,14 +58,14 @@
 ```bash
 codex plugin marketplace add legdonkey/legdonkey-plugins --ref main
 codex plugin add privatize-fork@legdonkey
-codex plugin add codex-context-doctor@legdonkey   # 按需，可只装一个
+codex plugin add context-doctor@legdonkey   # 按需，可只装一个
 ```
 
 **桌面端图形界面**：设置 →「添加插件市场」，来源填 `legdonkey/legdonkey-plugins`、Git 引用 `main`（稀疏路径留空），点「添加市场」；再到插件列表按需安装。
 
 ![Codex 添加插件市场](assets/install-codex-gui.png)
 
-> 两个插件分别在 `plugins/privatize-fork`、`plugins/codex-context-doctor` 子目录（标准布局），任意 Codex 版本都能装。
+> 两个插件分别在 `plugins/privatize-fork`、`plugins/context-doctor` 子目录（标准布局），任意 Codex 版本都能装。
 
 > **不会自动调用**：CC 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——两边都只能由你手动触发。
 
@@ -81,12 +81,12 @@ plugins/
 │   ├── assets/                                #   该插件 README 配图（banner / features）
 │   ├── README.md                              #   插件详细说明
 │   └── skills/privatize-fork/                 #   技能本体（SKILL.md + scripts + references）
-└── codex-context-doctor/                      # 插件②：审计 Codex 上下文
+└── context-doctor/                           # 插件②：跨平台上下文审计
     ├── .claude-plugin/plugin.json             #   CC 插件清单
     ├── .codex-plugin/plugin.json              #   Codex 插件清单
     ├── assets/                                #   该插件 README 配图（banner / audit-overview）
     ├── README.md                              #   插件详细说明
-    └── skills/codex-context-doctor/           #   技能本体（SKILL.md + scripts）
+    └── skills/context-doctor/                 #   技能本体（SKILL.md + scripts）
 install-plugins.sh                             # 一键把两个插件装进 CC + Codex
 assets/                                        # 共享配图：安装截图 + build-svg.sh（生成各插件 SVG）
 README.md                                      # 本文件（仓库总览 / 导航）

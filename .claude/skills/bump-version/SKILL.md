@@ -6,13 +6,13 @@ disable-model-invocation: true
 
 # bump-version
 
-把**某一个插件**的版本号一次性同步到指定值。本仓库有两个独立插件（`privatize-fork`、`codex-context-doctor`），版本各走各的；每个插件的版本号分散在 3 处，这个技能确保不漏改。
+把**某一个插件**的版本号一次性同步到指定值。本仓库有两个独立插件（`privatize-fork`、`context-doctor`），版本各走各的；每个插件的版本号分散在 3 处，这个技能确保不漏改。
 
 参数：`$ARGUMENTS` = `<插件名> <x.y.z>`，例如 `privatize-fork 1.6.0`。
 
 ## 步骤
 
-1. 解析 `$ARGUMENTS`：第一个词是插件名（必须是 `plugins/` 下已存在的目录，如 `privatize-fork` 或 `codex-context-doctor`），第二个词是合法 semver（`x.y.z`）。缺参数或插件名不存在就停下来问用户。
+1. 解析 `$ARGUMENTS`：第一个词是插件名（必须是 `plugins/` 下已存在的目录，如 `privatize-fork` 或 `context-doctor`），第二个词是合法 semver（`x.y.z`）。缺参数或插件名不存在就停下来问用户。
 2. 用 Edit 把以下三处的版本号都改成新值（**只改这个插件的版本，别动其它字段、别动另一个插件**）：
    - `plugins/<插件名>/.claude-plugin/plugin.json` → 顶层 `"version"`
    - `plugins/<插件名>/.codex-plugin/plugin.json` → 顶层 `"version"`
