@@ -15,7 +15,7 @@ import shutil
 import subprocess
 import sys
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -125,7 +125,10 @@ def repo_root_from(cwd: Path) -> Path:
 
 
 def project_skill_dirs(cwd: Path, rel: Path) -> list[Path]:
-    """当前目录到 repo 根，沿途所有 <rel> 目录（rel 如 .claude/skills、.codex/skills、.agents/skills）。"""
+    """当前目录到 repo 根，沿途所有 <rel> 目录（rel 如 .claude/skills、.codex/skills、.agents/skills）。
+
+    与官方一致：plain 技能从启动目录向上遍历到仓库根（不同于 `@skills-dir` 插件——后者只在启动目录）。
+    """
     root = repo_root_from(cwd)
     dirs: list[Path] = []
     here = cwd
@@ -154,8 +157,9 @@ def parse_claude_mcp_list(text: str) -> list[JsonDict]:
         name, rest = line.split(": ", 1)
         status = ""
         target = rest
-        # 末尾 " - <状态>"（状态里可能含 ✔ / ⏸ / ✗ 等符号）
-        m = re.search(r"\s-\s([^-]+)$", rest)
+        # 末尾 " - <状态>"，状态以已知符号打头（✔ 已连 / ⏸ 待批 / ✗ 失败）。
+        # 锚定符号而非「最后一个连字符」，避免 target/URL 里本身含 " - " 时被误切。
+        m = re.search(r"\s-\s([✔✓⏸✗✘●○⚠].*)$", rest)
         if m:
             status = m.group(1).strip()
             target = rest[: m.start()].strip()
@@ -280,6 +284,10 @@ def collect_claude(home: Path, cwd: Path) -> JsonDict:
         "技能来自目录扫描：Claude Code 没有列举技能的 CLI，目录即官方治理入口。"
         "插件自带技能与 token 成本来自 `claude plugin details`。"
     )
+    section["notes"].append(
+        "仅覆盖个人级（~/.claude/skills）与项目级（启动目录到仓库根的 .claude/skills）；"
+        "企业 / managed 级技能与子目录按需加载的 nested 技能未覆盖（已知缩减项）。"
+    )
     return section
 
 
@@ -287,7 +295,11 @@ def collect_claude(home: Path, cwd: Path) -> JsonDict:
 # Codex 采集器（CLI 优先）
 # --------------------------------------------------------------------------- #
 def parse_codex_marketplace_list(text: str) -> list[JsonDict]:
-    """解析 `codex plugin marketplace list` 的表格（MARKETPLACE / ROOT，两列按多空格分隔）。"""
+    """解析 `codex plugin marketplace list` 的表格（MARKETPLACE / ROOT，两列按多空格分隔）。
+
+    这是老版本 Codex 无 `--json` 时的回退路径：文本表格只有名称与路径，拿不到真实
+    源类型，故记为 unknown（标 local 会把 git/ssh 远程源误判为本地，反而误导）。
+    """
     rows: list[JsonDict] = []
     for raw in text.splitlines():
         line = raw.rstrip()
@@ -298,7 +310,7 @@ def parse_codex_marketplace_list(text: str) -> list[JsonDict]:
             continue
         name = parts[0].strip()
         root = parts[1].strip() if len(parts) > 1 else ""
-        rows.append({"name": name, "repo": root, "source_type": "local", "source": "cli"})
+        rows.append({"name": name, "repo": root, "source_type": "unknown", "source": "cli"})
     return rows
 
 
@@ -452,6 +464,27 @@ def build_recommendations(sections: list[JsonDict]) -> list[JsonDict]:
     recs: list[JsonDict] = []
     for section in sections:
         platform = section["label"]
+
+        # 同名技能跨级共存：官方按 enterprise > personal > project 覆盖，只有最高级生效。
+        # 技能走目录、不依赖 CLI，故放在 cli_present 判断之前。
+        scopes_by_skill: dict[str, set[str]] = defaultdict(set)
+        for sk in section["skills"]:
+            name = str(sk.get("name") or "")
+            if name:
+                scopes_by_skill[name].add(str(sk.get("scope") or ""))
+        for name, scopes in sorted(scopes_by_skill.items()):
+            if len(scopes) > 1:
+                recs.append(
+                    {
+                        "severity": "review",
+                        "platform": platform,
+                        "area": "skill",
+                        "subject": name,
+                        "reason": f"同名技能在多个范围共存（{', '.join(sorted(scopes))}），实际只有最高优先级生效",
+                        "action": "确认是否有意覆盖，删掉多余的以免混淆",
+                    }
+                )
+
         if not section["cli_present"]:
             continue
         # 同名插件多来源
@@ -518,7 +551,7 @@ def build_inventory(
     recommendations = build_recommendations(sections)
 
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "home": str(home),
         "cwd": str(cwd),
         "platform_filter": platform,
@@ -589,6 +622,22 @@ def render_platform_section(section: JsonDict) -> list[str]:
         lines.append("（无已装插件，或 CLI 不可用）")
     lines.append("")
 
+    # 可装插件（市场提供、当前未装）——清单可能很长，折叠展示
+    avail = section["available_plugins"]
+    if avail:
+        lines.append("<details>")
+        lines.append(f"<summary>可装插件（{len(avail)}）——市场提供、当前未装</summary>")
+        lines.append("")
+        lines.append(
+            md_table(
+                ["插件 ID", "市场"],
+                [[a.get("id") or a.get("name"), a.get("marketplace") or ""] for a in avail],
+            )
+        )
+        lines.append("")
+        lines.append("</details>")
+        lines.append("")
+
     # 市场源
     lines.append(f"### 市场源（{len(section['marketplaces'])}）")
     lines.append("")
@@ -657,7 +706,7 @@ def render_platform_section(section: JsonDict) -> list[str]:
 
 
 SEVERITY_LABELS = {"review": "需检查", "info": "提示"}
-AREA_LABELS = {"plugin": "插件", "mcp": "MCP", "marketplace": "市场源"}
+AREA_LABELS = {"plugin": "插件", "mcp": "MCP", "marketplace": "市场源", "skill": "技能"}
 
 
 def render_markdown(inventory: JsonDict) -> str:
