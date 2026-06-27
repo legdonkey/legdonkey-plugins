@@ -21,7 +21,7 @@
 | **插件 Plugins** | `claude plugin list --json --available` / `codex plugin list --json --available`：已装 + 可装、版本、启停、市场。Claude 侧另经 `claude plugin details` 取插件自带技能与 **token 成本** |
 | **市场源 Marketplaces** | `claude plugin marketplace list --json` / `codex plugin marketplace list` |
 | **MCP 服务器** | `claude mcp list`（文本，含连通状态）/ `codex mcp list --json` |
-| **技能 Skills** | 两平台都**没有列举技能的 CLI**（官方设计为文件式），故扫描技能目录：`~/.claude/skills`、项目 `.claude/skills`、`~/.codex/skills`、`~/.agents/skills` |
+| **技能 Skills** | 两平台都**没有列举技能的 CLI**（官方设计为文件式），故扫描技能目录（用户级 + 项目级，项目级从当前目录逐级向上到 repo 根）：Claude Code `~/.claude/skills`、项目 `.claude/skills`；Codex `~/.codex/skills`、`~/.agents/skills`、项目 `.codex/skills`、项目 `.agents/skills` |
 | **卫生建议** | 同名插件多来源、已装但禁用、always-on token 开销偏大等 |
 
 > 设计原则：**CLI 优先**。插件 / 市场 / MCP 一律走官方命令；技能因官方无 CLI 而走目录——这是技能官方治理的唯一方式，不是绕开 CLI。某平台 CLI 不在 PATH 时自动跳过并标注。

@@ -124,13 +124,13 @@ def repo_root_from(cwd: Path) -> Path:
     return next((d for d in [cwd, *cwd.parents] if (d / ".git").exists()), cwd)
 
 
-def project_skill_dirs(cwd: Path) -> list[Path]:
-    """当前目录到 repo 根，沿途所有 .claude/skills 目录。"""
+def project_skill_dirs(cwd: Path, rel: Path) -> list[Path]:
+    """当前目录到 repo 根，沿途所有 <rel> 目录（rel 如 .claude/skills、.codex/skills、.agents/skills）。"""
     root = repo_root_from(cwd)
     dirs: list[Path] = []
     here = cwd
     while True:
-        candidate = here / ".claude" / "skills"
+        candidate = here / rel
         if candidate.exists():
             dirs.append(candidate)
         if here == root or here == here.parent:
@@ -265,7 +265,7 @@ def collect_claude(home: Path, cwd: Path) -> JsonDict:
 
     # 技能：个人级 + 项目级（目录治理入口）
     roots = [(home / ".claude" / "skills", "personal")]
-    roots.extend((d, "project") for d in project_skill_dirs(cwd))
+    roots.extend((d, "project") for d in project_skill_dirs(cwd, Path(".claude") / "skills"))
     section["skills"] = collect_skills_from_dirs(roots)
     section["notes"].append(
         "技能来自目录扫描：Claude Code 没有列举技能的 CLI，目录即官方治理入口。"
@@ -293,7 +293,7 @@ def parse_codex_marketplace_list(text: str) -> list[JsonDict]:
     return rows
 
 
-def collect_codex(home: Path) -> JsonDict:
+def collect_codex(home: Path, cwd: Path) -> JsonDict:
     section: JsonDict = {
         "platform": "codex",
         "label": "Codex",
@@ -363,11 +363,13 @@ def collect_codex(home: Path) -> JsonDict:
             "Codex 无 `plugin details` 命令，插件自带技能与 token 成本未逐插件展开（已知缩减项）。"
         )
 
-    # 技能：独立目录治理入口
+    # 技能：独立目录治理入口（用户级 + 项目级，逐级向上到 repo 根）
     roots = [
         (home / ".codex" / "skills", "codex"),
         (home / ".agents" / "skills", "agents"),
     ]
+    roots.extend((d, "codex-project") for d in project_skill_dirs(cwd, Path(".codex") / "skills"))
+    roots.extend((d, "agents-project") for d in project_skill_dirs(cwd, Path(".agents") / "skills"))
     section["skills"] = collect_skills_from_dirs(roots)
     section["notes"].append(
         "技能来自目录扫描：Codex 没有列举技能的 CLI，目录即官方治理入口。"
@@ -473,7 +475,7 @@ def build_inventory(
     if platform in ("both", "claude"):
         sections.append(collect_claude(home, cwd))
     if platform in ("both", "codex"):
-        sections.append(collect_codex(home))
+        sections.append(collect_codex(home, cwd))
 
     for section in sections:
         mark_visibility(section, session_snapshot)
