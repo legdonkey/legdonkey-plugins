@@ -293,6 +293,27 @@ def parse_codex_marketplace_list(text: str) -> list[JsonDict]:
     return rows
 
 
+def parse_codex_marketplace_json(data: JsonDict) -> list[JsonDict]:
+    """解析 `codex plugin marketplace list --json`，保留真实源类型（local/git/…）。
+
+    `marketplaceSource` 可能缺失（如内置 curated 源），缺失时源类型记为 unknown。
+    """
+    rows: list[JsonDict] = []
+    for m in data.get("marketplaces", []):
+        if not isinstance(m, dict):
+            continue
+        src = m.get("marketplaceSource") if isinstance(m.get("marketplaceSource"), dict) else {}
+        rows.append(
+            {
+                "name": str(m.get("name") or ""),
+                "repo": str(src.get("source") or m.get("root") or ""),
+                "source_type": str(src.get("sourceType") or "unknown"),
+                "source": "cli",
+            }
+        )
+    return rows
+
+
 def collect_codex(home: Path, cwd: Path) -> JsonDict:
     section: JsonDict = {
         "platform": "codex",
@@ -337,10 +358,14 @@ def collect_codex(home: Path, cwd: Path) -> JsonDict:
                 }
             )
 
-        # 市场源（无 --json，解析文本表格）
-        out, _ = run_cli(["codex", "plugin", "marketplace", "list"])
-        if out:
-            section["marketplaces"] = parse_codex_marketplace_list(out)
+        # 市场源（--json 保留真实源类型；老版本无 --json 时退回文本解析）
+        mdata = run_cli_json(["codex", "plugin", "marketplace", "list", "--json"])
+        if isinstance(mdata, dict) and mdata.get("marketplaces") is not None:
+            section["marketplaces"] = parse_codex_marketplace_json(mdata)
+        else:
+            out, _ = run_cli(["codex", "plugin", "marketplace", "list"])
+            if out:
+                section["marketplaces"] = parse_codex_marketplace_list(out)
 
         # MCP（有 --json）
         mcp = run_cli_json(["codex", "mcp", "list", "--json"]) or []
@@ -365,6 +390,7 @@ def collect_codex(home: Path, cwd: Path) -> JsonDict:
 
     # 技能：独立目录治理入口（用户级 + 项目级，逐级向上到 repo 根）
     roots = [
+        (home / ".codex" / "skills" / ".system", "codex-system"),
         (home / ".codex" / "skills", "codex"),
         (home / ".agents" / "skills", "agents"),
     ]
