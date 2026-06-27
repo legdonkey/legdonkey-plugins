@@ -253,7 +253,14 @@ def collect_claude(home: Path, cwd: Path) -> JsonDict:
                 {
                     "name": str(item.get("name") or ""),
                     "source_type": str(item.get("source") or ""),
-                    "repo": str(item.get("repo") or item.get("installLocation") or ""),
+                    # GitHub 源用 repo，git/URL 源用 url，本地源用 path
+                    "repo": str(
+                        item.get("repo")
+                        or item.get("url")
+                        or item.get("path")
+                        or item.get("installLocation")
+                        or ""
+                    ),
                     "source": "cli",
                 }
             )
