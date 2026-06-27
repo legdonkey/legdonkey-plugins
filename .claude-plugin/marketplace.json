@@ -1,7 +1,7 @@
 {
   "name": "legdonkey",
   "owner": { "name": "legdonkey" },
-  "description": "legdonkey 的 Claude Code 工具集市，收录两个独立插件：privatize-fork（开源 fork 一次性私有化脚手架）与 codex-context-doctor（Codex 上下文审计）。",
+  "description": "legdonkey 的 Claude Code 工具集市，收录两个独立插件：privatize-fork（开源 fork 一次性私有化脚手架）与 context-doctor（跨平台上下文审计）。",
   "plugins": [
     {
       "name": "privatize-fork",
@@ -10,10 +10,10 @@
       "version": "1.5.0"
     },
     {
-      "name": "codex-context-doctor",
-      "source": "./plugins/codex-context-doctor",
-      "description": "审计 Codex 安装的插件/App/MCP/技能/市场源（纯本地磁盘扫描，不联网）。只在手动点名时运行。",
-      "version": "1.0.0"
+      "name": "context-doctor",
+      "source": "./plugins/context-doctor",
+      "description": "跨平台上下文审计：用官方 CLI 治理入口盘点 Claude Code 与 Codex 的插件/MCP/市场源，技能走目录。只在手动点名时运行。",
+      "version": "2.0.0"
     }
   ]
 }

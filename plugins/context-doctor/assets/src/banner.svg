@@ -60,8 +60,8 @@
   </g>
 
   <!-- ===== right: title + audit-target cells ===== -->
-  <text x="412" y="120" class="disp" font-size="44" font-weight="600" fill="#211e18" letter-spacing="-0.5">codex-context-doctor</text>
-  <text x="414" y="152" class="body" font-size="16.5" fill="#5f584b">审计 Codex 上下文 · 插件 / App / MCP / 技能 / 市场源 · 本地只读不联网</text>
+  <text x="412" y="120" class="disp" font-size="44" font-weight="600" fill="#211e18" letter-spacing="-0.5">context-doctor</text>
+  <text x="414" y="152" class="body" font-size="16.5" fill="#5f584b">跨平台审计 Claude Code 与 Codex · 插件 / MCP / 市场源 / 技能 · 调官方 CLI 治理入口</text>
 
   <!-- 6 audit cells: 2 rows x 3 cols -->
   <g>
@@ -73,7 +73,7 @@
     <g transform="translate(692,180)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
       <text x="14" y="24" class="mono" font-size="12.5" letter-spacing="1" fill="#c43c30">02</text>
-      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">App · 连接器</text>
+      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">市场源 Marketplaces</text>
     </g>
     <g transform="translate(972,180)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
@@ -88,7 +88,7 @@
     <g transform="translate(692,250)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
       <text x="14" y="24" class="mono" font-size="12.5" letter-spacing="1" fill="#c43c30">05</text>
-      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">市场源</text>
+      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">Claude + Codex</text>
     </g>
     <g transform="translate(972,250)">
       <rect width="268" height="58" fill="#e7ddc8" stroke="#c43c30" stroke-width="1.2"/>
@@ -98,5 +98,5 @@
   </g>
 
   <!-- footer flow -->
-  <text x="414" y="346" class="mono" font-size="13" fill="#6f685a">本地扫描 <tspan fill="#c43c30">→</tspan> 盘点清单 <tspan fill="#c43c30">→</tspan> 卫生建议 <tspan fill="#c43c30">→</tspan> report.md / inventory.json</text>
+  <text x="414" y="346" class="mono" font-size="13" fill="#6f685a">官方 CLI <tspan fill="#c43c30">→</tspan> 盘点清单 <tspan fill="#c43c30">→</tspan> 卫生建议 <tspan fill="#c43c30">→</tspan> report.md / inventory.json</text>
 </svg>

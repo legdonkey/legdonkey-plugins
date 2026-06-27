@@ -17,10 +17,10 @@
       "category": "Developer Tools"
     },
     {
-      "name": "codex-context-doctor",
+      "name": "context-doctor",
       "source": {
         "source": "local",
-        "path": "./plugins/codex-context-doctor"
+        "path": "./plugins/context-doctor"
       },
       "policy": {
         "installation": "AVAILABLE",

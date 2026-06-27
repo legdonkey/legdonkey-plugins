@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 这是一个跨 Claude Code 与 Codex 的插件市场仓库，含**两个独立插件、各 1 个技能**（互不依赖）。没有包管理 / CI / 构建系统——内容是 Markdown + bash + python。文档与提交信息用简体中文。
 
 - `plugins/privatize-fork/` — 开源 fork 一次性私有化脚手架。
-- `plugins/codex-context-doctor/` — 审计 Codex 安装的插件 / App / MCP / 技能 / 市场源。
+- `plugins/context-doctor/` — 跨平台审计 Claude Code 与 Codex 的插件 / MCP / 市场源 / 技能（调官方 CLI 治理入口，技能走目录）。
 
 每个插件目录含 `.claude-plugin/plugin.json`（CC）+ `.codex-plugin/plugin.json`（Codex）+ `skills/<name>/`。两个市场清单在仓库根：`.claude-plugin/marketplace.json`（CC）、`.agents/plugins/marketplace.json`（Codex），各列出这两个插件。
 
@@ -40,7 +40,7 @@ for f in .claude-plugin/marketplace.json .agents/plugins/marketplace.json \
          plugins/*/.claude-plugin/plugin.json plugins/*/.codex-plugin/plugin.json; do
   python3 -m json.tool "$f" >/dev/null && echo "OK $f"      # 每个清单都验一遍
 done
-python3 -B plugins/codex-context-doctor/skills/codex-context-doctor/scripts/codex_context_doctor.py --help   # doctor 可跑
+python3 -B plugins/context-doctor/skills/context-doctor/scripts/context_doctor.py --help   # doctor 可跑
 ```
 
 Codex 插件端到端校验（本机装了 Codex 时）：`codex plugin marketplace add . && codex plugin list --marketplace legdonkey --available`（应列出 2 个插件），验证完用 `codex plugin marketplace remove legdonkey` 清理。
