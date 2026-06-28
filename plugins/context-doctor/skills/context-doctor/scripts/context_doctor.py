@@ -174,6 +174,30 @@ def parse_claude_mcp_list(text: str) -> list[JsonDict]:
     return servers
 
 
+def parse_claude_mcp_get(text: str) -> JsonDict:
+    """解析 `claude mcp get <name>`：只取 Type 与 Scope。
+
+    `claude mcp list` 文本不含传输类型，但 `mcp get` 有（Type: stdio / http / sse…）。
+    安全约束：该命令会连带打印 Environment 里的密钥（AccessKey 等），这里只读 Type/Scope
+    两行，绝不解析 Command / Args / Environment，避免把任何机密带进审计产物。
+    """
+    server_type = ""
+    scope = ""
+    for raw in text.splitlines():
+        line = raw.strip()
+        # 命中 Environment 段即停，后续都是敏感的 KEY=VALUE，绝不读取
+        if line.startswith("Environment"):
+            break
+        m = re.match(r"Type:\s*(.+)$", line)
+        if m:
+            server_type = m.group(1).strip()
+            continue
+        m = re.match(r"Scope:\s*(.+)$", line)
+        if m:
+            scope = m.group(1).strip()
+    return {"server_type": server_type, "scope": scope}
+
+
 def parse_claude_details(text: str) -> JsonDict:
     """解析 `claude plugin details <name>`：取插件自带技能名列表与 always-on token。"""
     skills: list[str] = []
@@ -239,11 +263,15 @@ def collect_claude(home: Path, cwd: Path) -> JsonDict:
         for item in available:
             if not isinstance(item, dict):
                 continue
+            # available 对象的键与 installed 不同：pluginId / marketplaceName / version
+            # （旧实现误用 id / marketplace，导致市场列全空、id 丢 @market 后缀）。保留旧键回退。
+            plugin_id = str(item.get("pluginId") or item.get("id") or "")
             section["available_plugins"].append(
                 {
-                    "id": str(item.get("id") or ""),
-                    "name": str(item.get("name") or item.get("id") or ""),
-                    "marketplace": str(item.get("marketplace") or ""),
+                    "id": plugin_id,
+                    "name": str(item.get("name") or plugin_id),
+                    "marketplace": str(item.get("marketplaceName") or item.get("marketplace") or ""),
+                    "version": str(item.get("version") or ""),
                     "source": "cli",
                 }
             )
@@ -275,6 +303,17 @@ def collect_claude(home: Path, cwd: Path) -> JsonDict:
         out, _ = run_cli(["claude", "mcp", "list"], timeout=MCP_LIST_TIMEOUT)
         if out:
             section["mcp_servers"] = parse_claude_mcp_list(out)
+            # `mcp list` 不含传输类型，逐个 `mcp get` 补 Type/Scope（与逐插件 details 同思路）。
+            # 解析器只取 Type/Scope，不读 Environment，避免泄露密钥。
+            for server in section["mcp_servers"]:
+                name = server.get("name") or ""
+                if not name:
+                    continue
+                detail, ok = run_cli(["claude", "mcp", "get", name], timeout=MCP_LIST_TIMEOUT)
+                if ok and detail:
+                    parsed = parse_claude_mcp_get(detail)
+                    server["server_type"] = parsed["server_type"]
+                    server["scope"] = parsed["scope"]
 
     # 技能：个人级 + 项目级（目录治理入口）
     roots = [(home / ".claude" / "skills", "personal")]
