@@ -19,10 +19,10 @@
 | 对象 | 数据来源 |
 |------|---------|
 | **插件 Plugins** | `claude plugin list --json --available` / `codex plugin list --json --available`：已装 + 可装、版本、启停、市场。Claude 侧另经 `claude plugin details` 取插件自带技能与 **token 成本** |
-| **市场源 Marketplaces** | `claude plugin marketplace list --json` / `codex plugin marketplace list` |
-| **MCP 服务器** | `claude mcp list`（文本，含连通状态）/ `codex mcp list --json` |
+| **市场源 Marketplaces** | `claude plugin marketplace list --json` / `codex plugin marketplace list --json`（老版本无 `--json` 时回退文本解析）。保留真实源类型（github / git / 本地等） |
+| **MCP 服务器** | `claude mcp list`（文本，含连通 / 认证等状态）/ `codex mcp list --json` |
 | **技能 Skills** | 两平台都**没有列举技能的 CLI**（官方设计为文件式），故扫描技能目录（用户级 + 项目级，项目级从当前目录逐级向上到 repo 根）：Claude Code `~/.claude/skills`、项目 `.claude/skills`；Codex `~/.codex/skills`、`~/.agents/skills`、项目 `.codex/skills`、项目 `.agents/skills` |
-| **卫生建议** | 同名插件多来源、已装但禁用、always-on token 开销偏大等 |
+| **卫生建议** | 同名插件多来源、**同名技能跨级覆盖**（按平台区分措辞）、已装但禁用、always-on token 开销偏大等 |
 
 > 设计原则：**CLI 优先**。插件 / 市场 / MCP 一律走官方命令；技能因官方无 CLI 而走目录——这是技能官方治理的唯一方式，不是绕开 CLI。某平台 CLI 不在 PATH 时自动跳过并标注。
 
@@ -64,7 +64,7 @@ $context-doctor      # Codex
 
 - **CLI 优先、只读**：插件 / 市场 / MCP 调各平台官方治理命令，不读配置文件；技能扫目录（官方无 CLI）。不改任何东西。
 - **零第三方依赖**：纯 Python 3 标准库 + Bash，通过 `subprocess` 调 `claude` / `codex`。某平台 CLI 缺失则降级跳过。
-- **已知缩减项**：Codex 无 `plugin details`，其插件自带技能与 token 成本未逐插件展开；Codex 的 App / 连接器全量审计在 CLI 模式下暂不覆盖（无对应 `list --json` 命令）。报告会显式标注，不静默丢。
+- **已知缩减项**：Codex 无 `plugin details`，其插件自带技能与 token 成本未逐插件展开；Codex 的 App / 连接器全量审计在 CLI 模式下暂不覆盖（无对应 `list --json` 命令）；技能仅覆盖个人级与项目级，企业 / managed 级与子目录 nested 技能未覆盖。报告会显式标注，不静默丢。
 
 ### 插件结构
 
