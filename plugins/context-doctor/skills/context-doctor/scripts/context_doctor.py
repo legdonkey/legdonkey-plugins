@@ -478,14 +478,22 @@ def build_recommendations(sections: list[JsonDict]) -> list[JsonDict]:
             if len(insts) > 1:
                 scopes = sorted({str(s.get("scope") or "") for s in insts})
                 where = "、".join(scopes) if len(scopes) > 1 else f"{scopes[0]} ×{len(insts)}"
+                # 措辞按平台区分：Claude 同名是官方明确覆盖；Codex 当前实现下同名技能
+                # 可能两个都可见（已知问题，precedence 是设计意图），不能断言「只有一个生效」。
+                if section["platform"] == "claude":
+                    reason = f"同名技能存在 {len(insts)} 处（{where}），按官方覆盖顺序只有最高优先级的一个生效"
+                    action = "确认是否有意覆盖，删掉多余的以免混淆"
+                else:
+                    reason = f"同名技能存在 {len(insts)} 处（{where}），Codex 当前可能同时可见或按优先级解析（行为有歧义）"
+                    action = "确认是否有意；需要时在配置中对低优先级路径设 enabled=false"
                 recs.append(
                     {
                         "severity": "review",
                         "platform": platform,
                         "area": "skill",
                         "subject": name,
-                        "reason": f"同名技能存在 {len(insts)} 处（{where}），实际只有最高优先级/最近目录的一个生效",
-                        "action": "确认是否有意覆盖，删掉多余的以免混淆",
+                        "reason": reason,
+                        "action": action,
                     }
                 )
 
