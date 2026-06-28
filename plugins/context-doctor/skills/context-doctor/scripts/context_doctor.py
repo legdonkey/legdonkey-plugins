@@ -157,12 +157,12 @@ def parse_claude_mcp_list(text: str) -> list[JsonDict]:
         name, rest = line.split(": ", 1)
         status = ""
         target = rest
-        # 末尾 " - <状态>"，状态以已知符号打头（✔ 已连 / ⏸ 待批 / ✗ 失败）。
-        # 锚定符号而非「最后一个连字符」，避免 target/URL 里本身含 " - " 时被误切。
-        m = re.search(r"\s-\s([✔✓⏸✗✘●○⚠].*)$", rest)
-        if m:
-            status = m.group(1).strip()
-            target = rest[: m.start()].strip()
+        # 末尾 " - <状态>"：取最后一个 " - " 之后的全部作状态，覆盖任意状态文字
+        # （✔ Connected / ⏸ Pending approval / ✗ Rejected / ! Needs authentication / Failed…）。
+        # 不用符号白名单——那会漏掉 needs-auth / failed 这类用户最该看到的状态；MCP 表不
+        # 展示 target，故即便 target 罕见地含 " - " 被误切也无副作用。
+        if " - " in rest:
+            target, status = (part.strip() for part in rest.rsplit(" - ", 1))
         servers.append(
             {
                 "name": name.strip(),
