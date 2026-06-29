@@ -261,13 +261,35 @@ def parse_skill_header(path: Path) -> JsonDict:
     if end == -1:
         return {"name": path.parent.name, "description": ""}
     header = text[3:end]
+    lines = header.splitlines()
     data: JsonDict = {}
-    for raw_line in header.splitlines():
-        line = raw_line.strip()
-        if not line or ":" not in line:
+    block_indicators = {">", "|", ">-", "|-", ">+", "|+"}
+    i = 0
+    while i < len(lines):
+        raw = lines[i]
+        line = raw.strip()
+        i += 1
+        if not line or line.startswith("#") or ":" not in line:
             continue
         key, value = line.split(":", 1)
-        data[key.strip()] = value.strip().strip("\"'")
+        key = key.strip()
+        value = value.strip()
+        if value in block_indicators:
+            # YAML 块标量（description: > / |）：把后续更深缩进的行收成正文，
+            # 否则旧逻辑会把 ">" 本身当描述。> 折叠成空格，| 保留换行。
+            key_indent = len(raw) - len(raw.lstrip())
+            block: list[str] = []
+            while i < len(lines):
+                bl = lines[i]
+                if bl.strip() and (len(bl) - len(bl.lstrip())) <= key_indent:
+                    break
+                block.append(bl.strip())
+                i += 1
+            joiner = "\n" if value.startswith("|") else " "
+            value = joiner.join(block).strip()
+        else:
+            value = value.strip("\"'")
+        data[key] = value
     data.setdefault("name", path.parent.name)
     data.setdefault("description", "")
     return data
