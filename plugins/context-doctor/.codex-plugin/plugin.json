@@ -1,6 +1,6 @@
 {
   "name": "context-doctor",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "description": "跨平台上下文审计：用官方 CLI 治理入口盘点 Claude Code 与 Codex 的插件 / MCP / 市场源，技能走目录治理入口，可选对照当前会话可见态。",
   "author": {
     "name": "legdonkey",

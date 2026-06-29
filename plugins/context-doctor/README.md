@@ -8,7 +8,7 @@
 >
 > ← 返回[仓库总览](../../README.md) ｜ 姊妹插件：[privatize-fork](../privatize-fork/)
 
-装多了之后，常分不清「现在到底加载了什么、谁和谁重名、哪些禁用了还占着 token」。这个插件调 `claude` / `codex` 的官方治理命令，把两个平台的上下文构成摊开给你看，输出**一份含 Claude Code 与 Codex 两个分区**的报告，只在你手动点名时才跑。
+装多了之后，常分不清「现在到底加载了什么、谁和谁重名、哪些禁用了还占着 token」。这个插件调 `claude` / `codex` 的官方治理命令，把两个平台的上下文构成摊开给你看，输出一份**自包含、可离线打开、可交互的单文件 HTML 报告**——**市场 → 插件（已装/可装）→ 组件（skills/agents/hooks/mcp/lsp）的层级树 + token 占用条 + 最贵组件排行**，插件用途为中文（经缓存翻译）。只在你手动点名时才跑。
 
 ## 审计什么
 
@@ -18,7 +18,7 @@
 
 | 对象 | 数据来源 |
 |------|---------|
-| **插件 Plugins** | `claude plugin list --json --available` / `codex plugin list --json --available`：已装 + 可装、版本、启停、市场。Claude 侧另经 `claude plugin details` 取插件自带技能与 **token 成本** |
+| **插件 Plugins** | `claude plugin list --json --available` / `codex plugin list --json --available`：已装 + 可装、版本、启停、市场、可装热度。Claude 侧另经 `claude plugin details` 取**完整组件清单（skills/agents/hooks/mcp/lsp）与逐组件 token 成本**；Codex 无 details，改读插件本地 `.codex-plugin/plugin.json` 清单 + 扫 `skills/` 目录得组件清单（无 token） |
 | **市场源 Marketplaces** | `claude plugin marketplace list --json` / `codex plugin marketplace list --json`（老版本无 `--json` 时回退文本解析）。保留真实源类型（github / git / 本地等） |
 | **MCP 服务器** | `claude mcp list`（文本，含连通 / 认证等状态）/ `codex mcp list --json` |
 | **技能 Skills** | 两平台都**没有列举技能的 CLI**（官方设计为文件式），故扫描技能目录（用户级 + 项目级，项目级从当前目录逐级向上到 repo 根）：Claude Code `~/.claude/skills`、项目 `.claude/skills`；Codex `~/.codex/skills`、`~/.agents/skills`、项目 `.codex/skills`、项目 `.agents/skills` |
@@ -51,7 +51,9 @@ codex plugin add context-doctor@legdonkey
 $context-doctor      # Codex
 ```
 
-它会调两个平台的官方 CLI、在带时间戳的临时目录写出 `report.md`（人类可读报告）和 `inventory.json`（完整数据），对话里只回**输出路径 + 一行短摘要**。除非你明确要求，不会把完整报告糊进聊天。只想看一个平台时，脚本可加 `--platform claude` 或 `--platform codex`（默认 both）。
+它在带时间戳的临时目录写出 `report.html`（**主产物**：交互式层级报告）、`inventory.json`（完整数据）和 `report.md`（无浏览器时的回退），对话里只回**输出路径 + 一行短摘要**，提示用浏览器打开 HTML。除非你明确要求，不会把完整报告糊进聊天。只想看一个平台时，脚本可加 `--platform claude` 或 `--platform codex`（默认 both）。
+
+**三段式与中文翻译**：插件/技能的中文用途经用户级缓存 `~/.cache/context-doctor/translations.json` 翻译。流程是 ①采集（脚本登记待译英文）→ ②翻译（技能里由模型把缺失项译成中文写回缓存，条目多时并行处理）→ ③`--render-only` 二次渲染出含中文的 HTML。缓存只增不删、命中不重译，缺失时回退英文。采集约 1–2 分钟（逐插件 details + MCP 健康检查）。
 
 **可选会话快照**：想对照「装了什么 vs 本次会话真正可见什么」，让它先写一个精简的会话工具/技能 JSON 再带 `--session-snapshot` 跑，报告里会标出每项是否 `visible_in_session`（仅对宿主平台有意义）。
 
@@ -64,7 +66,7 @@ $context-doctor      # Codex
 
 - **CLI 优先、只读**：插件 / 市场 / MCP 调各平台官方治理命令，不读配置文件；技能扫目录（官方无 CLI）。不改任何东西。
 - **零第三方依赖**：纯 Python 3 标准库 + Bash，通过 `subprocess` 调 `claude` / `codex`。某平台 CLI 缺失则降级跳过。
-- **已知缩减项**：Codex 无 `plugin details`，其插件自带技能与 token 成本未逐插件展开；Codex 的 App / 连接器全量审计在 CLI 模式下暂不覆盖（无对应 `list --json` 命令）；技能仅覆盖个人级与项目级，企业 / managed 级与子目录 nested 技能未覆盖。报告会显式标注，不静默丢。
+- **诚实边界**（报告内有「审计边界」区显式列出）：Codex 无 `plugin details`，组件清单改读本地清单、**全程无 token 成本**，故最贵组件排行只含 Claude；MCP 两平台都无 token 成本，不进排行；未安装插件无法展开完整 details（CLI 报 not found），只给中文用途 + 热度 + 源码链接，成本「装后可见」；hooks（harness-only）/ lsp（out-of-process）无模型成本；技能仅覆盖个人级与项目级，企业 / managed 级与子目录 nested 技能未覆盖。报告显式标注，不静默丢。
 
 ### 插件结构
 
@@ -77,5 +79,6 @@ plugins/context-doctor/
     ├── agents/openai.yaml          # Codex 专属元数据
     └── scripts/
         ├── run.sh                  # 包装：建临时输出目录、调 Python、打印短摘要
-        └── context_doctor.py       # 调官方 CLI 生成 report.md / inventory.json
+        ├── context_doctor.py       # 调官方 CLI 生成 report.html / inventory.json / report.md
+        └── report_template.html    # 交互式报告的静态模板（/frontend-design 设计，脚本注入 JSON）
 ```
