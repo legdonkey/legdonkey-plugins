@@ -566,18 +566,29 @@ def parse_claude_details(text: str) -> JsonDict:
     }
 
 
+def _read_json_file(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
     """从 Codex 插件本地目录手搓 details 等价物（Codex 无 plugin details 命令）。
 
-    顺 `source.path` 读 `<path>/.codex-plugin/plugin.json`（真 version、description）
-    + 扫 `<path>/skills/*/` 得技能名（拼 <plugin>:<skill>）。全无 token 成本。
-    路径/清单缺失或解析失败 → 降级返回空组件 + note，绝不抛。
+    顺 `source.path` 读插件目录里的约定文件：
+      - `.codex-plugin/plugin.json` → 真 version / description / repository / homepage
+      - `skills/*/SKILL.md` → 技能（拼 <plugin>:<skill>，带描述）
+      - `.mcp.json` → 插件自带 MCP（只取名字 + command/url 作类型/目标，绝不读 env/args 防泄密）
+      - `.app.json` → apps / 连接器
+    全无 token 成本。路径/文件缺失或解析失败 → 降级跳过该项 + note，绝不抛。
     """
     name = str(item.get("name") or "")
     result: JsonDict = {
         "description": "",
         "real_version": "",
-        "components": {"skills": [], "hooks": [], "apps": []},
+        "source_url": "",
+        "components": {"skills": [], "agents": [], "hooks": [], "mcp": [], "apps": []},
         "components_source": "manifest",
         "note": "",
     }
@@ -587,36 +598,51 @@ def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
         result["note"] = "无 source.path，未能读取插件清单。"
         return result
     base = Path(path_str)
-    manifest = base / ".codex-plugin" / "plugin.json"
-    try:
-        data = json.loads(manifest.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        data = None
+
+    data = _read_json_file(base / ".codex-plugin" / "plugin.json")
     if isinstance(data, dict):
         result["description"] = str(data.get("description") or "")
         result["real_version"] = str(data.get("version") or "")
-        for key in ("hooks", "apps"):
-            decl = data.get(key)
-            if isinstance(decl, list):
-                result["components"][key] = [
-                    {"name": str(x.get("name") if isinstance(x, dict) else x), "cost_note": "not-metered"}
-                    for x in decl
-                ]
+        result["source_url"] = str(data.get("repository") or data.get("homepage") or "")
     else:
         result["note"] = "未找到或无法解析 .codex-plugin/plugin.json。"
+
     skills_dir = base / "skills"
     if skills_dir.is_dir():
         for child in sorted(skills_dir.iterdir()):
             if (child / "SKILL.md").exists():
                 header = parse_skill_header(child / "SKILL.md")
-                result["components"]["skills"].append(
-                    {
-                        "name": f"{name}:{child.name}" if name else child.name,
-                        "description": str(header.get("description") or ""),
-                        "always_on_tokens": None,
-                        "on_invoke_tokens": None,
-                    }
-                )
+                result["components"]["skills"].append({
+                    "name": f"{name}:{child.name}" if name else child.name,
+                    "description": str(header.get("description") or ""),
+                    "always_on_tokens": None,
+                    "on_invoke_tokens": None,
+                })
+
+    # 自带 MCP（.mcp.json）：只取名字 + 传输类型 + command/url，绝不读 env/args（可能含密钥）
+    mcp_data = _read_json_file(base / ".mcp.json")
+    if isinstance(mcp_data, dict) and isinstance(mcp_data.get("mcpServers"), dict):
+        for sname, cfg in mcp_data["mcpServers"].items():
+            cfg = cfg if isinstance(cfg, dict) else {}
+            stype = "stdio" if cfg.get("command") else ("http" if cfg.get("url") else "")
+            result["components"]["mcp"].append({
+                "name": f"{name}:{sname}" if name else sname,
+                "server_type": stype,
+                "target": str(cfg.get("command") or cfg.get("url") or ""),
+                "cost_note": "not-metered",
+            })
+
+    # apps / 连接器（.app.json，或 plugin.json 里 apps 指向的文件）
+    app_path = base / ".app.json"
+    apps_ref = data.get("apps") if isinstance(data, dict) else None
+    if isinstance(apps_ref, str) and apps_ref.endswith(".json"):
+        # 只去掉开头的 "./" 前缀；不能用 lstrip("./")（会把 ".app.json" 的点也吃掉）
+        app_path = base / (apps_ref[2:] if apps_ref.startswith("./") else apps_ref)
+    app_data = _read_json_file(app_path)
+    if isinstance(app_data, dict) and isinstance(app_data.get("apps"), dict):
+        result["components"]["apps"] = [
+            {"name": k, "cost_note": "not-metered"} for k in app_data["apps"]
+        ]
     return result
 
 
@@ -867,6 +893,7 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
                     "description": manifest["description"],
                     "description_key": register_translatable(cache, manifest["description"], "plugin_desc"),
                     "note": manifest["note"],
+                    "source_ref": {"url": manifest["source_url"]},
                     "source": "cli",
                 }
             )
@@ -889,6 +916,7 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
                     "description": manifest["description"],
                     "description_key": register_translatable(cache, manifest["description"], "plugin_desc"),
                     "note": manifest["note"],
+                    "source_ref": {"url": manifest["source_url"]},
                     "source": "cli",
                 }
             )
