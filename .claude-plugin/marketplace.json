@@ -13,7 +13,7 @@
       "name": "context-doctor",
       "source": "./plugins/context-doctor",
       "description": "跨平台上下文审计：用官方 CLI 治理入口盘点 Claude Code 与 Codex 的插件/MCP/市场源，技能走目录。只在手动点名时运行。",
-      "version": "2.0.0"
+      "version": "3.0.0"
     }
   ]
 }

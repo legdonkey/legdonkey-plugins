@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context Doctor · 上下文审计报告</title>
+<!--
+  context-doctor 单文件交互式报告模板。
+  数据注入点：下方 <script id="ctx-data"> 内的 /*__INVENTORY_JSON__*/ 占位符，
+  由 context_doctor.py 的 render_html() 替换为（已查表补中文的）inventory JSON。
+  未替换时回退到 MOCK 数据，便于独立浏览器预览本模板。
+  设计：离线自包含，零外部请求；深色「诊断仪表盘」主题。
+-->
+<style>
+:root{
+  --bg:#0a0d10; --bg2:#0f141a; --card:#141b22; --card2:#1a232c;
+  --line:#222d36; --line2:#2c3a45;
+  --text:#dce4ec; --dim:#8c99a6; --faint:#5b6671;
+  --signal:#46d6a0; --warn:#f3b343; --danger:#ff6b6b; --info:#5cc8ff;
+  --claude:#e08a5c; --codex:#37c98b;
+  --accent:var(--claude);
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --r:10px;
+}
+[data-platform="codex"]{--accent:var(--codex);}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--text); font-family:var(--sans);
+  font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(900px 480px at 12% -8%, color-mix(in srgb,var(--accent) 14%,transparent), transparent 60%),
+    radial-gradient(760px 420px at 100% 0%, rgba(92,200,255,.07), transparent 55%);
+  background-attachment:fixed;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.4;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.015) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 22px 80px;}
+a{color:var(--info); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* ---------- header ---------- */
+header{padding:40px 0 26px;}
+.brandrow{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+.mark{font-family:var(--mono); font-weight:700; font-size:23px; letter-spacing:.14em; color:var(--text);}
+.mark b{color:var(--accent);}
+.ecg{width:120px; height:34px; overflow:hidden; flex:0 0 auto;}
+.ecg svg{width:240px; height:34px; animation:ecg 3.4s linear infinite;}
+@keyframes ecg{from{transform:translateX(0)} to{transform:translateX(-120px)}}
+.ecg path{fill:none; stroke:var(--accent); stroke-width:2; filter:drop-shadow(0 0 5px color-mix(in srgb,var(--accent) 70%,transparent));}
+.tagline{color:var(--dim); font-size:12.5px; margin:10px 0 0;}
+.metaline{display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:14px; font-family:var(--mono); font-size:11.5px; color:var(--faint);}
+.metaline span b{color:var(--dim); font-weight:500;}
+.pill{display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border:1px solid var(--line2); border-radius:999px; font-family:var(--mono); font-size:11px; color:var(--dim);}
+.pill.warn{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 45%,transparent);}
+
+/* ---------- stat strip ---------- */
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:1px; margin:24px 0 6px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden;}
+.stat{background:var(--card); padding:14px 16px;}
+.stat .n{font-family:var(--mono); font-size:25px; font-weight:700; color:var(--text); line-height:1;}
+.stat .n small{font-size:13px; color:var(--faint);}
+.stat .l{font-size:11px; color:var(--dim); margin-top:6px; text-transform:uppercase; letter-spacing:.08em;}
+
+/* ---------- tabs + toolbar ---------- */
+.tabs{display:flex; gap:6px; margin:30px 0 0; border-bottom:1px solid var(--line);}
+.tab{appearance:none; background:none; border:0; cursor:pointer; font-family:var(--mono); font-size:13px; letter-spacing:.05em;
+  color:var(--dim); padding:11px 16px; border-bottom:2px solid transparent; margin-bottom:-1px;}
+.tab[aria-selected="true"]{color:var(--text); border-bottom-color:var(--accent);}
+.tab .dot{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:7px; vertical-align:middle;}
+.toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:18px 0 6px;}
+.search{flex:1 1 220px; display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line2); border-radius:var(--r); padding:8px 12px;}
+.search input{flex:1; background:none; border:0; outline:none; color:var(--text); font-family:var(--sans); font-size:13px;}
+.search svg{flex:0 0 auto; opacity:.6;}
+.seg{display:inline-flex; background:var(--card); border:1px solid var(--line2); border-radius:var(--r); overflow:hidden;}
+.seg button{appearance:none; background:none; border:0; cursor:pointer; color:var(--dim); font-family:var(--mono); font-size:11.5px; padding:7px 12px;}
+.seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 18%,transparent); color:var(--text);}
+.ghost{appearance:none; background:none; border:1px solid var(--line2); border-radius:var(--r); color:var(--dim); font-family:var(--mono); font-size:11.5px; padding:7px 12px; cursor:pointer;}
+.ghost:hover{color:var(--text); border-color:var(--accent);}
+
+/* ---------- sections ---------- */
+.sec{margin-top:34px;}
+.sec > h2{font-family:var(--mono); font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim);
+  margin:0 0 14px; display:flex; align-items:center; gap:10px;}
+.sec > h2::before{content:""; width:6px; height:6px; background:var(--accent); border-radius:50%; box-shadow:0 0 8px var(--accent);}
+.sec > h2 .c{color:var(--faint); font-weight:400;}
+
+/* ---------- marketplace / plugin tree ---------- */
+.mkt{border:1px solid var(--line); border-radius:var(--r); margin-bottom:14px; background:linear-gradient(180deg,var(--card),var(--bg2)); overflow:hidden;}
+.mkt-head{display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line);}
+.mkt-head .name{font-family:var(--mono); font-size:13.5px; color:var(--text); font-weight:600;}
+.mkt-head .type{font-family:var(--mono); font-size:10.5px; color:var(--faint); border:1px solid var(--line2); border-radius:4px; padding:1px 6px; text-transform:uppercase; letter-spacing:.06em;}
+.mkt-head .repo{font-family:var(--mono); font-size:11px; color:var(--faint); margin-left:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:46%;}
+.plug{border-bottom:1px solid var(--line);}
+.plug:last-child{border-bottom:0;}
+.plug-head{display:flex; align-items:center; gap:10px; padding:11px 16px; cursor:pointer; user-select:none;}
+.plug-head:hover{background:rgba(255,255,255,.018);}
+.tw{flex:0 0 auto; width:14px; color:var(--faint); transition:transform .16s ease; font-family:var(--mono);}
+.plug.open .tw{transform:rotate(90deg);}
+.plug.leaf .tw{visibility:hidden;}
+.plug .pname{font-family:var(--mono); font-size:13px; color:var(--text);}
+.plug .pver{font-family:var(--mono); font-size:10.5px; color:var(--faint);}
+.plug .pscope{font-family:var(--mono); font-size:10px; color:var(--dim); border:1px solid var(--line2); border-radius:4px; padding:0 5px;}
+.badge{font-family:var(--mono); font-size:10px; padding:1px 6px; border-radius:4px; letter-spacing:.04em; white-space:nowrap;}
+.badge.on{color:var(--signal); background:color-mix(in srgb,var(--signal) 14%,transparent);}
+.badge.off{color:var(--danger); background:color-mix(in srgb,var(--danger) 14%,transparent);}
+.badge.avail{color:var(--info); background:color-mix(in srgb,var(--info) 12%,transparent);}
+.badge.hot{color:var(--warn); background:color-mix(in srgb,var(--warn) 12%,transparent);}
+.plug .ptok{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--dim); flex:0 0 auto;}
+.plug .ptok b{color:var(--accent);}
+.pdesc{padding:0 16px 11px 40px; color:var(--dim); font-size:12.5px; margin-top:-2px;}
+.pbody{display:none; padding:4px 16px 16px 40px;}
+.plug.open .pbody{display:block;}
+.cgroup{margin-top:12px;}
+.cgroup h4{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin:0 0 7px;}
+.comp{display:grid; grid-template-columns:minmax(160px,2.6fr) minmax(120px,1fr); gap:10px 14px; align-items:center; padding:4px 0;}
+.comp .comp-meta{text-align:right;}
+.comp .cn{font-family:var(--mono); font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis;}
+.comp .cn .cd{display:block; font-family:var(--sans); font-size:11px; color:var(--faint); margin-top:1px;}
+.bar{position:relative; height:16px; background:var(--bg); border:1px solid var(--line); border-radius:5px; overflow:hidden;}
+.bar .fill{position:absolute; inset:0 auto 0 0; background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 70%,transparent),var(--accent)); border-radius:5px 0 0 5px;}
+.bar .lab{position:absolute; right:7px; top:0; line-height:16px; font-family:var(--mono); font-size:10px; color:var(--text); text-shadow:0 0 4px var(--bg);}
+.note-tag{font-family:var(--mono); font-size:10px; color:var(--faint); border:1px dashed var(--line2); border-radius:4px; padding:1px 7px; justify-self:start;}
+.plug-extra{font-family:var(--mono); font-size:11px; color:var(--faint); margin-top:10px;}
+.plug-extra a{word-break:break-all;}
+
+/* ---------- tables ---------- */
+table{width:100%; border-collapse:collapse; font-size:12.5px;}
+.tbl{border:1px solid var(--line); border-radius:var(--r); overflow:hidden;}
+th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line);}
+th{font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--dim); background:var(--card2); position:sticky; top:0;}
+th.sortable{cursor:pointer; user-select:none;}
+th.sortable:hover{color:var(--text);}
+th .ar{opacity:.5; font-size:9px;}
+tbody tr:last-child td{border-bottom:0;}
+tbody tr:hover{background:rgba(255,255,255,.018);}
+td.mono,.mono{font-family:var(--mono);}
+td.num{font-family:var(--mono); text-align:right; color:var(--dim);}
+th.num{text-align:right;}
+td .src{color:var(--faint); font-size:11px;}
+.rank-n{font-family:var(--mono); color:var(--accent); font-weight:700;}
+.miniwrap{display:flex; align-items:center; gap:8px;}
+.minibar{flex:1; height:6px; background:var(--bg); border-radius:3px; overflow:hidden;}
+.minibar i{display:block; height:100%; background:var(--accent);}
+
+/* ---------- recs / boundaries ---------- */
+.rec{display:flex; gap:12px; padding:11px 14px; border:1px solid var(--line); border-radius:var(--r); margin-bottom:8px; background:var(--card); align-items:flex-start;}
+.rec .sev{flex:0 0 auto; font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:5px; margin-top:1px;}
+.sev.info{color:var(--info); background:color-mix(in srgb,var(--info) 12%,transparent);}
+.sev.review{color:var(--warn); background:color-mix(in srgb,var(--warn) 14%,transparent);}
+.rec .body b{font-family:var(--mono); color:var(--text);}
+.rec .body .act{color:var(--dim); font-size:12px; margin-top:2px;}
+.rec .plat{margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--faint); flex:0 0 auto;}
+.bound{border-left:2px solid var(--line2); padding:7px 0 7px 14px; margin-bottom:9px;}
+.bound .s{font-family:var(--mono); font-size:10.5px; color:var(--accent); text-transform:uppercase; letter-spacing:.06em;}
+.bound .t{color:var(--dim); font-size:12.5px; margin-top:2px;}
+
+.empty{color:var(--faint); font-size:12.5px; font-style:italic; padding:8px 2px;}
+.hidden{display:none !important;}
+footer{margin-top:46px; padding-top:18px; border-top:1px solid var(--line); color:var(--faint); font-family:var(--mono); font-size:11px; display:flex; flex-wrap:wrap; gap:6px 16px;}
+@media(max-width:680px){
+  .comp{grid-template-columns:1fr;}
+  .mkt-head .repo{display:none;}
+  .pdesc,.pbody{padding-left:16px;}
+}
+
+/* ---------- 浅色主题：临床纸感（可切换，data-theme="paper"） ---------- */
+body[data-theme="paper"]{
+  --bg:#f4efe4; --bg2:#efe8d8; --card:#fbf7ee; --card2:#f0e9d8;
+  --line:#e2d9c4; --line2:#d0c5ab;
+  --text:#2c2620; --dim:#6d6353; --faint:#9c9079;
+  --signal:#2f835f; --warn:#a9761b; --danger:#b8432c; --info:#356f93;
+  --claude:#bb5a35; --codex:#2f835f;
+  --sans:-apple-system,BlinkMacSystemFont,"Songti SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--bg);
+  background-image:radial-gradient(820px 420px at 12% -10%, rgba(187,90,53,.08), transparent 60%);
+}
+body[data-theme="paper"]::before{display:none;}
+body[data-theme="paper"] .mark{font-family:Georgia,"Songti SC",serif; letter-spacing:.04em;}
+body[data-theme="paper"] .stat .n{font-family:Georgia,"Songti SC",serif;}
+body[data-theme="paper"] .sec>h2{font-family:Georgia,"Songti SC",serif; text-transform:none; letter-spacing:.01em; font-size:15px; color:#4a4135;}
+body[data-theme="paper"] .mkt{background:var(--card); box-shadow:0 1px 0 #fff inset,0 1px 3px rgba(60,48,30,.06);}
+body[data-theme="paper"] .bar{background:#efe7d6;}
+body[data-theme="paper"] .ecg path{filter:none;}
+</style>
+</head>
+<body data-platform="claude">
+<script id="ctx-data" type="application/json">/*__INVENTORY_JSON__*/</script>
+<div class="wrap">
+  <header>
+    <div class="brandrow">
+      <div class="ecg" aria-hidden="true">
+        <svg viewBox="0 0 240 34" preserveAspectRatio="none"><path d="M0 17 H30 l4 -11 l6 22 l5 -16 l4 5 H80 l4 -11 l6 22 l5 -16 l4 5 H140 l4 -11 l6 22 l5 -16 l4 5 H200 l4 -11 l6 22 l5 -16 l4 5 H240"/></svg>
+      </div>
+      <div class="mark">CONTEXT<b>//</b>DOCTOR</div>
+    </div>
+    <p class="tagline">跨平台上下文审计 · 市场 → 插件 → 组件的层级体检，含 token 占用与最贵组件排行。插件 / MCP / 市场源经官方 CLI，技能经目录扫描。</p>
+    <div class="metaline" id="meta"></div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs" id="tabs" role="tablist"></div>
+
+  <div class="toolbar">
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="搜索插件 / 用途 / 组件…" autocomplete="off">
+    </label>
+    <div class="seg" id="filter" role="group" aria-label="安装过滤">
+      <button data-f="all" aria-pressed="true">全部</button>
+      <button data-f="installed" aria-pressed="false">已装</button>
+      <button data-f="available" aria-pressed="false">可装</button>
+    </div>
+    <button class="ghost" id="toggleAll">展开全部</button>
+    <button class="ghost" id="themeToggle" title="切换浅色 / 暗色">☀ 浅色</button>
+  </div>
+
+  <div id="panel"></div>
+
+  <div class="sec" id="rankSec">
+    <h2>最贵组件排行 <span class="c" id="rankBasis"></span></h2>
+    <div id="ranks"></div>
+  </div>
+
+  <div class="sec" id="recSec">
+    <h2>上下文卫生建议 <span class="c" id="recCount"></span></h2>
+    <div id="recs"></div>
+  </div>
+
+  <div class="sec">
+    <h2>审计边界 · 诚实告知</h2>
+    <div id="bounds"></div>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+"use strict";
+const MOCK={schema_version:2,generated_at:"2026-06-29T12:00:00+08:00",cwd:"/demo",
+ session:{snapshot_provided:false,tool_count:0,skill_count:0},
+ pending_translation_count:1,translation_cache_path:"~/.cache/context-doctor/translations.json",
+ platforms:{claude:{platform:"claude",label:"Claude Code",cli_present:true,supports_token_cost:true,
+   marketplaces:[{name:"demo-market",source_type:"github",repo:"acme/demo"}],
+   plugins:[{id:"demo@demo-market",name:"demo",marketplace:"demo-market",installed:true,version:"1.0.0",enabled:true,
+     always_on_tokens:420,description_zh:"演示插件：把样例数据渲染成报告。",last_updated:"2026-06-01T00:00:00Z",
+     source_ref:{installPath:"/x/demo"},
+     components:{skills:[{name:"alpha",always_on_tokens:40,on_invoke_tokens:2200},{name:"beta",always_on_tokens:30,on_invoke_tokens:900}],
+       agents:[{name:"demo-agent",always_on_tokens:80,on_invoke_tokens:1500}],
+       hooks:[{name:"SessionStart",cost_note:"harness-only"}],mcp:[],lsp:[]}}],
+   available_plugins:[{id:"more@demo-market",name:"more",marketplace:"demo-market",installed:false,version:"2.1.0",
+     install_count:1436,description_zh:"可装演示插件：未安装，仅有中文用途与热度。",
+     source_ref:{url:"https://github.com/acme/more",ref:"v2.1.0",sha:""}}],
+   mcp_servers:[{name:"demo-mcp",server_type:"stdio",scope:"user",status:"Connected",visible_in_session:false}],
+   skills:[{name:"solo-skill",scope:"personal",source:"filesystem",path:"/x/SKILL.md",description_zh:"独立技能演示。",visible_in_session:false}],
+   notes:["演示数据。"]}},
+ rankings:{top_skills_by_cost:[{name:"alpha",plugin:"demo@demo-market",platform:"claude",always_on_tokens:40,on_invoke_tokens:2200}],
+   top_agents_by_cost:[{name:"demo-agent",plugin:"demo@demo-market",platform:"claude",always_on_tokens:80,on_invoke_tokens:1500}],
+   top_plugins_by_cost:[{id:"demo@demo-market",platform:"claude",always_on_tokens:420}],
+   basis:"演示口径"},
+ boundaries:[{scope:"demo",limit:"这是模板自带的演示数据，注入真实 inventory 后会被替换。"}],
+ recommendations:[{severity:"info",platform:"Claude Code",area:"plugin",subject:"demo@demo-market",reason:"演示建议",action:"无需处理"}],
+ notes:["模板预览模式。"]};
+
+let DATA; try{ DATA=JSON.parse(document.getElementById('ctx-data').textContent); }catch(e){ DATA=MOCK; }
+
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtTok=n=>n==null?"":(n>=1000?(n/1000).toFixed(n>=10000?0:1)+"k":""+n);
+const fmtCount=n=>n==null?"":n>=1000?(n/1000).toFixed(1)+"k":""+n;
+
+// 收集「翻译回退英文」的对象名（哪个插件/技能/组件受阻）
+function collectPending(node, out){
+  out=out||[];
+  if(Array.isArray(node)){ for(const n of node) collectPending(n,out); }
+  else if(node && typeof node==='object'){
+    if(node.description_pending===true){
+      const nm=node.name||node.id||"(未命名)";
+      const kind = ('installed' in node) ? "插件" : (node.path ? "技能" : "组件");
+      out.push(`${nm}（${kind}）`);
+    }
+    for(const k in node){ const v=node[k]; if(v && typeof v==='object') collectPending(v,out); }
+  }
+  return out;
+}
+
+let activePlat=Object.keys(DATA.platforms||{})[0]||"claude";
+let filterMode="all", query="", allOpen=false;
+
+/* ---------- header / stats ---------- */
+function renderHeader(){
+  const s=DATA.session||{};
+  const meta=[`<span><b>生成</b> ${esc((DATA.generated_at||"").replace("T"," ").slice(0,19))}</span>`,
+    DATA.cwd?`<span><b>工作目录</b> ${esc(DATA.cwd)}</span>`:"",
+    `<span><b>会话快照</b> ${s.snapshot_provided?"是":"否"}</span>`];
+  let pend="";
+  const pendNames=collectPending(DATA.platforms);
+  if(pendNames.length){
+    const shown = pendNames.slice(0,3).join("、");
+    const label = pendNames.length<=3
+      ? `⏳ 待译：${shown}（回退英文）`
+      : `⏳ 待译 ${pendNames.length} 项：${shown} 等（回退英文）`;
+    const tip = "翻译回退英文的对象：\n"+pendNames.join("\n")+"\n\n缓存："+(DATA.translation_cache_path||"");
+    pend=`<span class="pill warn" title="${esc(tip)}">${esc(label)}</span>`;
+  }
+  $("#meta").innerHTML=meta.filter(Boolean).join("")+pend;
+
+  const cells=[];
+  for(const p of Object.values(DATA.platforms||{})){
+    const inst=(p.plugins||[]).length, avail=(p.available_plugins||[]).length;
+    const tok=(p.plugins||[]).reduce((a,x)=>a+(x.always_on_tokens||0),0);
+    cells.push(`<div class="stat"><div class="n">${inst}<small> / ${avail}</small></div><div class="l">${esc(p.label)} 插件 已装/可装</div></div>`);
+    cells.push(`<div class="stat"><div class="n">${(p.mcp_servers||[]).length}</div><div class="l">${esc(p.label)} MCP</div></div>`);
+    cells.push(`<div class="stat"><div class="n">${(p.skills||[]).length}</div><div class="l">${esc(p.label)} 独立技能</div></div>`);
+    if(p.supports_token_cost) cells.push(`<div class="stat"><div class="n">${fmtTok(tok)||0}</div><div class="l">${esc(p.label)} 常驻 token</div></div>`);
+  }
+  $("#stats").innerHTML=cells.join("");
+}
+
+/* ---------- tabs ---------- */
+function renderTabs(){
+  const t=$("#tabs"); t.innerHTML="";
+  for(const [k,p] of Object.entries(DATA.platforms||{})){
+    const b=document.createElement("button");
+    b.className="tab"; b.setAttribute("role","tab");
+    b.setAttribute("aria-selected", k===activePlat?"true":"false");
+    const col=k==="codex"?"var(--codex)":"var(--claude)";
+    b.innerHTML=`<span class="dot" style="background:${col}"></span>${esc(p.label)}`;
+    b.onclick=()=>{activePlat=k; document.body.dataset.platform=k; renderTabs(); renderPanel(); renderRanks();};
+    t.appendChild(b);
+  }
+}
+
+/* ---------- plugin tree ---------- */
+function maxInvoke(p){
+  let m=1;
+  for(const pl of (p.plugins||[])){const c=pl.components||{};
+    for(const g of["skills","agents"])for(const x of(c[g]||[]))m=Math.max(m,x.on_invoke_tokens||0,x.always_on_tokens||0);}
+  return m;
+}
+const visYN=v=>v===true?"是":v===false?"否":"—";
+const scopeZh=s=>{const l=(s||"").toLowerCase(); return l.startsWith("user")?"用户级":l.startsWith("project")?"项目级":l.startsWith("local")?"本地":l.startsWith("dynamic")?"动态":(l.includes("claude.ai")?"claude.ai":(s||""));};
+function visDot(x){
+  // 会话可见：● 可见 / ○ 不可见 / — 未对照（非宿主平台，与独立列表一致）；字段缺失才不显示
+  if(x.visible_in_session===true) return `<span title="本次会话可见" style="color:var(--signal)">● </span>`;
+  if(x.visible_in_session===false) return `<span title="本次会话不可见" style="color:var(--faint)">○ </span>`;
+  if(x.visible_in_session===null) return `<span title="未对照（非宿主平台）" style="color:var(--faint)">— </span>`;
+  return "";
+}
+function compRow(x,maxv,showCost){
+  const desc=x.description_zh?`<span class="cd">${x.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(x.description_zh)}</span>`:"";
+  const cn=`<div class="cn">${visDot(x)}${esc(x.name)}${desc}</div>`;
+  if(x.cost_note!=null){
+    // MCP 等若带了类型/状态（插件自带 MCP 经 mcp list 补全），优先展示类型+状态
+    let right;
+    if(x.server_type||x.status||x.scope){
+      right=`<span class="note-tag">${esc(x.server_type||"mcp")}</span>`
+        +(x.scope?` <span class="src mono" style="margin-left:6px">${esc(x.scope)}</span>`:"")
+        +(x.status?` <span class="src mono" style="margin-left:6px">${esc(x.status)}</span>`:"");
+    }else{
+      right=`<span class="note-tag">${esc(x.cost_note)}</span>`;
+    }
+    return `<div class="comp">${cn}<div class="comp-meta">${right}</div></div>`;
+  }
+  if(!showCost){
+    // 该平台无 token 成本数据（Codex）：组件本就拿不到成本，别误导成「装后可见」
+    return `<div class="comp">${cn}<div class="comp-meta"><span class="note-tag" title="该平台无 token 成本数据">无 token 数据</span></div></div>`;
+  }
+  const inv=x.on_invoke_tokens, aon=x.always_on_tokens;
+  const w=Math.max(2,Math.round(100*(inv||aon||0)/maxv));
+  const lab=[aon!=null?`常驻 ${fmtTok(aon)}`:"",inv!=null?`触发 ${fmtTok(inv)}`:""].filter(Boolean).join(" · ")||"—";
+  return `<div class="comp">${cn}<div class="bar"><div class="fill" style="width:${w}%"></div><div class="lab">${lab}</div></div></div>`;
+}
+function compGroup(title,arr,maxv,showCost){
+  if(!arr||!arr.length) return "";
+  return `<div class="cgroup"><h4>${title}（${arr.length}）</h4>${arr.map(x=>compRow(x,maxv,showCost)).join("")}</div>`;
+}
+function pluginMatches(pl){
+  if(filterMode==="installed"&&!pl.installed) return false;
+  if(filterMode==="available"&&pl.installed) return false;
+  if(!query) return true;
+  const hay=[pl.id,pl.name,pl.description_zh,pl.marketplace,
+    ...(["skills","agents","hooks","mcp","lsp","apps"].flatMap(g=>((pl.components||{})[g]||[]).map(c=>c.name)))]
+    .join(" ").toLowerCase();
+  return hay.includes(query);
+}
+function pluginNode(pl,maxv,showCost){
+  const c=pl.components||{};
+  const ncomp=["skills","agents","hooks","mcp","lsp","apps"].reduce((a,g)=>a+((c[g]||[]).length),0);
+  const leaf=ncomp===0 && !pl.description_zh;
+  const badges=[];
+  badges.push(pl.installed
+    ? (pl.enabled===false?`<span class="badge off">已禁用</span>`:`<span class="badge on">已启用</span>`)
+    : `<span class="badge avail">可装</span>`);
+  if(pl.install_count!=null) badges.push(`<span class="badge hot">▲ ${fmtCount(pl.install_count)}</span>`);
+  const ver=esc(pl.real_version||pl.version||"");
+  const scope=(pl.installed&&pl.scope)?`<span class="pscope" title="安装范围">${esc(scopeZh(pl.scope))}</span>`:"";
+  let tok="";
+  if(pl.installed&&showCost&&pl.always_on_tokens!=null) tok=`<span class="ptok">常驻 <b>${fmtTok(pl.always_on_tokens)}</b> tok</span>`;
+  else if(!pl.installed&&showCost) tok=`<span class="ptok" style="color:var(--faint)">成本装后可见</span>`;
+
+  let body="";
+  if(!leaf){
+    body=`<div class="pbody">`+
+      compGroup("Skills",c.skills,maxv,showCost)+
+      compGroup("Agents",c.agents,maxv,showCost)+
+      compGroup("Hooks",c.hooks,maxv,showCost)+
+      compGroup("MCP",c.mcp,maxv,showCost)+
+      compGroup("LSP",c.lsp,maxv,showCost)+
+      compGroup("Apps",c.apps,maxv,showCost)+
+      sourceLine(pl)+`</div>`;
+  }
+  const pmark=pl.description_pending?`<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>`:"";
+  const desc=pl.description_zh?`<div class="pdesc">${pmark}${esc(pl.description_zh)}</div>`:"";
+  return `<div class="plug${leaf?' leaf':''}" data-id="${esc(pl.id)}">
+    <div class="plug-head"><span class="tw">▶</span>
+      <span class="pname">${esc(pl.name||pl.id)}</span><span class="pver">${ver}</span>${scope}
+      ${badges.join(" ")}${tok}</div>${desc}${body}</div>`;
+}
+function safeUrl(u){
+  // 只放行 http/https，挡掉 javascript: / data: 等可执行 scheme（市场源 URL 不可信）。
+  try{ const p=new URL(String(u)); return (p.protocol==="http:"||p.protocol==="https:")?p.href:null; }
+  catch(e){ return null; }
+}
+function sourceLine(pl){
+  const s=pl.source_ref||{};
+  const bits=[];
+  if(s.url){
+    const safe=safeUrl(s.url);
+    bits.push(safe
+      ? `源码 <a href="${esc(safe)}" target="_blank" rel="noopener noreferrer">${esc(s.url)}</a>${s.ref?` @${esc(s.ref)}`:""}`
+      : `源码 ${esc(s.url)}${s.ref?` @${esc(s.ref)}`:""}`);
+  }
+  else if(s.path) bits.push(`路径 ${esc(s.path)}`);
+  if(s.installPath) bits.push(`安装于 ${esc(s.installPath)}`);
+  if(pl.last_updated) bits.push(`最近更新 ${esc(pl.last_updated.slice(0,10))}`);
+  if(pl.note) bits.push(esc(pl.note));
+  return bits.length?`<div class="plug-extra">${bits.join(" &nbsp;·&nbsp; ")}</div>`:"";
+}
+
+function renderPanel(){
+  const p=DATA.platforms[activePlat]; const root=$("#panel");
+  if(!p){root.innerHTML="";return;}
+  const showCost=!!p.supports_token_cost;
+  const maxv=maxInvoke(p);
+
+  // group plugins (installed + available) by marketplace
+  const groups=new Map(); const order=[];
+  for(const m of (p.marketplaces||[])){groups.set(m.name,{meta:m,plugins:[]}); order.push(m.name);}
+  const bucket=name=>{const k=name||"(unknown)"; if(!groups.has(k)){groups.set(k,{meta:{name:k,source_type:"unknown",repo:""},plugins:[]}); order.push(k);} return groups.get(k);};
+  for(const pl of [...(p.plugins||[]),...(p.available_plugins||[])]){ if(pluginMatches(pl)) bucket(pl.marketplace).plugins.push(pl); }
+
+  const showLegend=!!(DATA.session&&DATA.session.snapshot_provided);
+  const legend=showLegend?`<span style="margin-left:auto;font-weight:400;font-size:11px;color:var(--faint)"><span style="color:var(--signal)">●</span> 会话可见 &nbsp; ○ 不可见 &nbsp; — 未对照</span>`:"";
+  let html=`<div class="sec"><h2>市场 → 插件 → 组件 <span class="c">${order.filter(n=>groups.get(n).plugins.length).length} 市场</span>${legend}</h2>`;
+  let any=false;
+  for(const name of order){
+    const g=groups.get(name); if(!g.plugins.length) continue; any=true;
+    g.plugins.sort((a,b)=>(b.installed?1:0)-(a.installed?1:0));
+    html+=`<div class="mkt"><div class="mkt-head"><span class="name">${esc(name)}</span>`+
+      (g.meta.source_type?`<span class="type">${esc(g.meta.source_type)}</span>`:"")+
+      (g.meta.repo?`<span class="repo">${esc(g.meta.repo)}</span>`:"")+`</div>`+
+      g.plugins.map(pl=>pluginNode(pl,maxv,showCost)).join("")+`</div>`;
+  }
+  if(!any) html+=`<div class="empty">没有匹配的插件。</div>`;
+  html+=`</div>`;
+
+  // standalone MCP
+  html+=`<div class="sec"><h2>独立 MCP 服务器 <span class="c">${(p.mcp_servers||[]).length}</span></h2>`+mcpTable(p)+`</div>`;
+  // standalone skills
+  html+=`<div class="sec"><h2>独立技能 · 目录扫描 <span class="c">${(p.skills||[]).length}</span></h2>`+skillTable(p)+`</div>`;
+  root.innerHTML=html;
+  bindTree();
+}
+function mcpTable(p){
+  const rows=(p.mcp_servers||[]).filter(s=>!query||(s.name||"").toLowerCase().includes(query));
+  if(!rows.length) return `<div class="empty">无（或不匹配搜索）。</div>`;
+  // 列按平台区分：Claude 有 scope（范围）、状态=连接状态；Codex 无 scope、有启用、状态=鉴权方式
+  const isCodex=p.platform==='codex';
+  const cols=isCodex
+    ? [["名称",s=>esc(s.name),"mono"],["类型",s=>esc(s.server_type||"—"),"mono"],
+       ["启用",s=>s.enabled===true?"是":s.enabled===false?"否":"—",""],
+       ["鉴权方式",s=>`<span class="src">${esc(s.status||s.auth_status||"")}</span>`,"mono"],
+       ["会话可见",s=>visYN(s.visible_in_session),""]]
+    : [["名称",s=>esc(s.name),"mono"],["类型",s=>esc(s.server_type||"—"),"mono"],
+       ["范围",s=>esc(s.scope||"—"),"mono"],
+       ["状态",s=>`<span class="src">${esc(s.status||"")}</span>`,"mono"],
+       ["会话可见",s=>visYN(s.visible_in_session),""]];
+  const thead=cols.map(c=>`<th>${c[0]}</th>`).join("");
+  const tbody=rows.map(s=>`<tr>${cols.map(c=>`<td class="${c[2]}">${c[1](s)}</td>`).join("")}</tr>`).join("");
+  return `<div class="tbl"><table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
+}
+function skillTable(p){
+  const rows=(p.skills||[]).filter(s=>!query||[s.name,s.description_zh,s.scope].join(" ").toLowerCase().includes(query));
+  if(!rows.length) return `<div class="empty">无（或不匹配搜索）。</div>`;
+  return `<div class="tbl"><table><thead><tr><th>名称</th><th>范围</th><th>用途</th><th>会话可见</th></tr></thead><tbody>`+
+    rows.map(s=>`<tr><td class="mono">${esc(s.name)}</td><td class="mono"><span class="src">${esc(s.scope||"")}</span></td>
+      <td>${s.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(s.description_zh||"")}</td><td>${visYN(s.visible_in_session)}</td></tr>`).join("")+`</tbody></table></div>`;
+}
+function bindTree(){
+  $$("#panel .plug:not(.leaf) .plug-head").forEach(h=>{
+    h.onclick=()=>h.parentElement.classList.toggle("open");
+  });
+  if(allOpen) $$("#panel .plug:not(.leaf)").forEach(p=>p.classList.add("open"));
+}
+
+/* ---------- rankings ---------- */
+let rankSort={};
+function rankTable(key,title,arr,kind){
+  if(!arr||!arr.length) return "";
+  const s=rankSort[key]||{col:"on_invoke_tokens",dir:-1};
+  const data=[...arr].map((x,i)=>({...x,_i:i}));
+  data.sort((a,b)=>((a[s.col]||0)-(b[s.col]||0))*s.dir);
+  // 条形只画在「触发」列：分子分母都只用触发 token，与排序列、与常驻口径都解耦。
+  // 无触发成本时条形为空、文本显示「—」，二者语义一致（不再用常驻 token 兜底画条形）。
+  const maxv=Math.max(1,...data.map(x=>x.on_invoke_tokens||0));
+  const head=(col,lab)=>`<th class="sortable num" data-k="${key}" data-c="${col}">${lab} <span class="ar">${s.col===col?(s.dir<0?"▼":"▲"):""}</span></th>`;
+  const rows=data.map((x,i)=>`<tr>
+     <td class="rank-n">${i+1}</td>
+     <td class="mono">${esc(x.name||x.id)}</td>
+     <td><span class="src mono">${esc(x.plugin||"—")}</span></td>
+     <td class="num">${fmtTok(x.always_on_tokens)||"—"}</td>
+     <td class="num"><div class="miniwrap"><div class="minibar"><i style="width:${Math.round(100*((x.on_invoke_tokens||0)/maxv))}%"></i></div><span>${fmtTok(x.on_invoke_tokens)||"—"}</span></div></td>
+   </tr>`).join("");
+  return `<div class="sec" style="margin-top:18px"><h2 style="font-size:12px">${title} <span class="c">${arr.length}</span></h2>
+    <div class="tbl"><table><thead><tr><th>#</th><th>${kind}</th><th>来源插件</th>${head("always_on_tokens","常驻")}${head("on_invoke_tokens","触发")}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+function renderRanks(){
+  const r=DATA.rankings||{};
+  const has=(r.top_skills_by_cost||[]).length||(r.top_agents_by_cost||[]).length||(r.top_plugins_by_cost||[]).length;
+  $("#rankBasis").textContent="仅 Claude · Codex 无 token 成本不计入";
+  if(!has){ $("#ranks").innerHTML=`<div class="empty">当前数据无可计成本的组件（Codex 无 token 数据）。</div>`; return; }
+  let html=rankTable("skills","最贵技能",r.top_skills_by_cost,"技能")
+          +rankTable("agents","最贵 Agent",r.top_agents_by_cost,"Agent");
+  // plugins ranking (no per-component, simpler)
+  if((r.top_plugins_by_cost||[]).length){
+    const arr=r.top_plugins_by_cost, maxv=Math.max(1,...arr.map(x=>x.always_on_tokens||0));
+    html+=`<div class="sec" style="margin-top:18px"><h2 style="font-size:12px">最贵插件（常驻）<span class="c">${arr.length}</span></h2>
+      <div class="tbl"><table><thead><tr><th>#</th><th>插件</th><th>平台</th><th>常驻 token</th></tr></thead><tbody>`+
+      arr.map((x,i)=>`<tr><td class="rank-n">${i+1}</td><td class="mono">${esc(x.id)}</td><td class="mono"><span class="src">${esc(x.platform)}</span></td>
+        <td class="num"><div class="miniwrap"><div class="minibar"><i style="width:${Math.round(100*((x.always_on_tokens||0)/maxv))}%"></i></div><span>${fmtTok(x.always_on_tokens)}</span></div></td></tr>`).join("")+
+      `</tbody></table></div></div>`;
+  }
+  $("#ranks").innerHTML=html;
+  $$("#ranks th.sortable").forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k,c=th.dataset.c, cur=rankSort[k]||{col:"on_invoke_tokens",dir:-1};
+    rankSort[k]=cur.col===c?{col:c,dir:-cur.dir}:{col:c,dir:-1}; renderRanks();
+  });
+}
+
+/* ---------- recs / boundaries / footer ---------- */
+function renderRecs(){
+  const recs=DATA.recommendations||[];
+  $("#recCount").textContent=recs.length?`${recs.length} 条`:"";
+  if(!recs.length){ $("#recs").innerHTML=`<div class="empty">没有卫生建议，上下文很干净。</div>`; return; }
+  $("#recs").innerHTML=recs.map(r=>`<div class="rec"><span class="sev ${esc(r.severity)}">${r.severity==="info"?"提示":"检查"}</span>
+    <div class="body"><b>${esc(r.subject)}</b> — ${esc(r.reason)}<div class="act">→ ${esc(r.action)}</div></div>
+    <span class="plat">${esc(r.platform)}</span></div>`).join("");
+}
+function renderBounds(){
+  const b=DATA.boundaries||[];
+  $("#bounds").innerHTML=b.map(x=>`<div class="bound"><div class="s">${esc(x.scope)}</div><div class="t">${esc(x.limit)}</div></div>`).join("")
+    ||`<div class="empty">无。</div>`;
+}
+function renderFoot(){
+  const n=DATA.notes||[];
+  $("#foot").innerHTML=`<span>schema v${esc(DATA.schema_version)}</span>`+n.map(x=>`<span>${esc(x)}</span>`).join("");
+}
+
+/* ---------- wire up ---------- */
+$("#q").addEventListener("input",e=>{query=e.target.value.trim().toLowerCase(); renderPanel();});
+$$("#filter button").forEach(b=>b.onclick=()=>{
+  filterMode=b.dataset.f; $$("#filter button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); renderPanel();
+});
+$("#toggleAll").onclick=()=>{allOpen=!allOpen; $("#toggleAll").textContent=allOpen?"收起全部":"展开全部"; renderPanel();};
+
+// 主题切换：暗色诊断控制台 ⇄ 浅色临床纸感，记住选择
+const THEME_KEY="ctxdoctor-theme";
+function applyTheme(t){
+  document.body.dataset.theme = (t==="paper") ? "paper" : "dark";
+  $("#themeToggle").textContent = (t==="paper") ? "☾ 暗色" : "☀ 浅色";
+}
+let theme="dark"; try{ theme=localStorage.getItem(THEME_KEY)||"dark"; }catch(e){}
+applyTheme(theme);
+$("#themeToggle").onclick=()=>{ theme = (theme==="paper")?"dark":"paper"; try{localStorage.setItem(THEME_KEY,theme);}catch(e){} applyTheme(theme); };
+
+renderHeader(); renderTabs(); renderPanel(); renderRanks(); renderRecs(); renderBounds(); renderFoot();
+</script>
+</body>
+</html>

@@ -52,19 +52,22 @@ mkdir -p "$out_dir"
 args=(
   --markdown "$out_dir/report.md"
   --json "$out_dir/inventory.json"
+  --html "$out_dir/report.html"
 )
 
 python3 -B "$skill_dir/scripts/context_doctor.py" "${args[@]}" ${extra[@]+"${extra[@]}"}
 
-python3 -B - "$out_dir/inventory.json" "$out_dir/report.md" <<'PY'
+python3 -B - "$out_dir/inventory.json" "$out_dir/report.md" "$out_dir/report.html" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 inventory_path = Path(sys.argv[1])
 report_path = Path(sys.argv[2])
+html_path = Path(sys.argv[3])
 data = json.loads(inventory_path.read_text(encoding="utf-8"))
 
+print(f"HTML={html_path}")
 print(f"报告={report_path}")
 print(f"JSON={inventory_path}")
 for platform in data.get("platforms", {}).values():
@@ -73,11 +76,15 @@ for platform in data.get("platforms", {}).values():
     cli = "" if platform.get("cli_present") else "(CLI 未检测到)"
     print(
         f"{platform['label']}{cli}="
-        f"插件:{len(platform.get('plugins', []))} "
+        f"已装:{len(platform.get('plugins', []))} "
+        f"可装:{len(platform.get('available_plugins', []))} "
         f"市场:{len(platform.get('marketplaces', []))} "
         f"MCP:{len(platform.get('mcp_servers', []))} "
         f"独立技能:{len(platform.get('skills', []))}"
     )
 print(f"建议数量={len(data.get('recommendations', []))}")
+pending = data.get("pending_translation_count", 0)
+print(f"待译中文={pending}（>0 时需在技能流程里翻译后用 --render-only 二次渲染）")
+print(f"翻译缓存={data.get('translation_cache_path', '')}")
 print(f"会话快照={'是' if data.get('session', {}).get('snapshot_provided') else '否'}")
 PY
