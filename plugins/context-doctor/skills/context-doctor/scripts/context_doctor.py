@@ -203,14 +203,16 @@ def run_cli(args: list[str], timeout: int = DEFAULT_TIMEOUT) -> tuple[str | None
     return proc.stdout, True
 
 
-def run_cli_json(args: list[str], timeout: int = DEFAULT_TIMEOUT) -> Any:
-    out, ok = run_cli(args, timeout=timeout)
-    if not out:
-        return None
-    try:
-        return json.loads(out)
-    except json.JSONDecodeError:
-        return None
+def run_cli_json(args: list[str], timeout: int = DEFAULT_TIMEOUT, tries: int = 1) -> Any:
+    """运行 CLI 取 JSON。tries>1 时对空输出/解析失败重试（治偶发超时丢数据）。"""
+    for _ in range(max(1, tries)):
+        out, _ = run_cli(args, timeout=timeout)
+        if out:
+            try:
+                return json.loads(out)
+            except json.JSONDecodeError:
+                pass
+    return None
 
 
 def run_cli_retry(args: list[str], timeout: int = DEFAULT_TIMEOUT, tries: int = 2) -> tuple[str | None, bool]:
@@ -897,7 +899,8 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
             section["marketplaces"] = parse_codex_marketplace_json(mdata)
 
         # MCP（有 --json）
-        mcp = run_cli_json(["codex", "mcp", "list", "--json"]) or []
+        # codex mcp list --json 会做健康检查、约十几秒，偶发超时返回空：放宽超时 + 重试
+        mcp = run_cli_json(["codex", "mcp", "list", "--json"], timeout=MCP_LIST_TIMEOUT, tries=2) or []
         for item in mcp:
             if not isinstance(item, dict):
                 continue
