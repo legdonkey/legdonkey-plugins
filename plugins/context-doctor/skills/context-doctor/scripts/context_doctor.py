@@ -1174,6 +1174,7 @@ def build_boundaries() -> list[JsonDict]:
         {"scope": "claude-hooks", "limit": "Hooks 为 harness-only，不进模型上下文，无 token 成本。"},
         {"scope": "claude-lsp", "limit": "LSP 为 out-of-process 工具，不进模型上下文，无 token 成本。"},
         {"scope": "skills-dir", "limit": "技能经目录扫描，未覆盖 enterprise/managed 与子目录按需加载的 nested 技能。"},
+        {"scope": "cloud-skills", "limit": "claude.ai / 桌面版的账号级技能为云端管理、不落本地文件（本地只有按会话临时缓存）。本报告只审计 Claude Code（本地 ~/.claude/skills）与 Codex，不覆盖云端 surface 的技能；技能官方设计为按 surface 隔离、不跨端同步。"},
     ]
 
 
