@@ -583,6 +583,37 @@ def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
     return result
 
 
+def read_plugin_component_descs(install_path: str) -> dict[str, str]:
+    """从插件本地目录读各组件描述：`claude plugin details` 只给组件名，描述写在
+    `<installPath>/skills/<name>/SKILL.md` 与 `<installPath>/agents/<name>.md` 的 frontmatter 里。
+
+    返回 名字 -> 描述 的映射（同时按 frontmatter name 与目录/文件名建键，便于匹配）。绝不抛。
+    """
+    out: dict[str, str] = {}
+    if not install_path:
+        return out
+    base = Path(install_path)
+    sdir = base / "skills"
+    if sdir.is_dir():
+        for child in sorted(sdir.iterdir()):
+            f = child / "SKILL.md"
+            if f.exists():
+                header = parse_skill_header(f)
+                desc = str(header.get("description") or "")
+                if desc:
+                    out.setdefault(str(header.get("name") or child.name), desc)
+                    out.setdefault(child.name, desc)
+    adir = base / "agents"
+    if adir.is_dir():
+        for f in sorted(adir.glob("*.md")):
+            header = parse_skill_header(f)
+            desc = str(header.get("description") or "")
+            if desc:
+                out.setdefault(str(header.get("name") or f.stem), desc)
+                out.setdefault(f.stem, desc)
+    return out
+
+
 def collect_claude(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
     section: JsonDict = {
         "platform": "claude",
@@ -642,6 +673,13 @@ def collect_claude(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
                 entry["components"] = parsed["components"]
                 entry["description"] = parsed["description"]
                 entry["description_key"] = register_translatable(cache, parsed["description"], "plugin_desc")
+                # details 只给组件名，去插件目录读每个 skill/agent 的描述补上（中文经缓存翻译）
+                descs = read_plugin_component_descs(entry["source_ref"].get("installPath", ""))
+                for grp in ("skills", "agents"):
+                    for comp in entry["components"].get(grp, []):
+                        d = descs.get(comp.get("name", ""))
+                        if d:
+                            comp["description"] = d
                 _register_component_descriptions(cache, entry["components"])
             section["plugins"].append(entry)
         for item in available:
