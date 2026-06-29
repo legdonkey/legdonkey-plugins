@@ -507,7 +507,11 @@ def parse_claude_details(text: str) -> JsonDict:
                 j += 1
             joined = " ".join(b for b in buf if b)
             # 去掉尾部括号注释（如 "(harness-only — no model context cost)"）。
-            joined = re.split(r"\s{2,}\(", joined)[0]
+            joined = re.split(r"\s{2,}\(", joined)[0].strip()
+            # 整段就是括号说明、没有真实组件名（如 "Hooks (1) (harness-only …)"）→ 视为无组件，
+            # 否则会把说明文本当成一个假组件塞进 JSON/HTML。
+            if joined.startswith("("):
+                joined = ""
             names = [n.strip() for n in joined.split(",") if n.strip()]
             cat_names[label] = names
             i = j
@@ -607,7 +611,13 @@ def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
     else:
         result["note"] = "未找到或无法解析 .codex-plugin/plugin.json。"
 
-    skills_dir = base / "skills"
+    # 技能目录：优先用 .codex-plugin/plugin.json 的 skills 字段（相对 ./），否则默认 skills/。
+    # 指向非默认目录时，不读 skills 字段会漏扫那些自带技能。
+    skills_ref = data.get("skills") if isinstance(data, dict) else None
+    if isinstance(skills_ref, str) and skills_ref.strip():
+        skills_dir = base / (skills_ref[2:] if skills_ref.startswith("./") else skills_ref)
+    else:
+        skills_dir = base / "skills"
     if skills_dir.is_dir():
         for child in sorted(skills_dir.iterdir()):
             if (child / "SKILL.md").exists():
@@ -620,12 +630,15 @@ def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
                 })
 
     # 自带 MCP：只取名字 + 传输类型 + command/url，绝不读 env/args（可能含密钥）。
-    # 路径优先用 .codex-plugin/plugin.json 的 mcpServers 字段（相对 ./），回退根 .mcp.json。
+    # mcpServers 字段三种合法写法：内联 dict（直接给 server map）/ 字符串路径（相对 ./）/ 缺省回退根 .mcp.json。
     mcp_ref = data.get("mcpServers") if isinstance(data, dict) else None
-    mcp_path = base / ".mcp.json"
-    if isinstance(mcp_ref, str) and mcp_ref.endswith(".json"):
-        mcp_path = base / (mcp_ref[2:] if mcp_ref.startswith("./") else mcp_ref)
-    mcp_data = _read_json_file(mcp_path)
+    if isinstance(mcp_ref, dict):
+        mcp_data = mcp_ref  # plugin.json 内联了 server map，无外部文件
+    else:
+        mcp_path = base / ".mcp.json"
+        if isinstance(mcp_ref, str) and mcp_ref.endswith(".json"):
+            mcp_path = base / (mcp_ref[2:] if mcp_ref.startswith("./") else mcp_ref)
+        mcp_data = _read_json_file(mcp_path)
     # .mcp.json 三种合法形态：{"mcpServers":{…}}（Claude 风格）/ {"mcp_servers":{…}}（Codex 文档示例）
     # / 顶层直接是 {服务名: 配置}（Codex direct server map）。三者都兼容，否则会漏算插件自带 MCP。
     servers: JsonDict | None = None
