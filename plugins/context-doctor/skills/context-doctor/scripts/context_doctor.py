@@ -508,9 +508,10 @@ def parse_claude_details(text: str) -> JsonDict:
             joined = " ".join(b for b in buf if b)
             # 去掉尾部括号注释（如 "(harness-only — no model context cost)"）。
             joined = re.split(r"\s{2,}\(", joined)[0].strip()
-            # 整段就是括号说明、没有真实组件名（如 "Hooks (1) (harness-only …)"）→ 视为无组件，
-            # 否则会把说明文本当成一个假组件塞进 JSON/HTML。
-            if joined.startswith("("):
+            # 整段是一对括号包裹、内部为含空格的自然语言说明（如 "(harness-only — no model context cost)"）
+            # → 视为 note-only、无真实组件。但 "(custom-hook)" 这种无空格的合法组件名要保留，
+            # "(a), b" 这种整段不止一个括号段的也要保留交给下面按逗号拆。
+            if re.fullmatch(r"\([^)]*\s[^)]*\)", joined):
                 joined = ""
             names = [n.strip() for n in joined.split(",") if n.strip()]
             cat_names[label] = names
