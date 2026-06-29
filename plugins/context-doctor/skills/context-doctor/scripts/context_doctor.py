@@ -77,8 +77,21 @@ def sha256_key(text: str) -> str:
     return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
 
 
+def is_probably_chinese(text: str) -> bool:
+    """源文本是否已是中文（含技术名词的中文描述也算）：CJK 字符占非空白字符 ≥30%。
+
+    用于不把本来就是中文的描述（如某些技能的中文 frontmatter）误判为「待译英文」。
+    """
+    text = (text or "").strip()
+    nonspace = sum(1 for c in text if not c.isspace())
+    if not nonspace:
+        return False
+    cjk = sum(1 for c in text if "一" <= c <= "鿿")
+    return cjk / nonspace >= 0.3
+
+
 def register_translatable(cache: JsonDict, text: str, kind: str) -> str:
-    """登记一段待译英文文本，返回其 key（空文本返回 ""）。已存在则保留原译文。"""
+    """登记一段待译文本，返回其 key（空文本返回 ""）。源本就是中文时直接当已译。"""
     text = (text or "").strip()
     if not text:
         return ""
@@ -86,6 +99,10 @@ def register_translatable(cache: JsonDict, text: str, kind: str) -> str:
     entries = cache["entries"]
     if key not in entries:
         entries[key] = {"src": text, "zh": "", "kind": kind}
+    entry = entries[key]
+    # 源本来就是中文 → 直接以原文为译文，不再算待译（也修旧缓存里这类空条目）
+    if not entry.get("zh") and is_probably_chinese(text):
+        entry["zh"] = text
     return key
 
 
@@ -133,13 +150,15 @@ def resolve_translations(inventory: JsonDict, cache: JsonDict) -> JsonDict:
     entries = cache.get("entries") or {}
 
     def resolved(key: str) -> tuple[str, bool]:
-        """返回 (展示文本, 是否回退英文)。zh 为空时回退 src 并标 pending。"""
+        """返回 (展示文本, 是否回退英文)。zh 为空但源本就是中文时不算 pending。"""
         e = entries.get(key)
         if isinstance(e, dict):
             zh = str(e.get("zh") or "")
             if zh:
                 return zh, False
-            return str(e.get("src") or ""), True
+            src = str(e.get("src") or "")
+            # 源已是中文：直接展示原文，不算待译
+            return src, not is_probably_chinese(src)
         return "", False
 
     def walk(node: Any) -> Any:
@@ -1343,11 +1362,27 @@ def default_template_path() -> Path:
     return Path(__file__).resolve().parent / "report_template.html"
 
 
+# HTML 渲染用不到、却占体积的字段：英文原描述与翻译键（已有 description_zh）、
+# 旧兼容字段等。注入前剔掉，显著缩小自包含 HTML（也回应「内嵌体积」的风险）。
+_HTML_STRIP_KEYS = {
+    "description", "description_key", "bundled_skills",
+    "components_source", "home", "platform_filter",
+}
+
+
+def _slim_for_html(node: Any) -> Any:
+    if isinstance(node, dict):
+        return {k: _slim_for_html(v) for k, v in node.items() if k not in _HTML_STRIP_KEYS}
+    if isinstance(node, list):
+        return [_slim_for_html(x) for x in node]
+    return node
+
+
 def render_html(inventory: JsonDict, cache: JsonDict, template_path: Path | None = None) -> str:
     """把（已查表补中文的）inventory 注入静态 HTML 模板，生成自包含单文件报告。"""
     template_path = template_path or default_template_path()
-    resolved = resolve_translations(inventory, cache)
-    payload = json.dumps(resolved, ensure_ascii=False)
+    resolved = _slim_for_html(resolve_translations(inventory, cache))
+    payload = json.dumps(resolved, ensure_ascii=False, separators=(",", ":"))
     # 防止内嵌 JSON 里的 </script> / </ 提前闭合脚本块（JSON.parse 仍能正确还原 \/）。
     payload = payload.replace("</", "<\\/")
     template = Path(template_path).read_text(encoding="utf-8")
