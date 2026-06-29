@@ -64,6 +64,8 @@ bash "$skill_dir/scripts/run.sh" --session-snapshot /path/to/session-snapshot.js
 
 快照必须精简：不要写工具 schema、技能描述或长 prompt。会话可见态仅对宿主平台有意义。
 
+某些连接器（如 claude.ai 的 HyperFrames）工具命名空间是 UUID，与 `claude mcp list` 给的显示名对不上，按命名空间前缀匹配会漏判。给这类工具在快照里加 `source_hint`（填该 MCP 的显示名），脚本会按 `source_hint` 兜底匹配，正确标成会话可见。
+
 ## /frontend-design 协作
 
 HTML 的视觉来自模板 `scripts/report_template.html`（用 `/frontend-design` 设计的一次性产物），脚本每次把 JSON 注入模板的 `/*__INVENTORY_JSON__*/` 占位符。**要改报告外观就改模板，不要改 Python 脚本**；模板自带 mock 数据，可直接用浏览器预览。

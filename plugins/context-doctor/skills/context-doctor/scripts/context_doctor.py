@@ -890,23 +890,23 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
 # 会话可见态对照（仅对宿主平台精确）
 # --------------------------------------------------------------------------- #
 def mark_visibility(section: JsonDict, session_snapshot: JsonDict) -> None:
+    tools = [t for t in (session_snapshot.get("tools") or []) if isinstance(t, dict)]
     visible_skill_names = {
         str(s.get("name"))
         for s in (session_snapshot.get("skills") or [])
         if isinstance(s, dict) and s.get("name")
     }
-    namespaces = [
-        str(t.get("namespace") or t.get("tool_namespace") or "")
-        for t in (session_snapshot.get("tools") or [])
-        if isinstance(t, dict)
-    ]
+    namespaces = [str(t.get("namespace") or t.get("tool_namespace") or "") for t in tools]
+    # source_hint 兜底：claude.ai 连接器等的工具命名空间是 UUID，与 MCP 显示名对不上，
+    # 故快照可在 source_hint 里写显示名，这里按它匹配（不区分大小写）。
+    source_hints = {str(t.get("source_hint") or "").strip().lower() for t in tools if t.get("source_hint")}
     for skill in section["skills"]:
         skill["visible_in_session"] = skill["name"] in visible_skill_names
     for server in section["mcp_servers"]:
-        name = server.get("name") or ""
-        server["visible_in_session"] = any(
-            ns.startswith(f"mcp__{name}") for ns in namespaces
-        )
+        name = str(server.get("name") or "")
+        by_ns = any(ns.startswith(f"mcp__{name}") for ns in namespaces)
+        by_hint = bool(name) and name.strip().lower() in source_hints
+        server["visible_in_session"] = bool(name) and (by_ns or by_hint)
 
 
 # --------------------------------------------------------------------------- #
