@@ -515,15 +515,16 @@ function rankTable(key,title,arr,kind){
   const s=rankSort[key]||{col:"on_invoke_tokens",dir:-1};
   const data=[...arr].map((x,i)=>({...x,_i:i}));
   data.sort((a,b)=>((a[s.col]||0)-(b[s.col]||0))*s.dir);
-  // 条形只画在「触发」列，分母固定用触发列口径，不随排序列变化（否则按常驻排序时分子/分母口径错乱、条形可能超 100%）
-  const maxv=Math.max(1,...data.map(x=>x.on_invoke_tokens||x.always_on_tokens||0));
+  // 条形只画在「触发」列：分子分母都只用触发 token，与排序列、与常驻口径都解耦。
+  // 无触发成本时条形为空、文本显示「—」，二者语义一致（不再用常驻 token 兜底画条形）。
+  const maxv=Math.max(1,...data.map(x=>x.on_invoke_tokens||0));
   const head=(col,lab)=>`<th class="sortable num" data-k="${key}" data-c="${col}">${lab} <span class="ar">${s.col===col?(s.dir<0?"▼":"▲"):""}</span></th>`;
   const rows=data.map((x,i)=>`<tr>
      <td class="rank-n">${i+1}</td>
      <td class="mono">${esc(x.name||x.id)}</td>
      <td><span class="src mono">${esc(x.plugin||"—")}</span></td>
      <td class="num">${fmtTok(x.always_on_tokens)||"—"}</td>
-     <td class="num"><div class="miniwrap"><div class="minibar"><i style="width:${Math.round(100*((x.on_invoke_tokens||x.always_on_tokens||0)/maxv))}%"></i></div><span>${fmtTok(x.on_invoke_tokens)||"—"}</span></div></td>
+     <td class="num"><div class="miniwrap"><div class="minibar"><i style="width:${Math.round(100*((x.on_invoke_tokens||0)/maxv))}%"></i></div><span>${fmtTok(x.on_invoke_tokens)||"—"}</span></div></td>
    </tr>`).join("");
   return `<div class="sec" style="margin-top:18px"><h2 style="font-size:12px">${title} <span class="c">${arr.length}</span></h2>
     <div class="tbl"><table><thead><tr><th>#</th><th>${kind}</th><th>来源插件</th>${head("always_on_tokens","常驻")}${head("on_invoke_tokens","触发")}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
