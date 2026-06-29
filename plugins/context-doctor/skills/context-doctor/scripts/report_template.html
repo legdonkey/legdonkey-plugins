@@ -163,6 +163,25 @@ footer{margin-top:46px; padding-top:18px; border-top:1px solid var(--line); colo
   .mkt-head .repo{display:none;}
   .pdesc,.pbody{padding-left:16px;}
 }
+
+/* ---------- 浅色主题：临床纸感（可切换，data-theme="paper"） ---------- */
+body[data-theme="paper"]{
+  --bg:#f4efe4; --bg2:#efe8d8; --card:#fbf7ee; --card2:#f0e9d8;
+  --line:#e2d9c4; --line2:#d0c5ab;
+  --text:#2c2620; --dim:#6d6353; --faint:#9c9079;
+  --signal:#2f835f; --warn:#a9761b; --danger:#b8432c; --info:#356f93;
+  --claude:#bb5a35; --codex:#2f835f;
+  --sans:-apple-system,BlinkMacSystemFont,"Songti SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--bg);
+  background-image:radial-gradient(820px 420px at 12% -10%, rgba(187,90,53,.08), transparent 60%);
+}
+body[data-theme="paper"]::before{display:none;}
+body[data-theme="paper"] .mark{font-family:Georgia,"Songti SC",serif; letter-spacing:.04em;}
+body[data-theme="paper"] .stat .n{font-family:Georgia,"Songti SC",serif;}
+body[data-theme="paper"] .sec>h2{font-family:Georgia,"Songti SC",serif; text-transform:none; letter-spacing:.01em; font-size:15px; color:#4a4135;}
+body[data-theme="paper"] .mkt{background:var(--card); box-shadow:0 1px 0 #fff inset,0 1px 3px rgba(60,48,30,.06);}
+body[data-theme="paper"] .bar{background:#efe7d6;}
+body[data-theme="paper"] .ecg path{filter:none;}
 </style>
 </head>
 <body data-platform="claude">
@@ -194,6 +213,7 @@ footer{margin-top:46px; padding-top:18px; border-top:1px solid var(--line); colo
       <button data-f="available" aria-pressed="false">可装</button>
     </div>
     <button class="ghost" id="toggleAll">展开全部</button>
+    <button class="ghost" id="themeToggle" title="切换浅色 / 暗色">☀ 浅色</button>
   </div>
 
   <div id="panel"></div>
@@ -496,6 +516,16 @@ $$("#filter button").forEach(b=>b.onclick=()=>{
   filterMode=b.dataset.f; $$("#filter button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); renderPanel();
 });
 $("#toggleAll").onclick=()=>{allOpen=!allOpen; $("#toggleAll").textContent=allOpen?"收起全部":"展开全部"; renderPanel();};
+
+// 主题切换：暗色诊断控制台 ⇄ 浅色临床纸感，记住选择
+const THEME_KEY="ctxdoctor-theme";
+function applyTheme(t){
+  document.body.dataset.theme = (t==="paper") ? "paper" : "dark";
+  $("#themeToggle").textContent = (t==="paper") ? "☾ 暗色" : "☀ 浅色";
+}
+let theme="dark"; try{ theme=localStorage.getItem(THEME_KEY)||"dark"; }catch(e){}
+applyTheme(theme);
+$("#themeToggle").onclick=()=>{ theme = (theme==="paper")?"dark":"paper"; try{localStorage.setItem(THEME_KEY,theme);}catch(e){} applyTheme(theme); };
 
 renderHeader(); renderTabs(); renderPanel(); renderRanks(); renderRecs(); renderBounds(); renderFoot();
 </script>
