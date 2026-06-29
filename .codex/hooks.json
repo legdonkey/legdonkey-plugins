@@ -6,12 +6,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); case \"$f\" in *.json) out=$(python3 -m json.tool \"$f\" 2>&1 >/dev/null) || { printf 'JSON 校验失败：%s\\n%s\\n' \"$f\" \"$out\" >&2; exit 2; };; esac",
+            "command": ".codex/scripts/edited-files-from-hook.sh | while IFS= read -r f; do case \"$f\" in *.json) [ -f \"$f\" ] || continue; out=$(python3 -m json.tool \"$f\" 2>&1 >/dev/null) || { printf 'JSON 校验失败：%s\\n%s\\n' \"$f\" \"$out\" >&2; exit 2; };; esac; done",
             "statusMessage": "校验 JSON"
           },
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); case \"$f\" in *.sh) out=$(shellcheck \"$f\" 2>&1) || { printf 'shellcheck 告警：%s\\n%s\\n' \"$f\" \"$out\" >&2; exit 2; };; esac",
+            "command": ".codex/scripts/edited-files-from-hook.sh | while IFS= read -r f; do case \"$f\" in *.sh) [ -f \"$f\" ] || continue; out=$(shellcheck \"$f\" 2>&1) || { printf 'shellcheck 告警：%s\\n%s\\n' \"$f\" \"$out\" >&2; exit 2; };; esac; done",
             "statusMessage": "shellcheck"
           }
         ]
