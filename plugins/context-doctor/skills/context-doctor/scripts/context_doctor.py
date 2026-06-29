@@ -804,26 +804,6 @@ def collect_claude(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
 # --------------------------------------------------------------------------- #
 # Codex 采集器（CLI 优先）
 # --------------------------------------------------------------------------- #
-def parse_codex_marketplace_list(text: str) -> list[JsonDict]:
-    """解析 `codex plugin marketplace list` 的表格（MARKETPLACE / ROOT，两列按多空格分隔）。
-
-    这是老版本 Codex 无 `--json` 时的回退路径：文本表格只有名称与路径，拿不到真实
-    源类型，故记为 unknown（标 local 会把 git/ssh 远程源误判为本地，反而误导）。
-    """
-    rows: list[JsonDict] = []
-    for raw in text.splitlines():
-        line = raw.rstrip()
-        if not line or line.startswith("MARKETPLACE"):
-            continue
-        parts = re.split(r"\s{2,}", line.strip(), maxsplit=1)
-        if not parts:
-            continue
-        name = parts[0].strip()
-        root = parts[1].strip() if len(parts) > 1 else ""
-        rows.append({"name": name, "repo": root, "source_type": "unknown", "source": "cli"})
-    return rows
-
-
 def parse_codex_marketplace_json(data: JsonDict) -> list[JsonDict]:
     """解析 `codex plugin marketplace list --json`，保留真实源类型（local/git/…）。
 
@@ -911,14 +891,10 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
                 }
             )
 
-        # 市场源（--json 保留真实源类型；老版本无 --json 时退回文本解析）
+        # 市场源（--json 保留真实源类型）
         mdata = run_cli_json(["codex", "plugin", "marketplace", "list", "--json"])
-        if isinstance(mdata, dict) and mdata.get("marketplaces") is not None:
+        if isinstance(mdata, dict):
             section["marketplaces"] = parse_codex_marketplace_json(mdata)
-        else:
-            out, _ = run_cli(["codex", "plugin", "marketplace", "list"])
-            if out:
-                section["marketplaces"] = parse_codex_marketplace_list(out)
 
         # MCP（有 --json）
         mcp = run_cli_json(["codex", "mcp", "list", "--json"]) or []

@@ -19,7 +19,7 @@
 | 对象 | 数据来源 |
 |------|---------|
 | **插件 Plugins** | `claude plugin list --json --available` / `codex plugin list --json --available`：已装 + 可装、版本、启停、市场、可装热度。Claude 侧另经 `claude plugin details` 取**完整组件清单（skills/agents/hooks/mcp/lsp）与逐组件 token 成本**；Codex 无 details，改读插件本地 `.codex-plugin/plugin.json` 清单 + 扫 `skills/` 目录得组件清单（无 token） |
-| **市场源 Marketplaces** | `claude plugin marketplace list --json` / `codex plugin marketplace list --json`（老版本无 `--json` 时回退文本解析）。保留真实源类型（github / git / 本地等） |
+| **市场源 Marketplaces** | `claude plugin marketplace list --json` / `codex plugin marketplace list --json`，保留真实源类型（github / git / 本地等） |
 | **MCP 服务器** | `claude mcp list`（文本，含连通 / 认证等状态）/ `codex mcp list --json` |
 | **技能 Skills** | 两平台都**没有列举技能的 CLI**（官方设计为文件式），故扫描技能目录（用户级 + 项目级，项目级从当前目录逐级向上到 repo 根）：Claude Code `~/.claude/skills`、项目 `.claude/skills`；Codex `~/.codex/skills`、`~/.agents/skills`、项目 `.codex/skills`、项目 `.agents/skills` |
 | **卫生建议** | 同名插件多来源、**同名技能跨级覆盖**（按平台区分措辞）、已装但禁用、always-on token 开销偏大等 |
