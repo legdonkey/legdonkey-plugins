@@ -103,6 +103,7 @@ header{padding:40px 0 26px;}
 .plug.leaf .tw{visibility:hidden;}
 .plug .pname{font-family:var(--mono); font-size:13px; color:var(--text);}
 .plug .pver{font-family:var(--mono); font-size:10.5px; color:var(--faint);}
+.plug .pscope{font-family:var(--mono); font-size:10px; color:var(--dim); border:1px solid var(--line2); border-radius:4px; padding:0 5px;}
 .badge{font-family:var(--mono); font-size:10px; padding:1px 6px; border-radius:4px; letter-spacing:.04em; white-space:nowrap;}
 .badge.on{color:var(--signal); background:color-mix(in srgb,var(--signal) 14%,transparent);}
 .badge.off{color:var(--danger); background:color-mix(in srgb,var(--danger) 14%,transparent);}
@@ -341,6 +342,7 @@ function maxInvoke(p){
   return m;
 }
 const visYN=v=>v===true?"是":v===false?"否":"—";
+const scopeZh=s=>{const l=(s||"").toLowerCase(); return l.startsWith("user")?"用户级":l.startsWith("project")?"项目级":l.startsWith("local")?"本地":l.startsWith("dynamic")?"动态":(l.includes("claude.ai")?"claude.ai":(s||""));};
 function visDot(x){
   // 会话可见：绿点=可见，灰点=不可见；null（非宿主平台/未知）不显示
   if(x.visible_in_session===true) return `<span title="本次会话可见" style="color:var(--signal)">● </span>`;
@@ -394,6 +396,7 @@ function pluginNode(pl,maxv,showCost){
     : `<span class="badge avail">可装</span>`);
   if(pl.install_count!=null) badges.push(`<span class="badge hot">▲ ${fmtCount(pl.install_count)}</span>`);
   const ver=esc(pl.real_version||pl.version||"");
+  const scope=(pl.installed&&pl.scope)?`<span class="pscope" title="安装范围">${esc(scopeZh(pl.scope))}</span>`:"";
   let tok="";
   if(pl.installed&&showCost&&pl.always_on_tokens!=null) tok=`<span class="ptok">常驻 <b>${fmtTok(pl.always_on_tokens)}</b> tok</span>`;
   else if(!pl.installed&&showCost) tok=`<span class="ptok" style="color:var(--faint)">成本装后可见</span>`;
@@ -413,7 +416,7 @@ function pluginNode(pl,maxv,showCost){
   const desc=pl.description_zh?`<div class="pdesc">${pmark}${esc(pl.description_zh)}</div>`:"";
   return `<div class="plug${leaf?' leaf':''}" data-id="${esc(pl.id)}">
     <div class="plug-head"><span class="tw">▶</span>
-      <span class="pname">${esc(pl.name||pl.id)}</span><span class="pver">${ver}</span>
+      <span class="pname">${esc(pl.name||pl.id)}</span><span class="pver">${ver}</span>${scope}
       ${badges.join(" ")}${tok}</div>${desc}${body}</div>`;
 }
 function safeUrl(u){
