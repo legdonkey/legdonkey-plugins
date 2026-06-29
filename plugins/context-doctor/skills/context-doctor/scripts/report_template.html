@@ -515,7 +515,8 @@ function rankTable(key,title,arr,kind){
   const s=rankSort[key]||{col:"on_invoke_tokens",dir:-1};
   const data=[...arr].map((x,i)=>({...x,_i:i}));
   data.sort((a,b)=>((a[s.col]||0)-(b[s.col]||0))*s.dir);
-  const maxv=Math.max(1,...data.map(x=>x[s.col]||0));
+  // 条形只画在「触发」列，分母固定用触发列口径，不随排序列变化（否则按常驻排序时分子/分母口径错乱、条形可能超 100%）
+  const maxv=Math.max(1,...data.map(x=>x.on_invoke_tokens||x.always_on_tokens||0));
   const head=(col,lab)=>`<th class="sortable num" data-k="${key}" data-c="${col}">${lab} <span class="ar">${s.col===col?(s.dir<0?"▼":"▲"):""}</span></th>`;
   const rows=data.map((x,i)=>`<tr>
      <td class="rank-n">${i+1}</td>
