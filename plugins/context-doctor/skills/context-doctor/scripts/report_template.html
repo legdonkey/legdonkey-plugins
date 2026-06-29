@@ -473,13 +473,20 @@ function renderPanel(){
 function mcpTable(p){
   const rows=(p.mcp_servers||[]).filter(s=>!query||(s.name||"").toLowerCase().includes(query));
   if(!rows.length) return `<div class="empty">无（或不匹配搜索）。</div>`;
-  // Codex 的「状态」其实是鉴权方式（auth_status），Claude 才是连接状态
-  const statusHead = p.platform==='codex' ? '鉴权方式' : '状态';
-  return `<div class="tbl"><table><thead><tr><th>名称</th><th>类型</th><th>启用</th><th>${statusHead}</th><th>会话可见</th></tr></thead><tbody>`+
-    rows.map(s=>`<tr><td class="mono">${esc(s.name)}</td><td class="mono">${esc(s.server_type||"—")}</td>
-      <td>${s.enabled===true?"是":s.enabled===false?"否":"—"}</td>
-      <td class="mono"><span class="src">${esc(s.status||s.auth_status||"")}</span></td>
-      <td>${visYN(s.visible_in_session)}</td></tr>`).join("")+`</tbody></table></div>`;
+  // 列按平台区分：Claude 有 scope（范围）、状态=连接状态；Codex 无 scope、有启用、状态=鉴权方式
+  const isCodex=p.platform==='codex';
+  const cols=isCodex
+    ? [["名称",s=>esc(s.name),"mono"],["类型",s=>esc(s.server_type||"—"),"mono"],
+       ["启用",s=>s.enabled===true?"是":s.enabled===false?"否":"—",""],
+       ["鉴权方式",s=>`<span class="src">${esc(s.status||s.auth_status||"")}</span>`,"mono"],
+       ["会话可见",s=>visYN(s.visible_in_session),""]]
+    : [["名称",s=>esc(s.name),"mono"],["类型",s=>esc(s.server_type||"—"),"mono"],
+       ["范围",s=>esc(s.scope||"—"),"mono"],
+       ["状态",s=>`<span class="src">${esc(s.status||"")}</span>`,"mono"],
+       ["会话可见",s=>visYN(s.visible_in_session),""]];
+  const thead=cols.map(c=>`<th>${c[0]}</th>`).join("");
+  const tbody=rows.map(s=>`<tr>${cols.map(c=>`<td class="${c[2]}">${c[1](s)}</td>`).join("")}</tr>`).join("");
+  return `<div class="tbl"><table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
 }
 function skillTable(p){
   const rows=(p.skills||[]).filter(s=>!query||[s.name,s.description_zh,s.scope].join(" ").toLowerCase().includes(query));

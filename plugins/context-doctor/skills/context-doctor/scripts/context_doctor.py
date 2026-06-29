@@ -28,8 +28,8 @@ DEFAULT_TIMEOUT = 30
 MCP_LIST_TIMEOUT = 60
 # 逐插件 details / 逐 MCP get 会做健康检查、偏慢，给宽超时并并发跑（见 parallel_map）。
 DETAIL_TIMEOUT = 60
-# `mcp get` 仅为补「类型」列（nice-to-have），健康检查可能很慢，单独给较短上限，慢就放弃该列。
-MCP_GET_TIMEOUT = 20
+# `mcp get` 要做联网健康检查、单次可能十几秒；给较宽上限并配合失败重试，确保类型/scope 拿得到。
+MCP_GET_TIMEOUT = 35
 MAX_WORKERS = 8
 # 插件 always-on token 超过此阈值，提示「开销偏大」。
 TOKEN_HEAVY_THRESHOLD = 1000
@@ -426,7 +426,21 @@ def parse_claude_mcp_get(text: str) -> JsonDict:
         m = re.match(r"Scope:\s*(.+)$", line)
         if m:
             scope = m.group(1).strip()
-    return {"server_type": server_type, "scope": scope}
+    return {"server_type": server_type, "scope": _short_scope(scope)}
+
+
+def _short_scope(scope: str) -> str:
+    """把 `claude mcp get` 的 Scope 文案规范成短名（用户级 / 项目级 / 本地 / claude.ai）。"""
+    low = (scope or "").lower()
+    if low.startswith("user"):
+        return "用户级"
+    if low.startswith("project"):
+        return "项目级"
+    if low.startswith("local"):
+        return "本地"
+    if "claude.ai" in low:
+        return "claude.ai"
+    return scope
 
 
 def _parse_tok(num: str, unit: str) -> int:
@@ -760,7 +774,7 @@ def collect_claude(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
             # 解析器只取 Type/Scope，不读 Environment，避免泄露密钥。并发跑（get 也做健康检查、偏慢）。
             named = [s for s in section["mcp_servers"] if s.get("name")]
             gets = parallel_map(
-                lambda s: run_cli(["claude", "mcp", "get", s["name"]], timeout=MCP_GET_TIMEOUT),
+                lambda s: run_cli_retry(["claude", "mcp", "get", s["name"]], timeout=MCP_GET_TIMEOUT),
                 named,
             )
             for server, res in zip(named, gets):
