@@ -339,8 +339,9 @@ function maxInvoke(p){
     for(const g of["skills","agents"])for(const x of(c[g]||[]))m=Math.max(m,x.on_invoke_tokens||0,x.always_on_tokens||0);}
   return m;
 }
+const visYN=v=>v===true?"是":v===false?"否":"—";
 function visDot(x){
-  // 会话可见：绿点=可见，灰点=不可见（仅当带了会话快照、该字段存在时显示）
+  // 会话可见：绿点=可见，灰点=不可见；null（非宿主平台/未知）不显示
   if(x.visible_in_session===true) return `<span title="本次会话可见" style="color:var(--signal)">● </span>`;
   if(x.visible_in_session===false) return `<span title="本次会话不可见" style="color:var(--faint)">○ </span>`;
   return "";
@@ -359,7 +360,8 @@ function compRow(x,maxv,showCost){
     return `<div class="comp">${cn}<div>${right}</div></div>`;
   }
   if(!showCost){
-    return `<div class="comp">${cn}<div><span class="note-tag">装后可见</span></div></div>`;
+    // 该平台无 token 成本数据（Codex）：组件本就拿不到成本，别误导成「装后可见」
+    return `<div class="comp">${cn}<div><span class="note-tag" title="该平台无 token 成本数据">无 token 数据</span></div></div>`;
   }
   const inv=x.on_invoke_tokens, aon=x.always_on_tokens;
   const w=Math.max(2,Math.round(100*(inv||aon||0)/maxv));
@@ -467,18 +469,20 @@ function renderPanel(){
 function mcpTable(p){
   const rows=(p.mcp_servers||[]).filter(s=>!query||(s.name||"").toLowerCase().includes(query));
   if(!rows.length) return `<div class="empty">无（或不匹配搜索）。</div>`;
-  return `<div class="tbl"><table><thead><tr><th>名称</th><th>类型</th><th>启用</th><th>状态</th><th>会话可见</th></tr></thead><tbody>`+
+  // Codex 的「状态」其实是鉴权方式（auth_status），Claude 才是连接状态
+  const statusHead = p.platform==='codex' ? '鉴权方式' : '状态';
+  return `<div class="tbl"><table><thead><tr><th>名称</th><th>类型</th><th>启用</th><th>${statusHead}</th><th>会话可见</th></tr></thead><tbody>`+
     rows.map(s=>`<tr><td class="mono">${esc(s.name)}</td><td class="mono">${esc(s.server_type||"—")}</td>
       <td>${s.enabled===true?"是":s.enabled===false?"否":"—"}</td>
       <td class="mono"><span class="src">${esc(s.status||s.auth_status||"")}</span></td>
-      <td>${s.visible_in_session?"是":"否"}</td></tr>`).join("")+`</tbody></table></div>`;
+      <td>${visYN(s.visible_in_session)}</td></tr>`).join("")+`</tbody></table></div>`;
 }
 function skillTable(p){
   const rows=(p.skills||[]).filter(s=>!query||[s.name,s.description_zh,s.scope].join(" ").toLowerCase().includes(query));
   if(!rows.length) return `<div class="empty">无（或不匹配搜索）。</div>`;
   return `<div class="tbl"><table><thead><tr><th>名称</th><th>范围</th><th>用途</th><th>会话可见</th></tr></thead><tbody>`+
     rows.map(s=>`<tr><td class="mono">${esc(s.name)}</td><td class="mono"><span class="src">${esc(s.scope||"")}</span></td>
-      <td>${s.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(s.description_zh||"")}</td><td>${s.visible_in_session?"是":"否"}</td></tr>`).join("")+`</tbody></table></div>`;
+      <td>${s.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(s.description_zh||"")}</td><td>${visYN(s.visible_in_session)}</td></tr>`).join("")+`</tbody></table></div>`;
 }
 function bindTree(){
   $$("#panel .plug:not(.leaf) .plug-head").forEach(h=>{
@@ -509,7 +513,7 @@ function rankTable(key,title,arr,kind){
 function renderRanks(){
   const r=DATA.rankings||{};
   const has=(r.top_skills_by_cost||[]).length||(r.top_agents_by_cost||[]).length||(r.top_plugins_by_cost||[]).length;
-  $("#rankBasis").textContent=has?(r.basis||""):"（仅 Claude 有 token 成本数据）";
+  $("#rankBasis").textContent="仅 Claude · Codex 无 token 成本不计入";
   if(!has){ $("#ranks").innerHTML=`<div class="empty">当前数据无可计成本的组件（Codex 无 token 数据）。</div>`; return; }
   let html=rankTable("skills","最贵技能",r.top_skills_by_cost,"技能")
           +rankTable("agents","最贵 Agent",r.top_agents_by_cost,"Agent");

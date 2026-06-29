@@ -60,16 +60,18 @@ python3 -B "$skill_dir/scripts/context_doctor.py" --render-only \
 
 ```json
 {
+  "host_platform": "claude",
   "tools": [{ "namespace": "mcp__<server>", "tool": "<tool>", "source_hint": "<MCP 显示名，可选>" }],
-  "skills": [{ "name": "<可见技能名>" }]
+  "skills": [{ "name": "<可见技能名，含插件自带技能>" }]
 }
 ```
 
 约定与边界：
 
-- 只列**可见工具的命名空间/工具名**与**可见技能名**；快照必须精简——**不要**写工具 schema、技能描述或长 prompt。
-- 某些连接器（如 claude.ai 的 HyperFrames）工具命名空间是 UUID，与 `mcp list` 的显示名对不上：给这类工具加 `source_hint`（填该 MCP 的显示名），脚本会按 `source_hint` 兜底匹配，正确标成会话可见。
-- 会话可见态**仅对宿主平台有意义**：在 Claude 里跑只能如实填 Claude 会话（Codex 那列必为否）；在 Codex 里跑则相反。技能按名字匹配、MCP 按 `source_hint`/命名空间匹配，两者跨平台通用。
+- **`host_platform` 必填**：填你（模型）正在运行的平台（`claude` / `codex`）。**只有这个平台会标会话可见态，另一个平台一律显示「—」**（快照只属于宿主平台，不映射到另一平台）。
+- 只列**可见工具的命名空间/工具名**与**可见技能名**（含插件自带技能，便于给插件组件标可见）；快照必须精简——**不要**写工具 schema、技能描述或长 prompt。
+- 某些连接器（如 claude.ai 的 HyperFrames）工具命名空间是 UUID，与 `mcp list` 的显示名对不上：给这类工具加 `source_hint`（填该 MCP 的显示名），脚本会按 `source_hint` 兜底匹配。
+- 技能按名字匹配（自动兼容 `插件:技能` 与裸名），MCP 按 `source_hint`/命名空间匹配，两者跨平台通用。
 
 ## /frontend-design 协作
 

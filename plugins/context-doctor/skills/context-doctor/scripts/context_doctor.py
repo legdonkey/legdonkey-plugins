@@ -1010,6 +1010,20 @@ def mark_visibility(section: JsonDict, session_snapshot: JsonDict) -> None:
             c["visible_in_session"] = mcp_visible(str(c.get("full_name") or "")) or mcp_visible(str(c.get("name") or ""))
 
 
+def clear_session_visibility(section: JsonDict) -> None:
+    """非宿主平台：会话可见态无意义（快照只属于跑技能的那个平台），统一置 None，
+    报告显示「—」而非误导的「否」。"""
+    for skill in section.get("skills", []):
+        skill["visible_in_session"] = None
+    for server in section.get("mcp_servers", []):
+        server["visible_in_session"] = None
+    for plugin in section.get("plugins", []):
+        comps = plugin.get("components") or {}
+        for grp in ("skills", "agents", "mcp"):
+            for c in comps.get(grp, []):
+                c["visible_in_session"] = None
+
+
 # --------------------------------------------------------------------------- #
 # 卫生建议
 # --------------------------------------------------------------------------- #
@@ -1168,9 +1182,14 @@ def build_inventory(
     if platform in ("both", "codex"):
         sections.append(collect_codex(home, cwd, cache))
 
+    host_platform = str(session_snapshot.get("host_platform") or "")
     for section in sections:
         reassign_plugin_mcps(section)  # 先把插件自带 MCP 从独立列表挪进插件
-        mark_visibility(section, session_snapshot)
+        # 会话快照只属于「跑技能的那个平台」：指定了 host_platform 时，非宿主平台不映射
+        if host_platform and section["platform"] != host_platform:
+            clear_session_visibility(section)
+        else:
+            mark_visibility(section, session_snapshot)
         # 独立技能描述也登记翻译
         for skill in section["skills"]:
             skill["description_key"] = register_translatable(cache, skill.get("description") or "", "skill_desc")
@@ -1463,6 +1482,7 @@ def load_session_snapshot(path: Path | None) -> JsonDict:
 
 def session_snapshot_template() -> JsonDict:
     return {
+        "host_platform": "claude 或 codex —— 跑这个技能的平台；只有该平台会标会话可见态",
         "tools": [
             {
                 "namespace": "mcp__example",
