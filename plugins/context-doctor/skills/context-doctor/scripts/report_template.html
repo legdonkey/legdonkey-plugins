@@ -345,9 +345,10 @@ function maxInvoke(p){
 const visYN=v=>v===true?"是":v===false?"否":"—";
 const scopeZh=s=>{const l=(s||"").toLowerCase(); return l.startsWith("user")?"用户级":l.startsWith("project")?"项目级":l.startsWith("local")?"本地":l.startsWith("dynamic")?"动态":(l.includes("claude.ai")?"claude.ai":(s||""));};
 function visDot(x){
-  // 会话可见：绿点=可见，灰点=不可见；null（非宿主平台/未知）不显示
+  // 会话可见：● 可见 / ○ 不可见 / — 未对照（非宿主平台，与独立列表一致）；字段缺失才不显示
   if(x.visible_in_session===true) return `<span title="本次会话可见" style="color:var(--signal)">● </span>`;
   if(x.visible_in_session===false) return `<span title="本次会话不可见" style="color:var(--faint)">○ </span>`;
+  if(x.visible_in_session===null) return `<span title="未对照（非宿主平台）" style="color:var(--faint)">— </span>`;
   return "";
 }
 function compRow(x,maxv,showCost){
@@ -453,9 +454,8 @@ function renderPanel(){
   const bucket=name=>{const k=name||"(unknown)"; if(!groups.has(k)){groups.set(k,{meta:{name:k,source_type:"unknown",repo:""},plugins:[]}); order.push(k);} return groups.get(k);};
   for(const pl of [...(p.plugins||[]),...(p.available_plugins||[])]){ if(pluginMatches(pl)) bucket(pl.marketplace).plugins.push(pl); }
 
-  const hostVis=(p.skills||[]).some(s=>s.visible_in_session===true||s.visible_in_session===false)
-    ||(p.mcp_servers||[]).some(s=>s.visible_in_session===true||s.visible_in_session===false);
-  const legend=hostVis?`<span style="margin-left:auto;font-weight:400;font-size:11px;color:var(--faint)"><span style="color:var(--signal)">●</span> 会话可见 &nbsp; <span>○</span> 不可见</span>`:"";
+  const showLegend=!!(DATA.session&&DATA.session.snapshot_provided);
+  const legend=showLegend?`<span style="margin-left:auto;font-weight:400;font-size:11px;color:var(--faint)"><span style="color:var(--signal)">●</span> 会话可见 &nbsp; ○ 不可见 &nbsp; — 未对照</span>`:"";
   let html=`<div class="sec"><h2>市场 → 插件 → 组件 <span class="c">${order.filter(n=>groups.get(n).plugins.length).length} 市场</span>${legend}</h2>`;
   let any=false;
   for(const name of order){
