@@ -6,12 +6,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".codex/scripts/edited-files-from-hook.sh | while IFS= read -r f; do case \"$f\" in *.json) [ -f \"$f\" ] || continue; out=$(python3 -m json.tool \"$f\" 2>&1 >/dev/null) || { printf 'JSON 校验失败：%s\\n%s\\n' \"$f\" \"$out\" >&2; exit 2; };; esac; done",
+            "command": "set -o pipefail; root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; \"$root/.codex/scripts/edited-files-from-hook.sh\" | while IFS= read -r f; do case \"$f\" in *.json) case \"$f\" in /*) target=\"$f\";; *) target=\"$root/$f\"; [ -f \"$target\" ] || target=\"$PWD/$f\";; esac; [ -f \"$target\" ] || continue; out=$(python3 -m json.tool \"$target\" 2>&1 >/dev/null) || { printf 'JSON 校验失败：%s\\n%s\\n' \"$f\" \"$out\" >&2; exit 2; };; esac; done",
             "statusMessage": "校验 JSON"
           },
           {
             "type": "command",
-            "command": ".codex/scripts/edited-files-from-hook.sh | while IFS= read -r f; do case \"$f\" in *.sh) [ -f \"$f\" ] || continue; out=$(shellcheck \"$f\" 2>&1) || { printf 'shellcheck 告警：%s\\n%s\\n' \"$f\" \"$out\" >&2; exit 2; };; esac; done",
+            "command": "set -o pipefail; root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; \"$root/.codex/scripts/edited-files-from-hook.sh\" | while IFS= read -r f; do case \"$f\" in *.sh) case \"$f\" in /*) target=\"$f\";; *) target=\"$root/$f\"; [ -f \"$target\" ] || target=\"$PWD/$f\";; esac; [ -f \"$target\" ] || continue; out=$(shellcheck \"$target\" 2>&1) || { printf 'shellcheck 告警：%s\\n%s\\n' \"$f\" \"$out\" >&2; exit 2; };; esac; done",
             "statusMessage": "shellcheck"
           }
         ]

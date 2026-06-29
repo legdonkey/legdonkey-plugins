@@ -28,6 +28,11 @@
     "capabilities": [
       "Read",
       "Write"
+    ],
+    "defaultPrompt": [
+      "生成一份 context-doctor 报告",
+      "审计当前 Codex 和 Claude Code 配置",
+      "检查插件、技能、MCP 的会话可见状态"
     ]
   }
 }

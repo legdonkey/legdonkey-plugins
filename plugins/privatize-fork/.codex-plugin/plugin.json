@@ -25,6 +25,11 @@
       "Interactive",
       "Read",
       "Write"
+    ],
+    "defaultPrompt": [
+      "帮我私有化这个 fork 仓库",
+      "为当前项目生成私有化维护规范",
+      "检查 fork 私有化前的改动范围"
     ]
   }
 }
