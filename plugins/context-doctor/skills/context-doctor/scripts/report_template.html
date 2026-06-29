@@ -270,6 +270,21 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",
 const fmtTok=n=>n==null?"":(n>=1000?(n/1000).toFixed(n>=10000?0:1)+"k":""+n);
 const fmtCount=n=>n==null?"":n>=1000?(n/1000).toFixed(1)+"k":""+n;
 
+// 收集「翻译回退英文」的对象名（哪个插件/技能/组件受阻）
+function collectPending(node, out){
+  out=out||[];
+  if(Array.isArray(node)){ for(const n of node) collectPending(n,out); }
+  else if(node && typeof node==='object'){
+    if(node.description_pending===true){
+      const nm=node.name||node.id||"(未命名)";
+      const kind = ('installed' in node) ? "插件" : (node.path ? "技能" : "组件");
+      out.push(`${nm}（${kind}）`);
+    }
+    for(const k in node){ const v=node[k]; if(v && typeof v==='object') collectPending(v,out); }
+  }
+  return out;
+}
+
 let activePlat=Object.keys(DATA.platforms||{})[0]||"claude";
 let filterMode="all", query="", allOpen=false;
 
@@ -280,7 +295,15 @@ function renderHeader(){
     DATA.cwd?`<span><b>工作目录</b> ${esc(DATA.cwd)}</span>`:"",
     `<span><b>会话快照</b> ${s.snapshot_provided?"是":"否"}</span>`];
   let pend="";
-  if(DATA.pending_translation_count>0) pend=`<span class="pill warn" title="${esc(DATA.translation_cache_path||"")}">⏳ 待译 ${DATA.pending_translation_count} 条（回退英文）</span>`;
+  const pendNames=collectPending(DATA.platforms);
+  if(pendNames.length){
+    const shown = pendNames.slice(0,3).join("、");
+    const label = pendNames.length<=3
+      ? `⏳ 待译：${shown}（回退英文）`
+      : `⏳ 待译 ${pendNames.length} 项：${shown} 等（回退英文）`;
+    const tip = "翻译回退英文的对象：\n"+pendNames.join("\n")+"\n\n缓存："+(DATA.translation_cache_path||"");
+    pend=`<span class="pill warn" title="${esc(tip)}">${esc(label)}</span>`;
+  }
   $("#meta").innerHTML=meta.filter(Boolean).join("")+pend;
 
   const cells=[];
@@ -317,7 +340,7 @@ function maxInvoke(p){
   return m;
 }
 function compRow(x,maxv,showCost){
-  const desc=x.description_zh?`<span class="cd">${esc(x.description_zh)}</span>`:"";
+  const desc=x.description_zh?`<span class="cd">${x.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(x.description_zh)}</span>`:"";
   if(x.cost_note!=null){
     return `<div class="comp"><div class="cn">${esc(x.name)}${desc}</div><div><span class="note-tag">${esc(x.cost_note)}</span></div></div>`;
   }
@@ -367,7 +390,8 @@ function pluginNode(pl,maxv,showCost){
       compGroup("Apps",c.apps,maxv,showCost)+
       sourceLine(pl)+`</div>`;
   }
-  const desc=pl.description_zh?`<div class="pdesc">${esc(pl.description_zh)}</div>`:"";
+  const pmark=pl.description_pending?`<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>`:"";
+  const desc=pl.description_zh?`<div class="pdesc">${pmark}${esc(pl.description_zh)}</div>`:"";
   return `<div class="plug${leaf?' leaf':''}" data-id="${esc(pl.id)}">
     <div class="plug-head"><span class="tw">▶</span>
       <span class="pname">${esc(pl.name||pl.id)}</span><span class="pver">${ver}</span>
@@ -440,7 +464,7 @@ function skillTable(p){
   if(!rows.length) return `<div class="empty">无（或不匹配搜索）。</div>`;
   return `<div class="tbl"><table><thead><tr><th>名称</th><th>范围</th><th>用途</th><th>会话可见</th></tr></thead><tbody>`+
     rows.map(s=>`<tr><td class="mono">${esc(s.name)}</td><td class="mono"><span class="src">${esc(s.scope||"")}</span></td>
-      <td>${esc(s.description_zh||"")}</td><td>${s.visible_in_session?"是":"否"}</td></tr>`).join("")+`</tbody></table></div>`;
+      <td>${s.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(s.description_zh||"")}</td><td>${s.visible_in_session?"是":"否"}</td></tr>`).join("")+`</tbody></table></div>`;
 }
 function bindTree(){
   $$("#panel .plug:not(.leaf) .plug-head").forEach(h=>{

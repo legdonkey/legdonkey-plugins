@@ -132,11 +132,15 @@ def resolve_translations(inventory: JsonDict, cache: JsonDict) -> JsonDict:
     """深拷贝 inventory，并在每个 `*_description_key` 旁补 `<前缀>_description_zh`（中文或回退英文）。"""
     entries = cache.get("entries") or {}
 
-    def lookup(key: str) -> str:
+    def resolved(key: str) -> tuple[str, bool]:
+        """返回 (展示文本, 是否回退英文)。zh 为空时回退 src 并标 pending。"""
         e = entries.get(key)
         if isinstance(e, dict):
-            return str(e.get("zh") or e.get("src") or "")
-        return ""
+            zh = str(e.get("zh") or "")
+            if zh:
+                return zh, False
+            return str(e.get("src") or ""), True
+        return "", False
 
     def walk(node: Any) -> Any:
         if isinstance(node, dict):
@@ -144,7 +148,10 @@ def resolve_translations(inventory: JsonDict, cache: JsonDict) -> JsonDict:
             for k, v in node.items():
                 out[k] = walk(v)
                 if k.endswith("description_key") and isinstance(v, str) and v:
-                    out[k[: -len("_key")] + "_zh"] = lookup(v)
+                    text, pending = resolved(v)
+                    prefix = k[: -len("_key")]
+                    out[prefix + "_zh"] = text
+                    out[prefix + "_pending"] = pending
             return out
         if isinstance(node, list):
             return [walk(x) for x in node]
