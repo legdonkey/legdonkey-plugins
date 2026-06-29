@@ -641,7 +641,9 @@ def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
             cfg = cfg if isinstance(cfg, dict) else {}
             stype = "stdio" if cfg.get("command") else ("http" if cfg.get("url") else "")
             result["components"]["mcp"].append({
-                "name": f"{name}:{sname}" if name else sname,
+                # 裸服务名（不加插件前缀）：与 reassign_plugin_mcps 按裸名归位的口径一致，
+                # 否则 codex mcp list 报的 plugin:<插件>:<服务> 归位时匹配不上，同一 MCP 会重复计数。
+                "name": sname,
                 "server_type": stype,
                 "target": str(cfg.get("command") or cfg.get("url") or ""),
                 "cost_note": "not-metered",
