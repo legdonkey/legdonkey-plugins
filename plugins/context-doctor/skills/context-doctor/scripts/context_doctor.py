@@ -1066,7 +1066,7 @@ def mark_visibility(section: JsonDict, session_snapshot: JsonDict) -> None:
 
 def clear_session_visibility(section: JsonDict) -> None:
     """非宿主平台：会话可见态无意义（快照只属于跑技能的那个平台），统一置 None，
-    报告显示「—」而非误导的「否」。"""
+    报告显示「-」而非误导的「否」。"""
     for skill in section.get("skills", []):
         skill["visible_in_session"] = None
     for server in section.get("mcp_servers", []):
@@ -1228,6 +1228,7 @@ def build_inventory(
 ) -> JsonDict:
     home = (home or Path.home()).expanduser()
     cwd = cwd or Path.cwd()
+    has_session_snapshot = session_snapshot is not None
     session_snapshot = session_snapshot or {}
     cache = cache if cache is not None else load_translation_cache()
 
@@ -1240,6 +1241,9 @@ def build_inventory(
     host_platform = str(session_snapshot.get("host_platform") or "")
     for section in sections:
         reassign_plugin_mcps(section)  # 先把插件自带 MCP 从独立列表挪进插件
+        if not has_session_snapshot:
+            clear_session_visibility(section)
+            continue
         # 会话快照只属于「跑技能的那个平台」：指定了 host_platform 时，非宿主平台不映射
         if host_platform and section["platform"] != host_platform:
             clear_session_visibility(section)
@@ -1264,7 +1268,7 @@ def build_inventory(
         "cwd": str(cwd),
         "platform_filter": platform,
         "session": {
-            "snapshot_provided": bool(session_snapshot),
+            "snapshot_provided": has_session_snapshot,
             "tool_count": len(session_snapshot.get("tools") or []),
             "skill_count": len(session_snapshot.get("skills") or []),
         },
@@ -1526,13 +1530,13 @@ def short_summary(inventory: JsonDict) -> str:
 # --------------------------------------------------------------------------- #
 # 会话快照与 CLI 入口
 # --------------------------------------------------------------------------- #
-def load_session_snapshot(path: Path | None) -> JsonDict:
+def load_session_snapshot(path: Path | None) -> JsonDict | None:
     if not path:
-        return {}
+        return None
     try:
         return json.loads(path.expanduser().read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {}
+        return None
 
 
 def session_snapshot_template() -> JsonDict:
