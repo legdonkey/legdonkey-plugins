@@ -339,18 +339,32 @@ function maxInvoke(p){
     for(const g of["skills","agents"])for(const x of(c[g]||[]))m=Math.max(m,x.on_invoke_tokens||0,x.always_on_tokens||0);}
   return m;
 }
+function visDot(x){
+  // 会话可见：绿点=可见，灰点=不可见（仅当带了会话快照、该字段存在时显示）
+  if(x.visible_in_session===true) return `<span title="本次会话可见" style="color:var(--signal)">● </span>`;
+  if(x.visible_in_session===false) return `<span title="本次会话不可见" style="color:var(--faint)">○ </span>`;
+  return "";
+}
 function compRow(x,maxv,showCost){
   const desc=x.description_zh?`<span class="cd">${x.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(x.description_zh)}</span>`:"";
+  const cn=`<div class="cn">${visDot(x)}${esc(x.name)}${desc}</div>`;
   if(x.cost_note!=null){
-    return `<div class="comp"><div class="cn">${esc(x.name)}${desc}</div><div><span class="note-tag">${esc(x.cost_note)}</span></div></div>`;
+    // MCP 等若带了类型/状态（插件自带 MCP 经 mcp list 补全），优先展示类型+状态
+    let right;
+    if(x.server_type||x.status){
+      right=`<span class="note-tag">${esc(x.server_type||"mcp")}</span>${x.status?` <span class="src mono" style="margin-left:6px">${esc(x.status)}</span>`:""}`;
+    }else{
+      right=`<span class="note-tag">${esc(x.cost_note)}</span>`;
+    }
+    return `<div class="comp">${cn}<div>${right}</div></div>`;
   }
   if(!showCost){
-    return `<div class="comp"><div class="cn">${esc(x.name)}${desc}</div><div><span class="note-tag">装后可见</span></div></div>`;
+    return `<div class="comp">${cn}<div><span class="note-tag">装后可见</span></div></div>`;
   }
   const inv=x.on_invoke_tokens, aon=x.always_on_tokens;
   const w=Math.max(2,Math.round(100*(inv||aon||0)/maxv));
   const lab=[aon!=null?`常驻 ${fmtTok(aon)}`:"",inv!=null?`触发 ${fmtTok(inv)}`:""].filter(Boolean).join(" · ")||"—";
-  return `<div class="comp"><div class="cn">${esc(x.name)}${desc}</div><div class="bar"><div class="fill" style="width:${w}%"></div><div class="lab">${lab}</div></div></div>`;
+  return `<div class="comp">${cn}<div class="bar"><div class="fill" style="width:${w}%"></div><div class="lab">${lab}</div></div></div>`;
 }
 function compGroup(title,arr,maxv,showCost){
   if(!arr||!arr.length) return "";

@@ -944,26 +944,70 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
 
 
 # --------------------------------------------------------------------------- #
-# 会话可见态对照（仅对宿主平台精确）
+# 插件自带 MCP 归属 + 会话可见态对照
 # --------------------------------------------------------------------------- #
+def reassign_plugin_mcps(section: JsonDict) -> None:
+    """`mcp list` 里 `plugin:<插件>:<mcp>` 是插件自带的 MCP，不该混在「独立 MCP」里。
+
+    把它们从独立列表挪到对应插件的 components.mcp 下，并带上类型/状态/scope；
+    独立列表只留真正不属于任何插件的 MCP。找不到归属插件的仍当独立。
+    """
+    by_name: dict[str, JsonDict] = {}
+    for p in section.get("plugins", []):
+        by_name.setdefault(str(p.get("name") or ""), p)
+    keep: list[JsonDict] = []
+    for srv in section.get("mcp_servers", []):
+        m = re.match(r"^plugin:([^:]+):(.+)$", str(srv.get("name") or ""))
+        plug = by_name.get(m.group(1)) if m else None
+        if not m or not plug:
+            keep.append(srv)
+            continue
+        mcpname = m.group(2)
+        comps = plug.setdefault("components", {"skills": [], "agents": [], "hooks": [], "mcp": [], "lsp": []})
+        mcps = comps.setdefault("mcp", [])
+        target = next((c for c in mcps if c.get("name") == mcpname), None)
+        if target is None:
+            target = {"name": mcpname, "cost_note": "not-metered"}
+            mcps.append(target)
+        target["server_type"] = srv.get("server_type", "")
+        target["status"] = srv.get("status") or srv.get("auth_status") or ""
+        target["scope"] = srv.get("scope", "")
+        target["full_name"] = str(srv.get("name") or "")  # 供会话可见匹配
+    section["mcp_servers"] = keep
+
+
 def mark_visibility(section: JsonDict, session_snapshot: JsonDict) -> None:
     tools = [t for t in (session_snapshot.get("tools") or []) if isinstance(t, dict)]
-    visible_skill_names = {
-        str(s.get("name"))
-        for s in (session_snapshot.get("skills") or [])
-        if isinstance(s, dict) and s.get("name")
-    }
+    # 技能名集合：同时收录全名与去插件前缀的尾名（插件自带技能在报告里多按裸名展示）
+    visible_skill_names: set[str] = set()
+    for s in (session_snapshot.get("skills") or []):
+        if isinstance(s, dict) and s.get("name"):
+            nm = str(s["name"])
+            visible_skill_names.add(nm)
+            if ":" in nm:
+                visible_skill_names.add(nm.rsplit(":", 1)[-1])
     namespaces = [str(t.get("namespace") or t.get("tool_namespace") or "") for t in tools]
-    # source_hint 兜底：claude.ai 连接器等的工具命名空间是 UUID，与 MCP 显示名对不上，
-    # 故快照可在 source_hint 里写显示名，这里按它匹配（不区分大小写）。
+    # source_hint 兜底：claude.ai 连接器等的工具命名空间是 UUID，与 MCP 显示名对不上。
     source_hints = {str(t.get("source_hint") or "").strip().lower() for t in tools if t.get("source_hint")}
+
+    def skill_visible(name: str) -> bool:
+        return bool(name) and (name in visible_skill_names or name.rsplit(":", 1)[-1] in visible_skill_names)
+
+    def mcp_visible(name: str) -> bool:
+        n = (name or "").strip()
+        return bool(n) and (any(ns.startswith(f"mcp__{n}") for ns in namespaces) or n.lower() in source_hints)
+
     for skill in section["skills"]:
-        skill["visible_in_session"] = skill["name"] in visible_skill_names
+        skill["visible_in_session"] = skill_visible(str(skill.get("name") or ""))
     for server in section["mcp_servers"]:
-        name = str(server.get("name") or "")
-        by_ns = any(ns.startswith(f"mcp__{name}") for ns in namespaces)
-        by_hint = bool(name) and name.strip().lower() in source_hints
-        server["visible_in_session"] = bool(name) and (by_ns or by_hint)
+        server["visible_in_session"] = mcp_visible(str(server.get("name") or ""))
+    # 插件组件也标会话可见：skill/agent 按名字，mcp 按命名空间/显示名
+    for plugin in section.get("plugins", []):
+        comps = plugin.get("components") or {}
+        for c in [*comps.get("skills", []), *comps.get("agents", [])]:
+            c["visible_in_session"] = skill_visible(str(c.get("name") or ""))
+        for c in comps.get("mcp", []):
+            c["visible_in_session"] = mcp_visible(str(c.get("full_name") or "")) or mcp_visible(str(c.get("name") or ""))
 
 
 # --------------------------------------------------------------------------- #
@@ -1125,6 +1169,7 @@ def build_inventory(
         sections.append(collect_codex(home, cwd, cache))
 
     for section in sections:
+        reassign_plugin_mcps(section)  # 先把插件自带 MCP 从独立列表挪进插件
         mark_visibility(section, session_snapshot)
         # 独立技能描述也登记翻译
         for skill in section["skills"]:
