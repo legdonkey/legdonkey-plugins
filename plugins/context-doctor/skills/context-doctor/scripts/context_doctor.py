@@ -438,6 +438,8 @@ def _short_scope(scope: str) -> str:
         return "项目级"
     if low.startswith("local"):
         return "本地"
+    if low.startswith("dynamic"):
+        return "动态"
     if "claude.ai" in low:
         return "claude.ai"
     return scope

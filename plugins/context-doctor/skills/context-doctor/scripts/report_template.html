@@ -353,8 +353,10 @@ function compRow(x,maxv,showCost){
   if(x.cost_note!=null){
     // MCP 等若带了类型/状态（插件自带 MCP 经 mcp list 补全），优先展示类型+状态
     let right;
-    if(x.server_type||x.status){
-      right=`<span class="note-tag">${esc(x.server_type||"mcp")}</span>${x.status?` <span class="src mono" style="margin-left:6px">${esc(x.status)}</span>`:""}`;
+    if(x.server_type||x.status||x.scope){
+      right=`<span class="note-tag">${esc(x.server_type||"mcp")}</span>`
+        +(x.scope?` <span class="src mono" style="margin-left:6px">${esc(x.scope)}</span>`:"")
+        +(x.status?` <span class="src mono" style="margin-left:6px">${esc(x.status)}</span>`:"");
     }else{
       right=`<span class="note-tag">${esc(x.cost_note)}</span>`;
     }
