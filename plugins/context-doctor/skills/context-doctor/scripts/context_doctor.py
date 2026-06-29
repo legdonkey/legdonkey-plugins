@@ -619,10 +619,25 @@ def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
                     "on_invoke_tokens": None,
                 })
 
-    # 自带 MCP（.mcp.json）：只取名字 + 传输类型 + command/url，绝不读 env/args（可能含密钥）
-    mcp_data = _read_json_file(base / ".mcp.json")
-    if isinstance(mcp_data, dict) and isinstance(mcp_data.get("mcpServers"), dict):
-        for sname, cfg in mcp_data["mcpServers"].items():
+    # 自带 MCP：只取名字 + 传输类型 + command/url，绝不读 env/args（可能含密钥）。
+    # 路径优先用 .codex-plugin/plugin.json 的 mcpServers 字段（相对 ./），回退根 .mcp.json。
+    mcp_ref = data.get("mcpServers") if isinstance(data, dict) else None
+    mcp_path = base / ".mcp.json"
+    if isinstance(mcp_ref, str) and mcp_ref.endswith(".json"):
+        mcp_path = base / (mcp_ref[2:] if mcp_ref.startswith("./") else mcp_ref)
+    mcp_data = _read_json_file(mcp_path)
+    # .mcp.json 三种合法形态：{"mcpServers":{…}}（Claude 风格）/ {"mcp_servers":{…}}（Codex 文档示例）
+    # / 顶层直接是 {服务名: 配置}（Codex direct server map）。三者都兼容，否则会漏算插件自带 MCP。
+    servers: JsonDict | None = None
+    if isinstance(mcp_data, dict):
+        if isinstance(mcp_data.get("mcpServers"), dict):
+            servers = mcp_data["mcpServers"]
+        elif isinstance(mcp_data.get("mcp_servers"), dict):
+            servers = mcp_data["mcp_servers"]
+        elif mcp_data and all(isinstance(v, dict) for v in mcp_data.values()):
+            servers = mcp_data  # 无包裹键、值全是对象 → 当作 direct server map
+    if isinstance(servers, dict):
+        for sname, cfg in servers.items():
             cfg = cfg if isinstance(cfg, dict) else {}
             stype = "stdio" if cfg.get("command") else ("http" if cfg.get("url") else "")
             result["components"]["mcp"].append({
