@@ -65,6 +65,21 @@ header{padding:40px 0 26px;}
 .stat .n small{font-size:13px; color:var(--faint);}
 .stat .l{font-size:11px; color:var(--dim); margin-top:6px; text-transform:uppercase; letter-spacing:.08em;}
 
+/* ---------- status guide ---------- */
+.status-guide{margin:16px 0 4px;}
+.status-card{border:1px solid var(--line); border-radius:var(--r); background:var(--card); padding:14px 16px;}
+.status-card h3{margin:0 0 11px; font-family:var(--mono); font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim);}
+.status-item{display:grid; grid-template-columns:26px 1fr; gap:0 10px; padding:10px 0; border-top:1px solid var(--line);}
+.status-item:first-of-type{border-top:0; padding-top:0;}
+.status-item .idx{font-family:var(--mono); color:var(--accent); font-weight:700;}
+.status-item h4{margin:0 0 4px; font-family:var(--mono); font-size:12px; color:var(--text);}
+.status-item p{margin:0; color:var(--faint); font-size:12px;}
+.status-card .chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:7px;}
+.vis{display:inline-block; width:14px; margin-right:4px; text-align:center; font-family:var(--mono); font-weight:700;}
+.vis.on{color:var(--signal);}
+.vis.off{color:var(--faint);}
+.vis.na{color:var(--faint);}
+
 /* ---------- tabs + toolbar ---------- */
 .tabs{display:flex; gap:6px; margin:30px 0 0; border-bottom:1px solid var(--line);}
 .tab{appearance:none; background:none; border:0; cursor:pointer; font-family:var(--mono); font-size:13px; letter-spacing:.05em;
@@ -202,6 +217,7 @@ body[data-theme="paper"] .ecg path{filter:none;}
   </header>
 
   <div class="stats" id="stats"></div>
+  <div class="status-guide" id="statusGuide"></div>
 
   <div class="tabs" id="tabs" role="tablist"></div>
 
@@ -321,6 +337,28 @@ function renderHeader(){
   $("#stats").innerHTML=cells.join("");
 }
 
+function renderStatusGuide(){
+  $("#statusGuide").innerHTML=`<div class="status-card">
+    <h3>状态说明</h3>
+    <div class="status-item"><div class="idx">1.</div><div>
+      <h4>插件状态</h4>
+      <p>插件有安装状态和启用状态：<span class="badge on">已启用</span> 表示已安装且当前配置启用，<span class="badge off">已禁用</span> 表示已安装但当前配置禁用，<span class="badge avail">可装</span> 表示市场中可安装但本机未安装。</p>
+    </div></div>
+    <div class="status-item"><div class="idx">2.</div><div>
+      <h4>会话可见</h4>
+      <p>技能、Agent、MCP 的会话可见状态只放在名称前：<span class="vis on">●</span> 表示本次会话可见，<span class="vis off">○</span> 表示本次会话不可见，<span class="vis na">-</span> 表示未对照。它的判断依据是本次运行报告时传入的会话快照：由当前 Codex/Claude 会话里的模型把自己实际看到的技能名和工具名写入 `--session-snapshot`，报告再拿这个清单与本机插件/技能/MCP 清单做匹配。所以“技能可见”的意思是该技能名出现在本轮暴露给模型的技能列表里，模型知道有这个技能；它不等于允许自动调用。</p>
+    </div></div>
+    <div class="status-item"><div class="idx">3.</div><div>
+      <h4>MCP 状态</h4>
+      <p>MCP 同时展示启用状态、连接状态或鉴权方式，以及名称前的会话可见标识；启用表示配置层面打开，连接/鉴权状态表示运行时是否能连通或如何认证。</p>
+    </div></div>
+    <div class="status-item"><div class="idx">4.</div><div>
+      <h4>Hooks / Agents</h4>
+      <p>Agent 展示会话可见标识和 token 成本；Hook 只展示为插件声明组件，标记为 <span class="note-tag">已声明</span>，并可附带 harness-only 说明；它不进入模型上下文，也不展示会话可见状态。</p>
+    </div></div>
+  </div>`;
+}
+
 /* ---------- tabs ---------- */
 function renderTabs(){
   const t=$("#tabs"); t.innerHTML="";
@@ -342,13 +380,12 @@ function maxInvoke(p){
     for(const g of["skills","agents"])for(const x of(c[g]||[]))m=Math.max(m,x.on_invoke_tokens||0,x.always_on_tokens||0);}
   return m;
 }
-const visYN=v=>v===true?"是":v===false?"否":"—";
 const scopeZh=s=>{const l=(s||"").toLowerCase(); return l.startsWith("user")?"用户级":l.startsWith("project")?"项目级":l.startsWith("local")?"本地":l.startsWith("dynamic")?"动态":(l.includes("claude.ai")?"claude.ai":(s||""));};
 function visDot(x){
-  // 会话可见：● 可见 / ○ 不可见 / — 未对照（非宿主平台，与独立列表一致）；字段缺失才不显示
-  if(x.visible_in_session===true) return `<span title="本次会话可见" style="color:var(--signal)">● </span>`;
-  if(x.visible_in_session===false) return `<span title="本次会话不可见" style="color:var(--faint)">○ </span>`;
-  if(x.visible_in_session===null) return `<span title="未对照（非宿主平台）" style="color:var(--faint)">— </span>`;
+  // 会话可见：绿色 ● / 空心 ○ / - 未对照；字段缺失时不显示（如 Hook/App/LSP）。
+  if(x.visible_in_session===true) return `<span class="vis on" title="本次会话可见">●</span>`;
+  if(x.visible_in_session===false) return `<span class="vis off" title="本次会话不可见">○</span>`;
+  if(x.visible_in_session===null) return `<span class="vis na" title="未对照（非宿主平台或无会话快照）">-</span>`;
   return "";
 }
 function compRow(x,maxv,showCost){
@@ -362,7 +399,7 @@ function compRow(x,maxv,showCost){
         +(x.scope?` <span class="src mono" style="margin-left:6px">${esc(x.scope)}</span>`:"")
         +(x.status?` <span class="src mono" style="margin-left:6px">${esc(x.status)}</span>`:"");
     }else{
-      right=`<span class="note-tag">${esc(x.cost_note)}</span>`;
+      right=`<span class="note-tag">已声明</span>`+(x.cost_note?` <span class="src mono" style="margin-left:6px">${esc(x.cost_note)}</span>`:"");
     }
     return `<div class="comp">${cn}<div class="comp-meta">${right}</div></div>`;
   }
@@ -454,9 +491,7 @@ function renderPanel(){
   const bucket=name=>{const k=name||"(unknown)"; if(!groups.has(k)){groups.set(k,{meta:{name:k,source_type:"unknown",repo:""},plugins:[]}); order.push(k);} return groups.get(k);};
   for(const pl of [...(p.plugins||[]),...(p.available_plugins||[])]){ if(pluginMatches(pl)) bucket(pl.marketplace).plugins.push(pl); }
 
-  const showLegend=!!(DATA.session&&DATA.session.snapshot_provided);
-  const legend=showLegend?`<span style="margin-left:auto;font-weight:400;font-size:11px;color:var(--faint)"><span style="color:var(--signal)">●</span> 会话可见 &nbsp; ○ 不可见 &nbsp; — 未对照</span>`:"";
-  let html=`<div class="sec"><h2>市场 → 插件 → 组件 <span class="c">${order.filter(n=>groups.get(n).plugins.length).length} 市场</span>${legend}</h2>`;
+  let html=`<div class="sec"><h2>市场 → 插件 → 组件 <span class="c">${order.filter(n=>groups.get(n).plugins.length).length} 市场</span></h2>`;
   let any=false;
   for(const name of order){
     const g=groups.get(name); if(!g.plugins.length) continue; any=true;
@@ -482,14 +517,12 @@ function mcpTable(p){
   // 列按平台区分：Claude 有 scope（范围）、状态=连接状态；Codex 无 scope、有启用、状态=鉴权方式
   const isCodex=p.platform==='codex';
   const cols=isCodex
-    ? [["名称",s=>esc(s.name),"mono"],["类型",s=>esc(s.server_type||"—"),"mono"],
+    ? [["名称",s=>visDot(s)+esc(s.name),"mono"],["类型",s=>esc(s.server_type||"—"),"mono"],
        ["启用",s=>s.enabled===true?"是":s.enabled===false?"否":"—",""],
-       ["鉴权方式",s=>`<span class="src">${esc(s.status||s.auth_status||"")}</span>`,"mono"],
-       ["会话可见",s=>visYN(s.visible_in_session),""]]
-    : [["名称",s=>esc(s.name),"mono"],["类型",s=>esc(s.server_type||"—"),"mono"],
+       ["鉴权方式",s=>`<span class="src">${esc(s.status||s.auth_status||"")}</span>`,"mono"]]
+    : [["名称",s=>visDot(s)+esc(s.name),"mono"],["类型",s=>esc(s.server_type||"—"),"mono"],
        ["范围",s=>esc(s.scope||"—"),"mono"],
-       ["状态",s=>`<span class="src">${esc(s.status||"")}</span>`,"mono"],
-       ["会话可见",s=>visYN(s.visible_in_session),""]];
+       ["状态",s=>`<span class="src">${esc(s.status||"")}</span>`,"mono"]];
   const thead=cols.map(c=>`<th>${c[0]}</th>`).join("");
   const tbody=rows.map(s=>`<tr>${cols.map(c=>`<td class="${c[2]}">${c[1](s)}</td>`).join("")}</tr>`).join("");
   return `<div class="tbl"><table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
@@ -497,9 +530,9 @@ function mcpTable(p){
 function skillTable(p){
   const rows=(p.skills||[]).filter(s=>!query||[s.name,s.description_zh,s.scope].join(" ").toLowerCase().includes(query));
   if(!rows.length) return `<div class="empty">无（或不匹配搜索）。</div>`;
-  return `<div class="tbl"><table><thead><tr><th>名称</th><th>范围</th><th>用途</th><th>会话可见</th></tr></thead><tbody>`+
-    rows.map(s=>`<tr><td class="mono">${esc(s.name)}</td><td class="mono"><span class="src">${esc(s.scope||"")}</span></td>
-      <td>${s.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(s.description_zh||"")}</td><td>${visYN(s.visible_in_session)}</td></tr>`).join("")+`</tbody></table></div>`;
+  return `<div class="tbl"><table><thead><tr><th>名称</th><th>范围</th><th>用途</th></tr></thead><tbody>`+
+    rows.map(s=>`<tr><td class="mono">${visDot(s)}${esc(s.name)}</td><td class="mono"><span class="src">${esc(s.scope||"")}</span></td>
+      <td>${s.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(s.description_zh||"")}</td></tr>`).join("")+`</tbody></table></div>`;
 }
 function bindTree(){
   $$("#panel .plug:not(.leaf) .plug-head").forEach(h=>{
@@ -588,7 +621,7 @@ let theme="dark"; try{ theme=localStorage.getItem(THEME_KEY)||"dark"; }catch(e){
 applyTheme(theme);
 $("#themeToggle").onclick=()=>{ theme = (theme==="paper")?"dark":"paper"; try{localStorage.setItem(THEME_KEY,theme);}catch(e){} applyTheme(theme); };
 
-renderHeader(); renderTabs(); renderPanel(); renderRanks(); renderRecs(); renderBounds(); renderFoot();
+renderHeader(); renderStatusGuide(); renderTabs(); renderPanel(); renderRanks(); renderRecs(); renderBounds(); renderFoot();
 </script>
 </body>
 </html>
