@@ -1,0 +1,9 @@
+# Codex 专属元数据（Claude Code 会忽略本文件）。
+# 与 SKILL.md 的 frontmatter `disable-model-invocation: true` 等价：
+# 版本发布相关操作必须由人手动点名触发，模型不会自动调用。
+interface:
+  display_name: "bump-version"
+  short_description: "同步更新单个插件的 Claude Code / Codex 清单版本号"
+
+policy:
+  allow_implicit_invocation: false
