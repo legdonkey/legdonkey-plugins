@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# 一键把 legdonkey 市场里的两个插件装进 Claude Code 与 Codex。
+# 一键把 legdonkey 市场里的三个插件装进 Claude Code 与 Codex。
 #
-# 收录插件：privatize-fork、context-doctor（各 1 个技能）。
+# 收录插件：privatize-fork、context-doctor、cosyvoice-tts（各 1 个技能）。
 # 每个平台的 CLI 与桌面端共享同一份配置（CC=~/.claude，Codex=~/.codex），
 # 所以每个平台用 CLI 装一次，就同时覆盖了它的命令行和桌面端。
 #
@@ -17,7 +17,7 @@ set -uo pipefail
 REPO="legdonkey/legdonkey-plugins"
 MARKETPLACE="legdonkey"
 REF="main"
-PLUGINS=(privatize-fork context-doctor)
+PLUGINS=(privatize-fork context-doctor cosyvoice-tts)
 
 ok=0
 fail=0
@@ -78,8 +78,8 @@ if [ "$fail" -gt 0 ]; then
   echo "有插件未就位，请按上面每条命令的输出排查后重跑。"
 fi
 echo "触发方式（重启对应客户端后手动触发，技能不会自动调用）："
-[ "$did_cc" = 1 ] && echo "  Claude Code：/privatize-fork    /context-doctor"
-[ "$did_codex" = 1 ] && echo "  Codex：      \$privatize-fork   \$context-doctor"
+[ "$did_cc" = 1 ] && echo "  Claude Code：/privatize-fork    /context-doctor    /cosyvoice-tts"
+[ "$did_codex" = 1 ] && echo "  Codex：      \$privatize-fork   \$context-doctor   \$cosyvoice-tts"
 
 [ "$fail" -gt 0 ] && exit 1
 exit 0

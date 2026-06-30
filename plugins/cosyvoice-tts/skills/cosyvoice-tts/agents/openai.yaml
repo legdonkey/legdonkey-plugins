@@ -1,0 +1,10 @@
+# Codex 专属元数据（Claude Code 会忽略本文件）。
+# 与 SKILL.md 的 frontmatter `disable-model-invocation: true` 等价：
+# TTS 会调用外部 API 并生成音频文件，刻意设计成只能由人手动触发。
+interface:
+  display_name: "cosyvoice-tts"
+  short_description: "用阿里百炼 CosyVoice 生成中文配音和旁白"
+  default_prompt: "用 $cosyvoice-tts 把这段文案生成中文配音。"
+
+policy:
+  allow_implicit_invocation: false

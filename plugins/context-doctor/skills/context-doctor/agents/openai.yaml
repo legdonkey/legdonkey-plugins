@@ -4,6 +4,7 @@
 interface:
   display_name: "context-doctor"
   short_description: "跨平台审计 Claude Code 与 Codex 的插件 / MCP / 技能 / 市场源"
+  default_prompt: "用 $context-doctor 生成一份跨平台上下文审计报告。"
 
 policy:
   allow_implicit_invocation: false

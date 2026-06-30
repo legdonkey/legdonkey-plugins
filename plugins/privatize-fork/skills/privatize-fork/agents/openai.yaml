@@ -4,6 +4,7 @@
 interface:
   display_name: "privatize-fork"
   short_description: "把 clone 下来的开源 fork 一次性私有化的脚手架"
+  default_prompt: "用 $privatize-fork 为当前仓库建立私有 fork 维护规范。"
 
 policy:
   allow_implicit_invocation: false
