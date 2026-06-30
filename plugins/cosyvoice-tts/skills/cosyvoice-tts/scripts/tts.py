@@ -228,7 +228,14 @@ def cmd_gen(a):
     _run(a, a.out, play=False)
 
 
+def validate_model(a):
+    model = getattr(a, "model", DEFAULT_MODEL)
+    if model != DEFAULT_MODEL:
+        sys.exit(f"当前固定使用 {DEFAULT_MODEL},不支持切换模型:{model}")
+
+
 def add_instruct_opts(sp):
+    sp.add_argument("-m", "--model", default=DEFAULT_MODEL, help=argparse.SUPPRESS)
     sp.add_argument("-v", "--voice", default=DEFAULT_VOICE)
     sp.add_argument("--emotion", choices=EMOTIONS, help="情感值")
     sp.add_argument("--scene", help="场景(自动就近匹配到该音色合法取值)")
@@ -257,7 +264,7 @@ def main():
     sp.add_argument("--out", required=True, help="输出 wav 路径")
     sp.set_defaults(func=cmd_gen)
 
-    a = p.parse_args(); a.func(a)
+    a = p.parse_args(); validate_model(a); a.func(a)
 
 
 if __name__ == "__main__":
