@@ -159,6 +159,7 @@ td.num{font-family:var(--mono); text-align:right; color:var(--dim);}
 th.num{text-align:right;}
 td .src{color:var(--faint); font-size:11px;}
 .rank-n{font-family:var(--mono); color:var(--accent); font-weight:700;}
+.skill-table th:first-child,.skill-table td:first-child{width:180px; white-space:nowrap; word-break:normal; overflow-wrap:normal; hyphens:none;}
 .miniwrap{display:flex; align-items:center; gap:8px;}
 .minibar{flex:1; height:6px; background:var(--bg); border-radius:3px; overflow:hidden;}
 .minibar i{display:block; height:100%; background:var(--accent);}
@@ -562,7 +563,7 @@ function mcpTable(p){
 function skillTable(p){
   const rows=(p.skills||[]).filter(s=>!query||[s.name,s.description_zh,s.scope].join(" ").toLowerCase().includes(query));
   if(!rows.length) return `<div class="empty">无（或不匹配搜索）。</div>`;
-  return `<div class="tbl"><table><thead><tr><th>名称</th><th>范围</th><th>用途</th></tr></thead><tbody>`+
+  return `<div class="tbl"><table class="skill-table"><thead><tr><th>名称</th><th>范围</th><th>用途</th></tr></thead><tbody>`+
     rows.map(s=>`<tr><td class="mono">${visDot(s)}${esc(s.name)}</td><td class="mono"><span class="src">${esc(s.scope||"")}</span></td>
       <td>${s.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(s.description_zh||"")}</td></tr>`).join("")+`</tbody></table></div>`;
 }
