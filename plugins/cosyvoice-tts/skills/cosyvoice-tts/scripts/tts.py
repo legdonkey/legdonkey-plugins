@@ -140,6 +140,9 @@ def synth(model, voice, text, instruction=None, rate=1.0, pitch=1.0, volume=50):
 
 
 def normalize(raw, out_path):
+    parent = os.path.dirname(out_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         f.write(raw); tmp = f.name
     try:
