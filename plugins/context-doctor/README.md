@@ -76,7 +76,7 @@ $context-doctor      # Codex
 
 - **CLI 优先、只读**：插件 / 市场 / MCP 调各平台官方治理命令，不读配置文件；技能扫目录（官方无 CLI）。不改任何东西。
 - **零第三方依赖**：纯 Python 3 标准库 + Bash，通过 `subprocess` 调 `claude` / `codex`。某平台 CLI 缺失则降级跳过。
-- **诚实边界**（报告内有「审计边界」区显式列出）：Codex 无 `plugin details`，组件清单改读本地清单、**全程无 token 成本**，故最贵组件排行只含 Claude；MCP 两平台都无 token 成本，不进排行；未安装插件无法展开完整 details（CLI 报 not found），只给中文用途 + 热度 + 源码链接，成本「装后可见」；hooks（harness-only）/ lsp（out-of-process）无模型成本；技能仅覆盖个人级与项目级，企业 / managed 级与子目录 nested 技能未覆盖；**claude.ai / 桌面版的账号级技能为云端管理、不落本地文件，不在覆盖范围**（技能官方按 surface 隔离、不跨端同步）。报告显式标注，不静默丢。
+- **诚实边界**（报告内有「审计边界」区显式列出）：Codex 无 `plugin details`，组件清单改读本地清单、**全程无 token 成本**，故最贵组件排行只含 Claude；MCP 两平台都无 token 成本，不进排行；未安装插件无法展开完整 details（CLI 报 not found），只给中文用途 + 热度 + 源码链接，成本「装后可见」；hooks（harness-only）/ lsp（out-of-process）无模型成本；技能仅覆盖个人级与项目级，企业 / managed 级与子目录 nested 技能未覆盖；**claude.ai / 桌面版的账号级技能为云端管理、不落本地文件，不在覆盖范围**（技能官方按 surface 隔离、不跨端同步）；Claude Desktop、Codex Desktop、claude.ai、Codex App 的账号级连接器、产品开关、实验功能、窗口状态、授权弹窗和运行时临时工具等宿主 UI 面也不在 CLI / 本地目录审计范围内。报告显式标注，不静默丢。
 
 ### 插件结构
 

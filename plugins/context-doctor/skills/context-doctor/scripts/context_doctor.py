@@ -1213,6 +1213,7 @@ def build_boundaries() -> list[JsonDict]:
         {"scope": "claude-lsp", "limit": "LSP 为 out-of-process 工具，不进模型上下文，无 token 成本。"},
         {"scope": "skills-dir", "limit": "技能经目录扫描，未覆盖 enterprise/managed 与子目录按需加载的 nested 技能。"},
         {"scope": "cloud-skills", "limit": "claude.ai / 桌面版的账号级技能为云端管理、不落本地文件（本地只有按会话临时缓存）。本报告只审计 Claude Code（本地 ~/.claude/skills）与 Codex，不覆盖云端 surface 的技能；技能官方设计为按 surface 隔离、不跨端同步。"},
+        {"scope": "ui-surface", "limit": "本报告不审计宿主应用 UI 面：Claude Desktop、Codex Desktop、claude.ai、Codex App 的账号级连接器、产品开关、实验功能、窗口状态、授权弹窗和运行时临时工具，若未通过 CLI、本地插件清单、MCP 清单、技能目录或会话快照暴露，可能不会出现在报告中。"},
     ]
 
 
@@ -1472,7 +1473,19 @@ def render_markdown(inventory: JsonDict) -> str:
     for section in inventory["platforms"].values():
         lines.extend(render_platform_section(section))
 
-    lines.append("## 边界")
+    boundaries = inventory.get("boundaries") or []
+    if boundaries:
+        lines.append("## 审计边界")
+        lines.append("")
+        lines.append(
+            md_table(
+                ["范围", "限制"],
+                [[b.get("scope", ""), b.get("limit", "")] for b in boundaries],
+            )
+        )
+        lines.append("")
+
+    lines.append("## 生成说明")
     lines.append("")
     for note in inventory["notes"]:
         lines.append(f"- {note}")
@@ -1576,7 +1589,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--render-only",
         action="store_true",
-        help="只读现有 --json inventory + 翻译缓存渲染 HTML，不重新采集（翻译完后二次渲染用）。",
+        help="只读现有 --json inventory + 翻译缓存渲染 HTML/Markdown，不重新采集（翻译完后二次渲染用）。",
     )
     parser.add_argument("--template", type=Path, default=None, help="HTML 模板路径（默认脚本同目录 report_template.html）。")
     parser.add_argument(
@@ -1598,7 +1611,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(session_snapshot_template(), indent=2, ensure_ascii=False))
         return 0
 
-    # 只渲染：读现有 inventory + 最新翻译缓存，重渲 HTML（翻译完二次渲染用），不重新采集。
+    # 只渲染：读现有 inventory + 最新翻译缓存，重渲 HTML/Markdown（翻译完二次渲染用），不重新采集。
     if args.render_only:
         if not args.json or not args.html:
             print("--render-only 需要同时给 --json（输入 inventory）与 --html（输出）。", file=sys.stderr)
@@ -1609,6 +1622,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"读取 inventory 失败：{exc}", file=sys.stderr)
             return 2
         cache = load_translation_cache()
+        if args.markdown:
+            write_text(args.markdown, render_markdown(resolve_translations(inventory, cache)))
         write_text(args.html, render_html(inventory, cache, args.template))
         return 0
 
