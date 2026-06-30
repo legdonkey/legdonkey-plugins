@@ -1,0 +1,37 @@
+{
+  "name": "cosyvoice-tts",
+  "version": "1.0.0",
+  "description": "阿里百炼 CosyVoice 中文语音合成：支持 Instruct 情感/场景/角色控制、试听音色、批量生成 wav。跨 Claude Code 与 Codex。",
+  "author": {
+    "name": "legdonkey",
+    "url": "https://github.com/legdonkey"
+  },
+  "homepage": "https://github.com/legdonkey/legdonkey-plugins",
+  "repository": "https://github.com/legdonkey/legdonkey-plugins",
+  "keywords": [
+    "cosyvoice",
+    "dashscope",
+    "tts",
+    "voice",
+    "audio",
+    "aliyun"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "cosyvoice-tts",
+    "shortDescription": "用阿里百炼 CosyVoice 生成中文配音和旁白",
+    "longDescription": "把中文文案合成自然语音，支持 CosyVoice Instruct 的情感、场景、角色、身份控制；可试听音色、调整语速音调音量，并批量生成 wav 供视频、PPT、课件或旁白使用。只在手动点名时运行。",
+    "developerName": "legdonkey",
+    "category": "Media",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Network"
+    ],
+    "defaultPrompt": [
+      "用 CosyVoice 帮我生成一段中文配音",
+      "试听几个 CosyVoice 音色",
+      "把这几段文案批量转成 wav"
+    ]
+  }
+}

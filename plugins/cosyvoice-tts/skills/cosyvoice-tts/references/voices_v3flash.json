@@ -1,0 +1,943 @@
+{
+  "model": "cosyvoice-v3-flash",
+  "source": "https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list",
+  "note": "按官方音色列表整理的快照。instruct 字段为实测结果:官方给 longanhuan_v3 标了 Instruct,但带 instruction 调用实测失败,故置 false。",
+  "voices": [
+    {
+      "voice": "longanyang",
+      "name": "龙安洋",
+      "gender": "男",
+      "age": "20~30岁",
+      "trait": "阳光大男孩",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": true,
+      "instruct_options": {
+        "scenes": [
+          "闲聊互动",
+          "新闻播报",
+          "广告促销",
+          "比赛解说",
+          "儿童内容解说",
+          "语音导航",
+          "脱口秀表演"
+        ],
+        "roles": [
+          "温和客服",
+          "一个旁白"
+        ],
+        "identities": [
+          "故事机"
+        ]
+      }
+    },
+    {
+      "voice": "longanhuan",
+      "name": "龙安欢",
+      "gender": "女",
+      "age": "20~30岁",
+      "trait": "欢脱元气女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": true,
+      "instruct_options": {
+        "scenes": [
+          "闲聊对话",
+          "课堂教学",
+          "比赛解说",
+          "深夜电台广播",
+          "剧情解说",
+          "诗歌朗诵",
+          "科普知识推广",
+          "产品推广",
+          "脱口秀表演"
+        ],
+        "roles": [
+          "温和客服"
+        ],
+        "identities": [],
+        "default": {
+          "scene": "科普知识推广",
+          "emotion": "neutral"
+        }
+      }
+    },
+    {
+      "voice": "longhuhu_v3",
+      "name": "龙呼呼",
+      "gender": "女",
+      "age": "6~10岁",
+      "trait": "天真烂漫女童",
+      "scene": "童声",
+      "lang": "中英文",
+      "instruct": true,
+      "instruct_options": {
+        "scenes": [
+          "自由对话",
+          "广告促销"
+        ],
+        "roles": [
+          "傲娇公主",
+          "元气少女",
+          "可爱孩童",
+          "机器人",
+          "小猪佩奇"
+        ],
+        "identities": [
+          "故事机",
+          "儿童玩具"
+        ]
+      }
+    },
+    {
+      "voice": "longanhuan_v3",
+      "name": "龙安欢(V3)",
+      "gender": "女",
+      "age": "20~30岁",
+      "trait": "欢脱元气女",
+      "scene": "社交陪伴",
+      "lang": "多方言",
+      "instruct": false
+    },
+    {
+      "voice": "longantai_v3",
+      "name": "龙安台",
+      "gender": "女",
+      "age": "20~25岁",
+      "trait": "嗲甜台湾女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longhua_v3",
+      "name": "龙华",
+      "gender": "女",
+      "age": "20~25岁",
+      "trait": "元气甜美女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longcheng_v3",
+      "name": "龙橙",
+      "gender": "男",
+      "age": "20~25岁",
+      "trait": "智慧青年男",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longze_v3",
+      "name": "龙泽",
+      "gender": "男",
+      "age": "25~30岁",
+      "trait": "温暖元气男",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longzhe_v3",
+      "name": "龙哲",
+      "gender": "男",
+      "age": "25~30岁",
+      "trait": "呆板大暖男",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyan_v3",
+      "name": "龙颜",
+      "gender": "女",
+      "age": "30~35岁",
+      "trait": "温暖春风女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longxing_v3",
+      "name": "龙星",
+      "gender": "女",
+      "age": "20~25岁",
+      "trait": "温婉邻家女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longtian_v3",
+      "name": "龙天",
+      "gender": "男",
+      "age": "30~35岁",
+      "trait": "磁性理智男",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longwan_v3",
+      "name": "龙婉",
+      "gender": "女",
+      "age": "20~30岁",
+      "trait": "细腻柔声女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longqiang_v3",
+      "name": "龙嫱",
+      "gender": "女",
+      "age": "30~35岁",
+      "trait": "浪漫风情女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longfeifei_v3",
+      "name": "龙菲菲",
+      "gender": "女",
+      "age": "20~25岁",
+      "trait": "甜美娇气女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longhao_v3",
+      "name": "龙浩",
+      "gender": "男",
+      "age": "30~35岁",
+      "trait": "多情忧郁男",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanrou_v3",
+      "name": "龙安柔",
+      "gender": "女",
+      "age": "20~35岁",
+      "trait": "温柔闺蜜女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longhan_v3",
+      "name": "龙寒",
+      "gender": "男",
+      "age": "30~35岁",
+      "trait": "温暖痴情男",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanzhi_v3",
+      "name": "龙安智",
+      "gender": "男",
+      "age": "25~35岁",
+      "trait": "睿智轻熟男",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanling_v3",
+      "name": "龙安灵",
+      "gender": "女",
+      "age": "20~30岁",
+      "trait": "思维灵动女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanya_v3",
+      "name": "龙安雅",
+      "gender": "女",
+      "age": "25~35岁",
+      "trait": "高雅气质女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanqin_v3",
+      "name": "龙安亲",
+      "gender": "女",
+      "age": "20~25岁",
+      "trait": "亲和活泼女",
+      "scene": "社交陪伴",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longpaopao_v3",
+      "name": "龙泡泡",
+      "gender": "童",
+      "age": "6~15岁",
+      "trait": "飞天泡泡音",
+      "scene": "儿童故事机",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longjielidou_v3",
+      "name": "龙杰力豆",
+      "gender": "男",
+      "age": "10岁",
+      "trait": "阳光顽皮男",
+      "scene": "儿童玩具",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longxian_v3",
+      "name": "龙仙",
+      "gender": "女",
+      "age": "12岁",
+      "trait": "豪放可爱女",
+      "scene": "儿童",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longling_v3",
+      "name": "龙铃",
+      "gender": "女",
+      "age": "10岁",
+      "trait": "稚气呆板女",
+      "scene": "儿童",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longjiaxin_v3",
+      "name": "龙嘉欣",
+      "gender": "女",
+      "age": "30~35岁",
+      "trait": "优雅粤语女",
+      "scene": "方言粤语",
+      "lang": "粤英文",
+      "instruct": false
+    },
+    {
+      "voice": "longjiayi_v3",
+      "name": "龙嘉怡",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "知性粤语女",
+      "scene": "方言粤语",
+      "lang": "粤英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanyue_v3",
+      "name": "龙安粤",
+      "gender": "男",
+      "age": "25~35岁",
+      "trait": "欢脱粤语男",
+      "scene": "方言粤语",
+      "lang": "粤英文",
+      "instruct": false
+    },
+    {
+      "voice": "longlaotie_v3",
+      "name": "龙老铁",
+      "gender": "男",
+      "age": "25~30岁",
+      "trait": "东北直率男",
+      "scene": "方言东北",
+      "lang": "东北英文",
+      "instruct": false
+    },
+    {
+      "voice": "longshange_v3",
+      "name": "龙陕哥",
+      "gender": "男",
+      "age": "25~35岁",
+      "trait": "原味陕北男",
+      "scene": "方言陕西",
+      "lang": "陕英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanmin_v3",
+      "name": "龙安闽",
+      "gender": "女",
+      "age": "18~25岁",
+      "trait": "清纯萝莉女",
+      "scene": "方言闽南",
+      "lang": "闽英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyingxiao_v3",
+      "name": "龙应笑",
+      "gender": "女",
+      "age": "20~25岁",
+      "trait": "清甜推销女",
+      "scene": "电话销售",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyingxun_v3",
+      "name": "龙应询",
+      "gender": "男",
+      "age": "20~25岁",
+      "trait": "年轻青涩男",
+      "scene": "客服",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyingjing_v3",
+      "name": "龙应静",
+      "gender": "女",
+      "age": "25~35岁",
+      "trait": "低调冷静女",
+      "scene": "客服",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyingling_v3",
+      "name": "龙应聆",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "温和共情女",
+      "scene": "客服",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyingtao_v3",
+      "name": "龙应桃",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "温柔淡定女",
+      "scene": "客服",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longxiaochun_v3",
+      "name": "龙小淳",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "知性积极女",
+      "scene": "语音助手",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longxiaoxia_v3",
+      "name": "龙小夏",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "沉稳权威女",
+      "scene": "语音助手",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyumi_v3",
+      "name": "YUMI",
+      "gender": "女",
+      "age": "20~25岁",
+      "trait": "正经青年女",
+      "scene": "语音助手",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanyun_v3",
+      "name": "龙安昀",
+      "gender": "男",
+      "age": "30~35岁",
+      "trait": "居家暖男",
+      "scene": "语音助手",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanwen_v3",
+      "name": "龙安温",
+      "gender": "女",
+      "age": "25~35岁",
+      "trait": "优雅知性女",
+      "scene": "语音助手",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanli_v3",
+      "name": "龙安莉",
+      "gender": "女",
+      "age": "25~35岁",
+      "trait": "利落从容女",
+      "scene": "语音助手",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanlang_v3",
+      "name": "龙安朗",
+      "gender": "男",
+      "age": "20~25岁",
+      "trait": "清爽利落男",
+      "scene": "语音助手",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyingmu_v3",
+      "name": "龙应沐",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "优雅知性女",
+      "scene": "语音助手",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longfei_v3",
+      "name": "龙飞",
+      "gender": "男",
+      "age": "30~35岁",
+      "trait": "热血磁性男",
+      "scene": "诗词朗诵",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longjiqi_v3",
+      "name": "龙机器",
+      "gender": "机器人",
+      "age": "20~30岁",
+      "trait": "呆萌机器人",
+      "scene": "短视频配音",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longhouge_v3",
+      "name": "龙猴哥",
+      "gender": "男",
+      "age": "20~25岁",
+      "trait": "经典猴哥",
+      "scene": "短视频配音",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longdaiyu_v3",
+      "name": "龙黛玉",
+      "gender": "女",
+      "age": "15~25岁",
+      "trait": "娇率才女音",
+      "scene": "短视频配音",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanran_v3",
+      "name": "龙安燃",
+      "gender": "女",
+      "age": "30~40岁",
+      "trait": "活泼质感女",
+      "scene": "直播带货",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longanxuan_v3",
+      "name": "龙安宣",
+      "gender": "女",
+      "age": "30~40岁",
+      "trait": "经典直播女",
+      "scene": "直播带货",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longshuo_v3",
+      "name": "龙硕",
+      "gender": "男",
+      "age": "25~30岁",
+      "trait": "博才干练男",
+      "scene": "新闻播报",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longshu_v3",
+      "name": "龙书",
+      "gender": "男",
+      "age": "20~25岁",
+      "trait": "沉稳青年男",
+      "scene": "新闻播报",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongbella_v3",
+      "name": "Bella3.0",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "精准干练女",
+      "scene": "新闻播报",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longshanshan_v3",
+      "name": "龙闪闪",
+      "gender": "女",
+      "age": "6~15岁",
+      "trait": "戏剧化童声",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longniuniu_v3",
+      "name": "龙牛牛",
+      "gender": "男",
+      "age": "6~15岁",
+      "trait": "阳光男童声",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longmiao_v3",
+      "name": "龙妙",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "抑扬顿挫女",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longsanshu_v3",
+      "name": "龙三叔",
+      "gender": "男",
+      "age": "25~45岁",
+      "trait": "沉稳质感男",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyuan_v3",
+      "name": "龙媛",
+      "gender": "女",
+      "age": "35~40岁",
+      "trait": "温暖治愈女",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyue_v3",
+      "name": "龙悦",
+      "gender": "女",
+      "age": "30~35岁",
+      "trait": "温暖磁性女",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longxiu_v3",
+      "name": "龙修",
+      "gender": "男",
+      "age": "25~35岁",
+      "trait": "博才说书男",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longnan_v3",
+      "name": "龙楠",
+      "gender": "男",
+      "age": "25~30岁",
+      "trait": "睿智青年男",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longwanjun_v3",
+      "name": "龙婉君",
+      "gender": "女",
+      "age": "20~30岁",
+      "trait": "细腻柔声女",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longyichen_v3",
+      "name": "龙逸尘",
+      "gender": "男",
+      "age": "20~30岁",
+      "trait": "洒脱活力男",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longlaobo_v3",
+      "name": "龙老伯",
+      "gender": "男",
+      "age": "60岁以上",
+      "trait": "沧桑岁月爷",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "longlaoyi_v3",
+      "name": "龙老姨",
+      "gender": "女",
+      "age": "60岁以上",
+      "trait": "烟火从容阿姨",
+      "scene": "有声书",
+      "lang": "中英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongkyong_v3",
+      "name": "loongkyong",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "韩语女",
+      "scene": "出海营销",
+      "lang": "韩语",
+      "instruct": false
+    },
+    {
+      "voice": "loongriko_v3",
+      "name": "Riko",
+      "gender": "女",
+      "age": "18~25岁",
+      "trait": "二次元霓虹女",
+      "scene": "出海营销",
+      "lang": "日语",
+      "instruct": false
+    },
+    {
+      "voice": "loongtomoka_v3",
+      "name": "loongtomoka",
+      "gender": "女",
+      "age": "30~35岁",
+      "trait": "日语女",
+      "scene": "出海营销",
+      "lang": "日语",
+      "instruct": false
+    },
+    {
+      "voice": "loongtomoya_v3",
+      "name": "loongtomoya",
+      "gender": "男",
+      "age": "30~35岁",
+      "trait": "日语男",
+      "scene": "出海营销",
+      "lang": "日语",
+      "instruct": false
+    },
+    {
+      "voice": "loongyuuna_v3",
+      "name": "Yuuna",
+      "gender": "女",
+      "age": "18~25岁",
+      "trait": "日语女",
+      "scene": "出海营销",
+      "lang": "日语",
+      "instruct": false
+    },
+    {
+      "voice": "loongyuuma_v3",
+      "name": "Yuuma",
+      "gender": "男",
+      "age": "20~25岁",
+      "trait": "日语男",
+      "scene": "出海营销",
+      "lang": "日语",
+      "instruct": false
+    },
+    {
+      "voice": "loongjihun_v3",
+      "name": "Jihun",
+      "gender": "男",
+      "age": "25~30岁",
+      "trait": "韩语男",
+      "scene": "出海营销",
+      "lang": "韩语",
+      "instruct": false
+    },
+    {
+      "voice": "loongindah_v3",
+      "name": "loongindah",
+      "gender": "女",
+      "age": "22~27岁",
+      "trait": "印尼女",
+      "scene": "出海营销",
+      "lang": "印尼语",
+      "instruct": false
+    },
+    {
+      "voice": "loongabby_v3",
+      "name": "loongabby",
+      "gender": "女",
+      "age": "30~35岁",
+      "trait": "美式英文女",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongandy_v3",
+      "name": "loongandy",
+      "gender": "男",
+      "age": "30~35岁",
+      "trait": "美式英文男",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongannie_v3",
+      "name": "loongannie",
+      "gender": "女",
+      "age": "30~35岁",
+      "trait": "美式英文女",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongava_v3",
+      "name": "loongava",
+      "gender": "女",
+      "age": "35~40岁",
+      "trait": "美式英文女",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongbeth_v3",
+      "name": "loongbeth",
+      "gender": "女",
+      "age": "35~40岁",
+      "trait": "美式英文女",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongbetty_v3",
+      "name": "loongbetty",
+      "gender": "女",
+      "age": "35~40岁",
+      "trait": "美式英文女",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongcally_v3",
+      "name": "loongcally",
+      "gender": "女",
+      "age": "25~30岁",
+      "trait": "美式英文女",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongcindy_v3",
+      "name": "loongcindy",
+      "gender": "女",
+      "age": "30~35岁",
+      "trait": "美式英文女",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongdavid_v3",
+      "name": "loongdavid",
+      "gender": "男",
+      "age": "35~40岁",
+      "trait": "美式英文男",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongdonna_v3",
+      "name": "loongdonna",
+      "gender": "女",
+      "age": "35~40岁",
+      "trait": "美式英文女",
+      "scene": "出海营销",
+      "lang": "美式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongemily_v3",
+      "name": "loongemily",
+      "gender": "女",
+      "age": "35~40岁",
+      "trait": "英式英文女",
+      "scene": "出海营销",
+      "lang": "英式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongeric_v3",
+      "name": "loongeric",
+      "gender": "男",
+      "age": "35~40岁",
+      "trait": "英式英文男",
+      "scene": "出海营销",
+      "lang": "英式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongluna_v3",
+      "name": "loongluna",
+      "gender": "女",
+      "age": "35~40岁",
+      "trait": "英式英文女",
+      "scene": "出海营销",
+      "lang": "英式英文",
+      "instruct": false
+    },
+    {
+      "voice": "loongluca_v3",
+      "name": "loongluca",
+      "gender": "男",
+      "age": "25~30岁",
+      "trait": "英式英文男",
+      "scene": "出海营销",
+      "lang": "英式英文",
+      "instruct": false
+    }
+  ]
+}

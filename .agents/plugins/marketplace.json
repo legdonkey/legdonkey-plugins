@@ -27,6 +27,18 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Developer Tools"
+    },
+    {
+      "name": "cosyvoice-tts",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cosyvoice-tts"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Media"
     }
   ]
 }
