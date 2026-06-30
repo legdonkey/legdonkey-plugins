@@ -11,15 +11,19 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 JsonDict = dict[str, Any]
 
@@ -33,6 +37,11 @@ MCP_GET_TIMEOUT = 35
 MAX_WORKERS = 8
 # 插件 always-on token 超过此阈值，提示「开销偏大」。
 TOKEN_HEAVY_THRESHOLD = 1000
+GITHUB_STARS_TIMEOUT = 10
+GITHUB_STARS_WORKERS = 4
+GITHUB_STARS_GRAPHQL_BATCH = 40
+GITHUB_STARS_TTL_SECONDS = 7 * 24 * 60 * 60
+_GITHUB_TOKEN: str | None = None
 
 # 当前 inventory 的 schema 版本：2 = 层级化（市场→插件→组件）+ 排行 + 翻译键。
 SCHEMA_VERSION = 2
@@ -71,6 +80,36 @@ def save_translation_cache(cache: JsonDict, path: Path | None = None) -> None:
         )
     except OSError:
         pass  # 缓存写失败不致命：渲染会回退英文
+
+
+def github_stars_cache_path() -> Path:
+    return Path.home() / ".cache" / "context-doctor" / "github-stars.json"
+
+
+def load_github_stars_cache(path: Path | None = None) -> JsonDict:
+    path = path or github_stars_cache_path()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+    data.setdefault("version", 1)
+    if not isinstance(data.get("repos"), dict):
+        data["repos"] = {}
+    return data
+
+
+def save_github_stars_cache(cache: JsonDict, path: Path | None = None) -> None:
+    path = path or github_stars_cache_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(cache, indent=2, ensure_ascii=False, sort_keys=True),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
 
 
 def sha256_key(text: str) -> str:
@@ -243,6 +282,240 @@ def _as_int(value: Any) -> int | None:
         return int(str(value).strip())
     except (TypeError, ValueError):
         return None
+
+
+def github_repo_from_url(url: str) -> str:
+    """从 GitHub URL 提取 `owner/repo`。支持 .git 与 /tree/<ref>/<path> 形式。"""
+    if not url:
+        return ""
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return ""
+    if parsed.netloc.lower() != "github.com":
+        return ""
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) < 2:
+        return ""
+    owner = parts[0]
+    repo = re.sub(r"\.git$", "", parts[1])
+    if not owner or not repo:
+        return ""
+    return f"{owner}/{repo}"
+
+
+def _cache_fresh(entry: JsonDict) -> bool:
+    fetched_at = str(entry.get("fetched_at") or "")
+    if not fetched_at:
+        return False
+    try:
+        dt = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - dt).total_seconds() < GITHUB_STARS_TTL_SECONDS
+
+
+def github_token() -> str:
+    """取 GitHub API token。优先环境变量，其次 `gh auth token`；只在内存使用，绝不写入报告。"""
+    global _GITHUB_TOKEN  # noqa: PLW0603 - 简单进程级缓存，避免每个仓库都调 gh
+    if _GITHUB_TOKEN is not None:
+        return _GITHUB_TOKEN
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or ""
+    if not token and shutil.which("gh"):
+        try:
+            proc = subprocess.run(
+                [shutil.which("gh") or "gh", "auth", "token"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if proc.returncode == 0:
+                token = proc.stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            token = ""
+    _GITHUB_TOKEN = token
+    return token
+
+
+def fetch_github_stars(repo: str, cache: JsonDict, force_refresh: bool = False) -> int | None:
+    """读取 GitHub stars。缓存命中直接返回；API 失败/限流时返回 None，不影响报告生成。"""
+    repos = cache.setdefault("repos", {})
+    cached = repos.get(repo)
+    if (
+        not force_refresh
+        and isinstance(cached, dict)
+        and isinstance(cached.get("stars"), int)
+        and _cache_fresh(cached)
+    ):
+        return cached["stars"]
+
+    gh = shutil.which("gh")
+    if gh:
+        try:
+            proc = subprocess.run(
+                [gh, "api", f"repos/{repo}", "--jq", ".stargazers_count"],
+                capture_output=True,
+                text=True,
+                timeout=GITHUB_STARS_TIMEOUT,
+                check=False,
+            )
+            stars = _as_int(proc.stdout.strip()) if proc.returncode == 0 else None
+        except (OSError, subprocess.SubprocessError):
+            stars = None
+        if stars is not None:
+            repos[repo] = {"stars": stars, "fetched_at": datetime.now(timezone.utc).isoformat()}
+            return stars
+
+    req = Request(
+        f"https://api.github.com/repos/{repo}",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "context-doctor",
+        },
+    )
+    token = github_token()
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urlopen(req, timeout=GITHUB_STARS_TIMEOUT) as resp:  # noqa: S310 - github.com fixed API host
+            data = json.loads(resp.read().decode("utf-8"))
+    except (OSError, HTTPError, URLError, json.JSONDecodeError):
+        return cached.get("stars") if isinstance(cached, dict) and isinstance(cached.get("stars"), int) else None
+    stars = _as_int(data.get("stargazers_count")) if isinstance(data, dict) else None
+    if stars is None:
+        return None
+    repos[repo] = {"stars": stars, "fetched_at": datetime.now(timezone.utc).isoformat()}
+    return stars
+
+
+def fetch_github_stars_graphql(repos: list[str], cache: JsonDict) -> dict[str, int]:
+    """用 GitHub GraphQL 一次查一批仓库 stars。失败时返回已能解析到的部分结果。"""
+    gh = shutil.which("gh")
+    if not gh or not repos:
+        return {}
+    fields: list[str] = []
+    alias_to_repo: dict[str, str] = {}
+    for i, repo in enumerate(repos):
+        if "/" not in repo:
+            continue
+        owner, name = repo.split("/", 1)
+        alias = f"r{i}"
+        alias_to_repo[alias] = repo
+        fields.append(
+            f'{alias}: repository(owner:{json.dumps(owner)}, name:{json.dumps(name)}) '
+            "{ stargazerCount }"
+        )
+    if not fields:
+        return {}
+    query = "query { " + " ".join(fields) + " }"
+    try:
+        proc = subprocess.run(
+            [gh, "api", "graphql", "-f", f"query={query}"],
+            capture_output=True,
+            text=True,
+            timeout=max(GITHUB_STARS_TIMEOUT, len(repos) // 4),
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    if proc.returncode != 0 or not proc.stdout:
+        if len(repos) > 1:
+            mid = len(repos) // 2
+            return {
+                **fetch_github_stars_graphql(repos[:mid], cache),
+                **fetch_github_stars_graphql(repos[mid:], cache),
+            }
+        return {}
+    try:
+        data = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        if len(repos) > 1:
+            mid = len(repos) // 2
+            return {
+                **fetch_github_stars_graphql(repos[:mid], cache),
+                **fetch_github_stars_graphql(repos[mid:], cache),
+            }
+        return {}
+    out: dict[str, int] = {}
+    nodes = data.get("data") if isinstance(data, dict) else {}
+    if not isinstance(nodes, dict):
+        if len(repos) > 1:
+            mid = len(repos) // 2
+            return {
+                **fetch_github_stars_graphql(repos[:mid], cache),
+                **fetch_github_stars_graphql(repos[mid:], cache),
+            }
+        return out
+    for alias, repo in alias_to_repo.items():
+        node = nodes.get(alias)
+        stars = _as_int(node.get("stargazerCount")) if isinstance(node, dict) else None
+        if stars is None:
+            continue
+        out[repo] = stars
+        cache.setdefault("repos", {})[repo] = {
+            "stars": stars,
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
+        }
+    if not out and len(repos) > 1 and data.get("errors"):
+        mid = len(repos) // 2
+        return {
+            **fetch_github_stars_graphql(repos[:mid], cache),
+            **fetch_github_stars_graphql(repos[mid:], cache),
+        }
+    return out
+
+
+def annotate_github_stars(inventory: JsonDict, cache: JsonDict, mode: str = "cached") -> None:
+    """给带 GitHub source_ref.url 的插件补 `github_repo` / `github_stars`。原地修改，失败静默降级。"""
+    if mode == "off":
+        return
+    repo_to_plugins: dict[str, list[JsonDict]] = defaultdict(list)
+    for platform in inventory.get("platforms", {}).values():
+        for key in ("plugins", "available_plugins"):
+            for plugin in platform.get(key, []):
+                if not isinstance(plugin, dict):
+                    continue
+                src = plugin.get("source_ref") if isinstance(plugin.get("source_ref"), dict) else {}
+                repo = github_repo_from_url(str(src.get("url") or ""))
+                if repo:
+                    plugin["github_repo"] = repo
+                    repo_to_plugins[repo].append(plugin)
+    force_refresh = mode == "live"
+    cache_repos = cache.setdefault("repos", {})
+    stars_by_repo: dict[str, int] = {}
+    missing: list[str] = []
+    for repo in repo_to_plugins:
+        cached = cache_repos.get(repo)
+        if (
+            not force_refresh
+            and isinstance(cached, dict)
+            and isinstance(cached.get("stars"), int)
+            and _cache_fresh(cached)
+        ):
+            stars_by_repo[repo] = cached["stars"]
+        else:
+            missing.append(repo)
+    for i in range(0, len(missing), GITHUB_STARS_GRAPHQL_BATCH):
+        batch = missing[i : i + GITHUB_STARS_GRAPHQL_BATCH]
+        stars_by_repo.update(fetch_github_stars_graphql(batch, cache))
+    fallback = [repo for repo in missing if repo not in stars_by_repo]
+    stars_list = parallel_map(
+        lambda repo: fetch_github_stars(repo, cache, force_refresh=force_refresh),
+        fallback,
+        workers=GITHUB_STARS_WORKERS,
+    )
+    for repo, stars in zip(fallback, stars_list):
+        if stars is not None:
+            stars_by_repo[repo] = stars
+    for repo, stars in stars_by_repo.items():
+        if stars is None:
+            continue
+        plugins = repo_to_plugins[repo]
+        for plugin in plugins:
+            plugin["github_stars"] = stars
 
 
 def plugin_lists(data: Any) -> tuple[list[JsonDict], list[JsonDict]]:
@@ -1226,6 +1499,7 @@ def build_inventory(
     platform: str = "both",
     session_snapshot: JsonDict | None = None,
     cache: JsonDict | None = None,
+    github_stars: str = "cached",
 ) -> JsonDict:
     home = (home or Path.home()).expanduser()
     cwd = cwd or Path.cwd()
@@ -1261,7 +1535,7 @@ def build_inventory(
     # 采集结束回写翻译缓存（脚本只登记英文，中文由技能里的 Claude 填）
     save_translation_cache(cache)
 
-    return {
+    inventory = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "home": str(home),
@@ -1276,6 +1550,11 @@ def build_inventory(
         "rankings": build_rankings(platforms),
         "boundaries": build_boundaries(),
         "recommendations": recommendations,
+        "github_stars": {
+            "mode": github_stars,
+            "cache_path": str(github_stars_cache_path()),
+            "ttl_days": GITHUB_STARS_TTL_SECONDS // (24 * 60 * 60),
+        },
         "pending_translation_count": pending_translation_count(cache, referenced_keys),
         "translation_cache_path": str(translation_cache_path()),
         "notes": [
@@ -1283,8 +1562,14 @@ def build_inventory(
             "当前会话可见态只对 --session-snapshot 中提供的内容精确，且仅对宿主平台有意义。",
             "Claude 的插件 token 成本来自 `claude plugin details`；Codex 暂无等价命令。",
             "插件/技能的中文用途经 ~/.cache/context-doctor/translations.json 缓存翻译，缺失时回退英文。",
+            "GitHub stars 优先经 `gh api graphql` 批量查询 GitHub GraphQL（按仓库 URL 提取 owner/repo），失败时降级到单仓库 REST API；环境变量 GITHUB_TOKEN/GH_TOKEN 或本机 `gh auth token` 可提升限额（token 不写入报告），结果缓存在 ~/.cache/context-doctor/github-stars.json；默认 7 天缓存，可用 --github-stars live 强制刷新，或 --github-stars off 关闭；API 失败或限流时降级为空。",
         ],
     }
+    if github_stars != "off":
+        github_cache = load_github_stars_cache()
+        annotate_github_stars(inventory, github_cache, mode=github_stars)
+        save_github_stars_cache(github_cache)
+    return inventory
 
 
 def yes_no_unknown(value: Any) -> str:
@@ -1583,6 +1868,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="审计哪个平台（默认 both）。",
     )
     parser.add_argument("--session-snapshot", type=Path, help="可选：当前会话可见工具/技能的 JSON 快照。")
+    parser.add_argument(
+        "--github-stars",
+        choices=["cached", "live", "off"],
+        default="cached",
+        help="GitHub stars 采集模式：cached 使用 7 天缓存（默认），live 强制刷新，off 关闭。",
+    )
     parser.add_argument("--json", type=Path, help="采集模式：把完整 inventory JSON 写到此路径；--render-only 模式：从此路径读 inventory。")
     parser.add_argument("--markdown", type=Path, help="把 Markdown 报告写到此路径。")
     parser.add_argument("--html", type=Path, help="把单文件交互式 HTML 报告写到此路径。")
@@ -1634,6 +1925,7 @@ def main(argv: list[str] | None = None) -> int:
         platform=args.platform,
         session_snapshot=load_session_snapshot(args.session_snapshot),
         cache=cache,
+        github_stars=args.github_stars,
     )
     markdown = render_markdown(inventory)
 

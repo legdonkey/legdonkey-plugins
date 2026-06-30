@@ -125,6 +125,7 @@ header{padding:40px 0 26px;}
 .badge.off{color:var(--danger); background:color-mix(in srgb,var(--danger) 14%,transparent);}
 .badge.avail{color:var(--info); background:color-mix(in srgb,var(--info) 12%,transparent);}
 .badge.hot{color:var(--warn); background:color-mix(in srgb,var(--warn) 12%,transparent);}
+.badge.star{color:#a8b6ff; background:rgba(108,126,255,.16); border:1px solid rgba(168,182,255,.18);}
 .plug .ptok{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--dim); flex:0 0 auto;}
 .plug .ptok b{color:var(--accent);}
 .pdesc{padding:0 16px 11px 40px; color:var(--dim); font-size:12.5px; margin-top:-2px;}
@@ -426,15 +427,30 @@ function pluginMatches(pl){
     .join(" ").toLowerCase();
   return hay.includes(query);
 }
+function comparePlugins(a,b,platform){
+  const installedDelta=(b.installed?1:0)-(a.installed?1:0);
+  if(installedDelta) return installedDelta;
+  if(!a.installed&&!b.installed){
+    const metric=platform==="codex"?"github_stars":"install_count";
+    const ac=Number.isFinite(a[metric])?a[metric]:null;
+    const bc=Number.isFinite(b[metric])?b[metric]:null;
+    if(ac!=null&&bc!=null&&ac!==bc) return bc-ac;
+    if(ac!=null&&bc==null) return -1;
+    if(ac==null&&bc!=null) return 1;
+  }
+  return (a._order||0)-(b._order||0);
+}
 function pluginNode(pl,maxv,showCost){
   const c=pl.components||{};
   const ncomp=["skills","agents","hooks","mcp","lsp","apps"].reduce((a,g)=>a+((c[g]||[]).length),0);
-  const leaf=ncomp===0 && !pl.description_zh;
+  const src=sourceLine(pl);
+  const leaf=ncomp===0 && !pl.description_zh && !src;
   const badges=[];
   badges.push(pl.installed
     ? (pl.enabled===false?`<span class="badge off">已禁用</span>`:`<span class="badge on">已启用</span>`)
     : `<span class="badge avail">可装</span>`);
   if(pl.install_count!=null) badges.push(`<span class="badge hot">▲ ${fmtCount(pl.install_count)}</span>`);
+  if(pl.github_stars!=null) badges.push(`<span class="badge star" title="GitHub stars">★ ${fmtCount(pl.github_stars)}</span>`);
   const ver=esc(pl.real_version||pl.version||"");
   const scope=(pl.installed&&pl.scope)?`<span class="pscope" title="安装范围">${esc(scopeZh(pl.scope))}</span>`:"";
   let tok="";
@@ -450,7 +466,7 @@ function pluginNode(pl,maxv,showCost){
       compGroup("MCP",c.mcp,maxv,showCost)+
       compGroup("LSP",c.lsp,maxv,showCost)+
       compGroup("Apps",c.apps,maxv,showCost)+
-      sourceLine(pl)+`</div>`;
+      src+`</div>`;
   }
   const pmark=pl.description_pending?`<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>`:"";
   const desc=pl.description_zh?`<div class="pdesc">${pmark}${esc(pl.description_zh)}</div>`:"";
@@ -464,13 +480,26 @@ function safeUrl(u){
   try{ const p=new URL(String(u)); return (p.protocol==="http:"||p.protocol==="https:")?p.href:null; }
   catch(e){ return null; }
 }
+function sourceHref(s){
+  const safe=safeUrl(s.url);
+  if(!safe) return null;
+  if(!s.path) return safe;
+  try{
+    const u=new URL(safe);
+    if(u.hostname!=="github.com"||!s.ref) return safe;
+    const cleanPath=String(s.path).replace(/^\/+/,"").replace(/\/+$/,"");
+    u.pathname=u.pathname.replace(/\.git$/,"").replace(/\/+$/,"")+"/tree/"+encodeURIComponent(s.ref)+"/"+cleanPath.split("/").map(encodeURIComponent).join("/");
+    u.search=""; u.hash="";
+    return u.href;
+  }catch(e){ return safe; }
+}
 function sourceLine(pl){
   const s=pl.source_ref||{};
   const bits=[];
   if(s.url){
-    const safe=safeUrl(s.url);
-    bits.push(safe
-      ? `源码 <a href="${esc(safe)}" target="_blank" rel="noopener noreferrer">${esc(s.url)}</a>${s.ref?` @${esc(s.ref)}`:""}`
+    const href=sourceHref(s);
+    bits.push(href
+      ? `源码 <a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(s.url)}</a>${s.path?` <span class="src">/${esc(s.path)}</span>`:""}${s.ref?` @${esc(s.ref)}`:""}`
       : `源码 ${esc(s.url)}${s.ref?` @${esc(s.ref)}`:""}`);
   }
   else if(s.path) bits.push(`路径 ${esc(s.path)}`);
@@ -490,13 +519,15 @@ function renderPanel(){
   const groups=new Map(); const order=[];
   for(const m of (p.marketplaces||[])){groups.set(m.name,{meta:m,plugins:[]}); order.push(m.name);}
   const bucket=name=>{const k=name||"(unknown)"; if(!groups.has(k)){groups.set(k,{meta:{name:k,source_type:"unknown",repo:""},plugins:[]}); order.push(k);} return groups.get(k);};
-  for(const pl of [...(p.plugins||[]),...(p.available_plugins||[])]){ if(pluginMatches(pl)) bucket(pl.marketplace).plugins.push(pl); }
+  for(const [i,pl] of [...(p.plugins||[]),...(p.available_plugins||[])].entries()){
+    if(pluginMatches(pl)) bucket(pl.marketplace).plugins.push({...pl,_order:i});
+  }
 
   let html=`<div class="sec"><h2>市场 → 插件 → 组件 <span class="c">${order.filter(n=>groups.get(n).plugins.length).length} 市场</span></h2>`;
   let any=false;
   for(const name of order){
     const g=groups.get(name); if(!g.plugins.length) continue; any=true;
-    g.plugins.sort((a,b)=>(b.installed?1:0)-(a.installed?1:0));
+    g.plugins.sort((a,b)=>comparePlugins(a,b,p.platform));
     html+=`<div class="mkt"><div class="mkt-head"><span class="name">${esc(name)}</span>`+
       (g.meta.source_type?`<span class="type">${esc(g.meta.source_type)}</span>`:"")+
       (g.meta.repo?`<span class="repo">${esc(g.meta.repo)}</span>`:"")+`</div>`+

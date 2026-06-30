@@ -8,7 +8,7 @@ out_root="${CONTEXT_DOCTOR_OUTDIR:-${TMPDIR:-/tmp}/context-doctor}"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 out_dir="$out_root/$stamp"
 
-usage="usage: $0 [-h|--help] [--session-snapshot /path/to/session-snapshot.json] [--platform claude|codex|both]"
+usage="usage: $0 [-h|--help] [--session-snapshot /path/to/session-snapshot.json] [--platform claude|codex|both] [--github-stars cached|live|off]"
 
 extra=()
 while [[ $# -gt 0 ]]; do
@@ -38,6 +38,21 @@ while [[ $# -gt 0 ]]; do
           ;;
       esac
       extra+=(--platform "$2")
+      shift 2
+      ;;
+    --github-stars)
+      if [[ -z "${2:-}" ]]; then
+        echo "missing value after --github-stars" >&2
+        exit 2
+      fi
+      case "$2" in
+        cached|live|off) ;;
+        *)
+          echo "invalid value after --github-stars: $2 (expected cached|live|off)" >&2
+          exit 2
+          ;;
+      esac
+      extra+=(--github-stars "$2")
       shift 2
       ;;
     *)
