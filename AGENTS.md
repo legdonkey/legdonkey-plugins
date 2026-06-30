@@ -4,17 +4,18 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## 这是什么
 
-这是一个跨 Claude Code 与 Codex 的插件市场仓库，含**两个独立插件、各 1 个技能**（互不依赖）。没有包管理 / CI / 构建系统——内容是 Markdown + bash + python。文档与提交信息用简体中文。
+这是一个跨 Claude Code 与 Codex 的插件市场仓库，含**三个独立插件、各 1 个技能**（互不依赖）。没有包管理 / CI / 构建系统——内容是 Markdown + bash + python。文档与提交信息用简体中文。
 
 - `plugins/privatize-fork/` — 开源 fork 一次性私有化脚手架。
 - `plugins/context-doctor/` — 跨平台审计 Claude Code 与 Codex 的插件 / MCP / 市场源 / 技能（调官方 CLI 治理入口，技能走目录）。
+- `plugins/cosyvoice-tts/` — 阿里百炼 CosyVoice 中文配音脚手架（固定 `cosyvoice-v3-flash` catalog）。
 
-每个插件目录含 `.claude-plugin/plugin.json`（CC）+ `.codex-plugin/plugin.json`（Codex）+ `skills/<name>/`。两个市场清单在仓库根：`.claude-plugin/marketplace.json`（CC）、`.agents/plugins/marketplace.json`（Codex），各列出这两个插件。
+每个插件目录含 `.claude-plugin/plugin.json`（CC）+ `.codex-plugin/plugin.json`（Codex）+ `skills/<name>/`。两个市场清单在仓库根：`.claude-plugin/marketplace.json`（CC）、`.agents/plugins/marketplace.json`（Codex），各列出这三个插件。
 
 ## 关键约定（改动前必读）
 
-### 每个插件版本号要 3 处同步（两个插件各自独立）
-改某个插件版本时，同步它的 3 处：`plugins/<plugin>/.claude-plugin/plugin.json`、`plugins/<plugin>/.codex-plugin/plugin.json`、以及 `.claude-plugin/marketplace.json` 里该插件条目的 `version`（Codex 市场清单不带 version，版本只在 plugin.json）。两个插件版本**独立**、互不牵连。用 `/bump-version <plugin> <x.y.z>` 一步搞定。
+### 每个插件版本号要 3 处同步（各插件彼此独立）
+改某个插件版本时，同步它的 3 处：`plugins/<plugin>/.claude-plugin/plugin.json`、`plugins/<plugin>/.codex-plugin/plugin.json`、以及 `.claude-plugin/marketplace.json` 里该插件条目的 `version`（Codex 市场清单不带 version，版本只在 plugin.json）。各插件版本**独立**、互不牵连。用 `/bump-version <plugin> <x.y.z>` 一步搞定。
 
 ### 每个技能要双平台对齐
 每个 `plugins/<plugin>/skills/<name>/` 都要：
@@ -43,7 +44,7 @@ done
 python3 -B plugins/context-doctor/skills/context-doctor/scripts/context_doctor.py --help   # doctor 可跑
 ```
 
-Codex 插件端到端校验（本机装了 Codex 时）：`codex plugin marketplace add . && codex plugin list --marketplace legdonkey --available`（应列出 2 个插件），验证完用 `codex plugin marketplace remove legdonkey` 清理。
+Codex 插件端到端校验（本机装了 Codex 时）：`codex plugin marketplace add . && codex plugin list --marketplace legdonkey --available`（应列出 3 个插件），验证完用 `codex plugin marketplace remove legdonkey` 清理。
 
 ## 提交与发布
 
