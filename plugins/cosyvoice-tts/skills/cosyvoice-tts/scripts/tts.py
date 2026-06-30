@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""阿里百炼 CosyVoice 语音合成(默认模型 cosyvoice-v3-flash)。
+"""阿里百炼 CosyVoice 语音合成(固定模型 cosyvoice-v3-flash)。
 
 - list:    列出 v3-flash 全部音色(与官方对齐),标出是否支持 Instruct
 - preview: 合成一句并播放(试听)。支持 Instruct 的音色会按场景自动设指令并提示
@@ -205,11 +205,11 @@ def _run(a, save_path, play):
     if not text:
         sys.exit("请用 --text \"...\" 或 --file 文件 提供文本。")
 
-    print(f"🎙 {a.model} / {a.voice}" + (f"({ventry['name']}·{ventry['gender']})" if ventry else "") + f"  | {tag}")
-    raw = synth(a.model, a.voice, text, instr, a.rate, a.pitch, a.volume)
+    print(f"🎙 {DEFAULT_MODEL} / {a.voice}" + (f"({ventry['name']}·{ventry['gender']})" if ventry else "") + f"  | {tag}")
+    raw = synth(DEFAULT_MODEL, a.voice, text, instr, a.rate, a.pitch, a.volume)
     if not raw and fallback and fallback != instr:
         print(f"  ↩ 指令未被接受,回退到纯情感重试:{fallback}")
-        raw = synth(a.model, a.voice, text, fallback, a.rate, a.pitch, a.volume)
+        raw = synth(DEFAULT_MODEL, a.voice, text, fallback, a.rate, a.pitch, a.volume)
     if not raw:
         hint = "(带指令失败多为该音色不支持 Instruct 或取值不合规)" if instr else "(组合可能无效,见 list)"
         sys.exit(f"✗ 合成失败 {hint}")
@@ -229,7 +229,6 @@ def cmd_gen(a):
 
 
 def add_instruct_opts(sp):
-    sp.add_argument("-m", "--model", default=DEFAULT_MODEL)
     sp.add_argument("-v", "--voice", default=DEFAULT_VOICE)
     sp.add_argument("--emotion", choices=EMOTIONS, help="情感值")
     sp.add_argument("--scene", help="场景(自动就近匹配到该音色合法取值)")

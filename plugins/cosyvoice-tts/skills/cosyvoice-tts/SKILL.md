@@ -1,6 +1,6 @@
 ---
 name: cosyvoice-tts
-description: 用阿里百炼 CosyVoice 把中文文本合成成自然语音,并充分利用 Instruct——用一句规定格式的指令控制语气/情感(开心/难过/生气/惊讶等)、场景、角色、身份,还能调语速音调。支持选模型、选音色、先试听再批量生成 wav。当用户想用阿里/百炼/CosyVoice/DashScope 做语音合成、TTS、配音、旁白、朗读、文字转语音,或要给视频/PPT/课件加中文配音、要带情感/不同语气的配音、试听某音色、把多段文案批量转成 wav 时,使用本技能。涉及阿里云语音合成的几乎都用它,不要每次现写 SDK 代码。
+description: 用阿里百炼 CosyVoice 把中文文本合成成自然语音,并充分利用 Instruct——用一句规定格式的指令控制语气/情感(开心/难过/生气/惊讶等)、场景、角色、身份,还能调语速音调。当前固定使用 cosyvoice-v3-flash,支持选音色、先试听再批量生成 wav。当用户想用阿里/百炼/CosyVoice/DashScope 做语音合成、TTS、配音、旁白、朗读、文字转语音,或要给视频/PPT/课件加中文配音、要带情感/不同语气的配音、试听某音色、把多段文案批量转成 wav 时,使用本技能。涉及阿里云语音合成的几乎都用它,不要每次现写 SDK 代码。
 disable-model-invocation: true
 ---
 
@@ -21,7 +21,7 @@ disable-model-invocation: true
 
 ## 默认与数据
 
-- **默认模型** `cosyvoice-v3-flash`,**默认音色** `longanhuan`(女)。
+- **固定模型** `cosyvoice-v3-flash`,**默认音色** `longanhuan`(女)。当前只维护 v3-flash 的音色 catalog,不暴露模型切换;未来需要其它模型时再补对应 catalog 和兼容逻辑。
 - v3-flash 的**全部音色**(88 个,含中文名/性别/场景/语言/是否支持 Instruct)在 [references/voices_v3flash.json](references/voices_v3flash.json),与官方列表对齐;`list` 命令直接读它。
 
 ## Instruct(自动按场景设置,可覆盖)
@@ -71,7 +71,7 @@ disable-model-invocation: true
 ## 选音色/排错要点
 
 - **以官方列表为准,不要靠"探测"**:全部音色用 `list` 查(数据在 [references/voices_v3flash.json](references/voices_v3flash.json),对齐官方页 `https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list`)。Instruct 用法与排错另见 [references/voices.md](references/voices.md)。
-- **音色与模型强绑定**:换模型同名音色常报 `418`。`418`=组合无效;`428`=对不支持 Instruct 的音色发了指令,或情感/句式不合规(脚本已尽量规避)。
+- **报错判断**:`418`=音色无效或后端不接受该组合;`428`=对不支持 Instruct 的音色发了指令,或情感/句式不合规(脚本已尽量规避)。
 - 想给视频做整段配音:`gen` 逐段输出 wav 并记录时长,交给视频/字幕工具对齐时间轴。
 
 ## 边界

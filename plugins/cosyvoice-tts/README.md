@@ -8,7 +8,7 @@
 >
 > ← 返回[仓库总览](../../README.md) ｜ 姊妹插件：[privatize-fork](../privatize-fork/) / [context-doctor](../context-doctor/)
 
-这个插件把你已有的 `cosyvoice-tts` skill 包装成标准插件：同一份技能可安装到 Claude Code 与 Codex。它重点封装 CosyVoice Instruct，用一句规定格式的指令控制情感、场景、角色和身份，同时支持试听音色、调语速音调音量、批量生成 `wav`。
+这个插件把你已有的 `cosyvoice-tts` skill 包装成标准插件：同一份技能可安装到 Claude Code 与 Codex。它当前固定使用 `cosyvoice-v3-flash`，重点封装 CosyVoice Instruct，用一句规定格式的指令控制情感、场景、角色和身份，同时支持试听音色、调语速音调音量、批量生成 `wav`。
 
 ## 解决什么问题
 
@@ -63,6 +63,12 @@ API key 读取顺序是环境变量 `DASHSCOPE_API_KEY`，然后是 `~/.dashscop
 4. 如果用于视频，把每段时长交给视频或字幕工具对齐。
 
 底层脚本是 `skills/cosyvoice-tts/scripts/tts.py`，会从自身相邻的 `references/voices_v3flash.json` 读取音色数据，不依赖固定安装路径。
+
+## 模型支持边界
+
+当前只维护 `cosyvoice-v3-flash` 的音色 catalog，脚本也固定使用该模型，不暴露模型切换参数。这样可以避免拿 v3-flash 的音色数据去判断其它模型，导致 Instruct 支持状态误判。
+
+未来如果需要支持 `cosyvoice-v3-plus` 或其它模型，再补对应模型的 catalog、音色兼容判断和文档说明。
 
 ## 插件结构
 

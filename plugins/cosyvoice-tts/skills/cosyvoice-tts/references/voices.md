@@ -16,7 +16,7 @@ CosyVoice 音色很多(v3-flash 有 80+,涵盖客服/有声书/方言/多语种/
 | `cosyvoice-v3-flash` | `longhuhu_v3`(龙呼呼) | 女 | 实测 Instruct 可用 |
 
 > 注 1:官方表给 v3-flash 标了 4 个 Instruct 音色,但 `longanhuan_v3` 实测带 instruction 调用会失败,故不收录。
-> 注 2:`cosyvoice-v3-plus` 上 `longanyang`/`longanhuan` 也支持 Instruct;本技能默认用 v3-flash,需要时可 `-m cosyvoice-v3-plus`。
+> 注 2:本技能当前只维护 `cosyvoice-v3-flash` catalog,脚本也固定使用该模型;未来需要其它模型时再补对应 catalog 和兼容逻辑。
 
 ## Instruct 用法
 
@@ -40,7 +40,7 @@ CosyVoice 音色很多(v3-flash 有 80+,涵盖客服/有声书/方言/多语种/
 
 ## 参数范围与文档
 
-官方 SDK 文档确认:**Instruct 仅 `cosyvoice-v3-flash` 与 `cosyvoice-v3-plus` 支持**(`cosyvoice-v3.5-plus`/`v3.5-flash`/`v2`/`v1` 不支持 Instruct)。取值范围:语速 `speech_rate` 与音调 `pitch_rate` 均 `[0.5, 2.0]`,音量 `volume` `[0, 100]`,默认各为 1.0 / 1.0 / 50。脚本已对超范围值做钳制。
+本技能当前固定使用 `cosyvoice-v3-flash`。取值范围:语速 `speech_rate` 与音调 `pitch_rate` 均 `[0.5, 2.0]`,音量 `volume` `[0, 100]`,默认各为 1.0 / 1.0 / 50。脚本已对超范围值做钳制。
 
 - SDK 文档:https://help.aliyun.com/zh/model-studio/cosyvoice-python-sdk
 - TTS SDK 文档:https://help.aliyun.com/zh/model-studio/cosyvoice-tts-python-sdk
