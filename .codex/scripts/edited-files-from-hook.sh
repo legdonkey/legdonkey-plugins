@@ -3,6 +3,11 @@ set -euo pipefail
 
 event="$(cat)"
 
+if ! command -v jq >/dev/null 2>&1; then
+  printf 'jq 未安装，跳过 Codex hook 文件路径解析。\n' >&2
+  exit 0
+fi
+
 printf '%s' "$event" | jq -r '
   def direct_paths:
     [
