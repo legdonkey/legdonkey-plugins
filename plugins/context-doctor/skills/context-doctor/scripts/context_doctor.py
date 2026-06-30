@@ -1243,9 +1243,8 @@ def build_inventory(
         reassign_plugin_mcps(section)  # 先把插件自带 MCP 从独立列表挪进插件
         if not has_session_snapshot:
             clear_session_visibility(section)
-            continue
         # 会话快照只属于「跑技能的那个平台」：指定了 host_platform 时，非宿主平台不映射
-        if host_platform and section["platform"] != host_platform:
+        elif host_platform and section["platform"] != host_platform:
             clear_session_visibility(section)
         else:
             mark_visibility(section, session_snapshot)
