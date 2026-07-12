@@ -215,7 +215,7 @@ body[data-theme="paper"] .ecg path{filter:none;}
       </div>
       <div class="mark">CONTEXT<b>//</b>DOCTOR</div>
     </div>
-    <p class="tagline">跨平台上下文审计 · 市场 → 插件 → 组件的层级体检，含 token 占用与最贵组件排行。插件 / MCP / 市场源经官方 CLI，技能经目录扫描。</p>
+    <p class="tagline">跨平台上下文审计 · 市场 → 插件 → 组件的层级体检，含 token 占用与最贵组件排行。插件 / MCP / 市场源以官方 CLI 为主，并补充 Codex Desktop 远程目录与安装缓存；技能经目录扫描。</p>
     <div class="metaline" id="meta"></div>
   </header>
 
@@ -345,7 +345,7 @@ function renderStatusGuide(){
     <h3>状态说明</h3>
     <div class="status-item"><div class="idx">1.</div><div>
       <h4>插件状态</h4>
-      <p>插件有安装状态和启用状态：<span class="badge on">已启用</span> 表示已安装且当前配置启用，<span class="badge off">已禁用</span> 表示已安装但当前配置禁用，<span class="badge avail">可装</span> 表示市场中可安装但本机未安装。</p>
+      <p>插件有安装状态和启用状态：<span class="badge on">已启用</span> 表示已安装且当前配置启用，<span class="badge off">已禁用</span> 表示已安装但当前配置禁用，<span class="badge on">已安装</span> 表示桌面缓存能证明插件包存在、但无法可靠判断启用状态，<span class="badge avail">可装</span> 表示市场中可安装但本机未安装。</p>
     </div></div>
     <div class="status-item"><div class="idx">2.</div><div>
       <h4>会话可见</h4>
@@ -423,7 +423,7 @@ function pluginMatches(pl){
   if(filterMode==="installed"&&!pl.installed) return false;
   if(filterMode==="available"&&pl.installed) return false;
   if(!query) return true;
-  const hay=[pl.id,pl.name,pl.description_zh,pl.marketplace,
+  const hay=[pl.id,pl.name,pl.display_name,pl.description_zh,pl.marketplace,
     ...(["skills","agents","hooks","mcp","lsp","apps"].flatMap(g=>((pl.components||{})[g]||[]).map(c=>c.name)))]
     .join(" ").toLowerCase();
   return hay.includes(query);
@@ -443,15 +443,22 @@ function comparePlugins(a,b,platform){
 }
 function pluginNode(pl,maxv,showCost){
   const c=pl.components||{};
+  const title=pl.display_name||pl.name||pl.id;
   const ncomp=["skills","agents","hooks","mcp","lsp","apps"].reduce((a,g)=>a+((c[g]||[]).length),0);
   const src=sourceLine(pl);
   const leaf=ncomp===0 && !pl.description_zh && !src;
   const badges=[];
   badges.push(pl.installed
-    ? (pl.enabled===false?`<span class="badge off">已禁用</span>`:`<span class="badge on">已启用</span>`)
+    ? (pl.enabled===true
+      ? `<span class="badge on">已启用</span>`
+      : pl.enabled===false
+        ? `<span class="badge off">已禁用</span>`
+        : `<span class="badge on">已安装</span>`)
     : `<span class="badge avail">可装</span>`);
   if(pl.install_count!=null) badges.push(`<span class="badge hot">▲ ${fmtCount(pl.install_count)}</span>`);
   if(pl.github_stars!=null) badges.push(`<span class="badge star" title="GitHub stars">★ ${fmtCount(pl.github_stars)}</span>`);
+  if(!pl.installed&&pl.skill_count!=null) badges.push(`<span class="note-tag">Skills ${pl.skill_count}</span>`);
+  if(!pl.installed&&pl.app_count!=null) badges.push(`<span class="note-tag">Apps ${pl.app_count}</span>`);
   const ver=esc(pl.real_version||pl.version||"");
   const scope=(pl.installed&&pl.scope)?`<span class="pscope" title="安装范围">${esc(scopeZh(pl.scope))}</span>`:"";
   let tok="";
@@ -473,7 +480,7 @@ function pluginNode(pl,maxv,showCost){
   const desc=pl.description_zh?`<div class="pdesc">${pmark}${esc(pl.description_zh)}</div>`:"";
   return `<div class="plug${leaf?' leaf':''}" data-id="${esc(pl.id)}">
     <div class="plug-head"><span class="tw">▶</span>
-      <span class="pname">${esc(pl.name||pl.id)}</span><span class="pver">${ver}</span>${scope}
+      <span class="pname">${esc(title)}</span><span class="pver">${ver}</span>${scope}
       ${badges.join(" ")}${tok}</div>${desc}${body}</div>`;
 }
 function safeUrl(u){

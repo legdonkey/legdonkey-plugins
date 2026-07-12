@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Context Doctor
 
-只在手动点名时运行的**跨平台上下文审计**技能。用各平台官方 CLI 治理命令盘点 **Claude Code 与 Codex** 的插件、MCP、市场源；技能因两平台都没有 CLI（官方设计为文件式）而扫描技能目录。产出一个**自包含、可离线打开、可交互的单文件 HTML 报告**（市场 → 插件 → 组件层级树 + token 占用 + 最贵组件排行），并附 `inventory.json` 与回退用的 `report.md`。
+只在手动点名时运行的**跨平台上下文审计**技能。用各平台官方 CLI 治理命令盘点 **Claude Code 与 Codex** 的插件、MCP、市场源，并补充 Codex Desktop 的远程技能 catalog 与安装缓存；独立技能因两平台都没有 CLI（官方设计为文件式）而扫描技能目录。产出一个**自包含、可离线打开、可交互的单文件 HTML 报告**（市场 → 插件 → 组件层级树 + token 占用 + 最贵组件排行），并附 `inventory.json` 与回退用的 `report.md`。
 
 ## 三段式流程（重要）
 
@@ -45,13 +45,15 @@ python3 -B "$skill_dir/scripts/context_doctor.py" --render-only \
 
 ## 报告内容与边界
 
-- **层级**：平台 tab → 市场 → 插件（已装/可装）→ 组件（skills/agents/hooks/mcp/lsp/apps）。已装插件展开有 token 占用条；可装插件只有**中文用途 + 热度 + 直达源码链接**，成本标「装后可见」（未装无法展开 details，CLI 报 not found）。
+- **层级**：平台 tab → 市场 → 插件（已装/可装）→ 组件（skills/agents/hooks/mcp/lsp/apps）。Codex Desktop 远程市场只收录 catalog 中带 Skills 的插件；已安装项从缓存展开完整组件，可安装项展示中文完整用途与 skill/app 数量摘要。
 - **排行**：最贵技能 / 最贵 agent / 最贵插件，每条标来源插件。**只有 Claude 有 token 成本**；Codex 全程无 token（组件来自本地清单，仅列名）；MCP 两平台都无成本，不进榜。报告「审计边界」区会显式说明。
 
 ## 数据来源（重要）
 
-- 插件 / 市场 / MCP：调各平台官方 CLI（`claude plugin/marketplace/mcp`、`codex plugin/mcp`），不读配置文件。某平台 CLI 不在 PATH 时自动跳过并标注。
-- Claude 插件组件与 token 成本来自 `claude plugin details`（逐插件、并发调用）。Codex 无 details 命令，改读插件本地目录的 `.codex-plugin/plugin.json` 清单 + 扫 `skills/` 目录得组件清单（无 token）。
+- 插件 / 市场 / MCP 默认调各平台官方 CLI（`claude plugin/marketplace/mcp`、`codex plugin/mcp`），不读配置文件。某平台 CLI 不在 PATH 时自动跳过并标注。
+- Codex Desktop 远程插件是补充来源：`~/.codex/cache/remote_plugin_catalog/*.json` 只取 `release.skills` 非空的插件，`~/.codex/plugins/cache/openai-curated-remote/` 提供安装证据与完整本地组件。同名 CLI/远程插件按市场分别保留，只在完整 ID 相同时去重。
+- Claude 插件组件与 token 成本来自 `claude plugin details`（逐插件、并发调用）。Codex 无 details 命令，CLI 已装插件与桌面远程已装插件都读本地 `.codex-plugin/plugin.json` + `skills/` + MCP/app 清单（无 token）；远程可装插件使用 catalog 的 `release.description` 完整描述。
+- `codex mcp list --json` 返回的插件 MCP 可能只有裸服务名；报告会与已安装插件声明交叉核对，唯一匹配时归入插件，存在歧义时仍保留为独立 MCP。
 - 技能：两平台都没有列举技能的 CLI（官方设计为文件式），故扫描技能目录。
 
 ## 会话快照（默认开启）

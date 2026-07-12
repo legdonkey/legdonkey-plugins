@@ -4,7 +4,7 @@
 
 # context-doctor
 
-> 一个跨 **Claude Code** 与 **Codex** 的插件（基于开放标准 [skill](https://agentskills.io)）：用各平台**官方 CLI 治理入口**盘点装了哪些插件 / MCP / 市场源，技能走目录治理入口，并给出卫生建议。
+> 一个跨 **Claude Code** 与 **Codex** 的插件（基于开放标准 [skill](https://agentskills.io)）：用各平台**官方 CLI 治理入口**盘点插件 / MCP / 市场源，补充 Codex Desktop 远程技能 catalog 与安装缓存，独立技能走目录治理入口，并给出卫生建议。
 >
 > ← 返回[仓库总览](../../README.md) ｜ 姊妹插件：[privatize-fork](../privatize-fork/)
 
@@ -26,13 +26,13 @@
 
 | 对象 | 数据来源 |
 |------|---------|
-| **插件 Plugins** | `claude plugin list --json --available` / `codex plugin list --json --available`：已装 + 可装、版本、启停、**安装范围 scope**、市场、可装热度。Claude 侧另经 `claude plugin details` 取**完整组件清单（skills/agents/hooks/mcp/lsp）与逐组件 token 成本**；Codex 无 details，改读插件本地目录：`.codex-plugin/plugin.json`（版本/用途/源码链接）+ 扫 `skills/` + 读 `.mcp.json`（自带 MCP）/ `.app.json`（apps 连接器）得组件清单（无 token） |
+| **插件 Plugins** | CLI 来源：`claude plugin list --json --available` / `codex plugin list --json --available`。Codex Desktop 另读最新 `~/.codex/cache/remote_plugin_catalog/*.json`，只加入 `release.skills` 非空的远程技能插件；`~/.codex/plugins/cache/openai-curated-remote/` 提供远程安装证据。CLI 与远程同名插件按市场分别保留，仅完整 ID 相同时去重。Claude 经 `plugin details` 取组件与 token；Codex 已装插件从本地 `.codex-plugin/plugin.json`、`skills/`、MCP/app 清单取组件（无 token），远程可装项使用 catalog 完整描述与数量摘要 |
 | **市场源 Marketplaces** | `claude plugin marketplace list --json` / `codex plugin marketplace list --json`，保留真实源类型（github / git / 本地等） |
-| **MCP 服务器** | `claude mcp list` + 逐个 `claude mcp get` 补类型/scope（只读 Type/Scope，**绝不读 Environment 防泄密**）/ `codex mcp list --json`（含启用 + 鉴权方式）。插件自带的 MCP（`plugin:<插件>:<mcp>`）会归到对应插件名下，不混在独立列表里 |
+| **MCP 服务器** | `claude mcp list` + 逐个 `claude mcp get` 补类型/scope（只读 Type/Scope，**绝不读 Environment 防泄密**）/ `codex mcp list --json`（含启用 + 鉴权方式）。插件自带 MCP 会根据显式 `plugin:<插件>:<mcp>` 前缀或已安装插件的 MCP 声明、运行目录和目标地址保守归属；只有唯一匹配时才移入插件，不混在独立列表里 |
 | **技能 Skills** | 两平台都**没有列举技能的 CLI**（官方设计为文件式），故扫描技能目录（用户级 + 项目级，项目级从当前目录逐级向上到 repo 根）：Claude Code `~/.claude/skills`、项目 `.claude/skills`；Codex `~/.codex/skills`、`~/.agents/skills`、项目 `.codex/skills`、项目 `.agents/skills` |
 | **卫生建议** | 同名插件多来源、**同名技能跨级覆盖**（按平台区分措辞）、已装但禁用、always-on token 开销偏大等 |
 
-> 设计原则：**CLI 优先**。插件 / 市场 / MCP 一律走官方命令；技能因官方无 CLI 而走目录——这是技能官方治理的唯一方式，不是绕开 CLI。某平台 CLI 不在 PATH 时自动跳过并标注。
+> 设计原则：**CLI 优先**。Claude 插件与两平台市场/MCP 走官方命令；Codex Desktop 远程插件因不在 marketplace snapshot CLI 的完整覆盖内，读取本地远程 catalog 与安装缓存补齐。独立技能因官方无 CLI 而走目录。某平台 CLI 不在 PATH 时自动降级并标注。
 
 ## 安装
 
@@ -74,9 +74,9 @@ $context-doctor      # Codex
 
 ## 实现
 
-- **CLI 优先、只读**：插件 / 市场 / MCP 调各平台官方治理命令，不读配置文件；技能扫目录（官方无 CLI）。不改任何东西。
+- **CLI 优先、只读**：插件 / 市场 / MCP 优先调官方治理命令；Codex Desktop 远程技能插件补读 catalog 与安装缓存；独立技能扫目录（官方无 CLI）。不改任何插件状态。
 - **零第三方依赖**：纯 Python 3 标准库 + Bash，通过 `subprocess` 调 `claude` / `codex`。某平台 CLI 缺失则降级跳过。
-- **诚实边界**（报告内有「审计边界」区显式列出）：Codex 无 `plugin details`，组件清单改读本地清单、**全程无 token 成本**，故最贵组件排行只含 Claude；MCP 两平台都无 token 成本，不进排行；未安装插件无法展开完整 details（CLI 报 not found），只给中文用途 + 热度 + 源码链接，成本「装后可见」；hooks（harness-only）/ lsp（out-of-process）无模型成本；技能仅覆盖个人级与项目级，企业 / managed 级与子目录 nested 技能未覆盖；**claude.ai / 桌面版的账号级技能为云端管理、不落本地文件，不在覆盖范围**（技能官方按 surface 隔离、不跨端同步）；Claude Desktop、Codex Desktop、claude.ai、Codex App 的账号级连接器、产品开关、实验功能、窗口状态、授权弹窗和运行时临时工具等宿主 UI 面也不在 CLI / 本地目录审计范围内。报告显式标注，不静默丢。
+- **诚实边界**（报告内有「审计边界」区显式列出）：Codex 无 `plugin details`，组件清单改读本地清单、**全程无 token 成本**；Codex Desktop 远程市场只收录带 Skills 的插件，缓存可证明已安装但不能独立证明启用，纯 App catalog 与账号级实时开关不覆盖；MCP 两平台都无 token 成本；hooks/lsp 无模型成本；独立技能目录不覆盖 enterprise/managed 与 nested 技能；其他宿主 UI 状态、授权弹窗和临时工具若未通过既有数据源暴露，可能不会出现在报告中。
 
 ### 插件结构
 

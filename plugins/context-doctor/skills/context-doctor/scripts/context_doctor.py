@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """跨平台上下文审计：用官方 CLI 治理入口盘点 Claude Code 与 Codex 的插件 / MCP / 市场源，
-技能因两平台都没有 CLI（官方设计为文件式）而走目录治理入口，并可对照当前会话可见态。
+补充 Codex Desktop 远程技能 catalog / 缓存；独立技能走目录治理入口，并可对照会话可见态。
 
-设计原则：CLI 优先。插件 / 市场 / MCP 一律调 `claude` / `codex` 的官方命令再解析输出；
-只有「技能」没有任何 CLI 列举命令，按官方文档的唯一治理方式——列技能目录——来盘点。
+设计原则：CLI 优先。Claude 插件及两平台市场/MCP 调官方命令；Codex Desktop 远程插件
+不在 marketplace snapshot CLI 的完整覆盖内，故读取本地 remote catalog 与安装缓存补齐。
+独立技能没有任何 CLI 列举命令，按官方文件式治理方式扫描技能目录。
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ DETAIL_TIMEOUT = 60
 # `mcp get` 要做联网健康检查、单次可能十几秒；给较宽上限并配合失败重试，确保类型/scope 拿得到。
 MCP_GET_TIMEOUT = 35
 MAX_WORKERS = 8
+CODEX_REMOTE_MARKETPLACE = "openai-curated-remote"
 # 插件 always-on token 超过此阈值，提示「开销偏大」。
 TOKEN_HEAVY_THRESHOLD = 1000
 GITHUB_STARS_TIMEOUT = 10
@@ -928,8 +930,8 @@ def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
             cfg = cfg if isinstance(cfg, dict) else {}
             stype = "stdio" if cfg.get("command") else ("http" if cfg.get("url") else "")
             result["components"]["mcp"].append({
-                # 裸服务名（不加插件前缀）：与 reassign_plugin_mcps 按裸名归位的口径一致，
-                # 否则 codex mcp list 报的 plugin:<插件>:<服务> 归位时匹配不上，同一 MCP 会重复计数。
+                # 保留清单中的裸服务名：reassign_plugin_mcps 同时兼容 CLI 的旧前缀格式与新版裸名，
+                # 否则插件组件和独立 MCP 会重复计数。
                 "name": sname,
                 "server_type": stype,
                 "target": str(cfg.get("command") or cfg.get("url") or ""),
@@ -948,6 +950,169 @@ def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
             {"name": k, "cost_note": "not-metered"} for k in app_data["apps"]
         ]
     return result
+
+
+def _path_mtime(path: Path) -> float:
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def _latest_valid_codex_remote_catalog(home: Path) -> JsonDict | None:
+    root = home / ".codex" / "cache" / "remote_plugin_catalog"
+    if not root.is_dir():
+        return None
+    for path in sorted(root.glob("*.json"), key=_path_mtime, reverse=True):
+        data = _read_json_file(path)
+        if isinstance(data, dict) and isinstance(data.get("plugins"), list):
+            return data
+    return None
+
+
+def _empty_codex_components() -> JsonDict:
+    return {"skills": [], "agents": [], "hooks": [], "mcp": [], "apps": []}
+
+
+def collect_codex_desktop_remote_plugins(
+    home: Path,
+    cache: JsonDict,
+) -> tuple[list[JsonDict], list[str]]:
+    """采集 Codex Desktop 的远程技能插件。
+
+    catalog 只提供带 Skills 的可安装清单；本地 openai-curated-remote 缓存提供安装证据
+    与完整组件。缓存只证明已安装，不证明启用，因此 enabled 固定为 None。
+    """
+    notes: list[str] = []
+    catalog = _latest_valid_codex_remote_catalog(home)
+    catalog_plugins = catalog.get("plugins", []) if isinstance(catalog, dict) else []
+    if not isinstance(catalog, dict):
+        notes.append("未找到有效的 Codex Desktop 远程 catalog；仅审计远程缓存中的已安装插件。")
+
+    remote_by_name: dict[str, JsonDict] = {}
+    for item in catalog_plugins:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()
+        release = item.get("release") if isinstance(item.get("release"), dict) else {}
+        skills = release.get("skills") if isinstance(release.get("skills"), list) else []
+        if not name or not skills or name in remote_by_name:
+            continue
+        interface = release.get("interface") if isinstance(release.get("interface"), dict) else {}
+        description = str(release.get("description") or interface.get("short_description") or "")
+        app_ids = release.get("app_ids") if isinstance(release.get("app_ids"), list) else []
+        remote_by_name[name] = {
+            "id": f"{name}@{CODEX_REMOTE_MARKETPLACE}",
+            "name": name,
+            "display_name": str(release.get("display_name") or name),
+            "marketplace": CODEX_REMOTE_MARKETPLACE,
+            "installed": False,
+            "version": str(release.get("version") or ""),
+            "real_version": str(release.get("version") or ""),
+            "enabled": None,
+            "always_on_tokens": None,
+            "components": _empty_codex_components(),
+            "components_source": "remote-catalog-summary",
+            "skill_count": len(skills),
+            "app_count": len(app_ids),
+            "installation_policy": str(item.get("installation_policy") or ""),
+            "description": description,
+            "description_key": register_translatable(cache, description, "plugin_desc"),
+            "note": "远程 catalog 可安装插件；完整组件在安装后从本地清单读取。",
+            "source_ref": {"url": ""},
+            "source": "desktop-remote-catalog",
+        }
+
+    cache_root = home / ".codex" / "plugins" / "cache" / CODEX_REMOTE_MARKETPLACE
+    cached: dict[str, tuple[float, Path, JsonDict]] = {}
+    if cache_root.is_dir():
+        for manifest_path in cache_root.glob("*/*/.codex-plugin/plugin.json"):
+            data = _read_json_file(manifest_path)
+            if not isinstance(data, dict):
+                continue
+            name = str(data.get("name") or "").strip()
+            if not name:
+                continue
+            candidate = (_path_mtime(manifest_path), manifest_path.parent.parent, data)
+            if name not in cached or candidate[0] > cached[name][0]:
+                cached[name] = candidate
+
+    for name in sorted(cached):
+        _, base, data = cached[name]
+        catalog_node = remote_by_name.get(name, {})
+        manifest = read_codex_plugin_manifest({"name": name, "source": {"path": str(base)}})
+        _register_component_descriptions(cache, manifest["components"])
+        description = str(catalog_node.get("description") or manifest["description"] or "")
+        real_version = str(manifest["real_version"] or data.get("version") or base.name)
+        remote_by_name[name] = {
+            "id": f"{name}@{CODEX_REMOTE_MARKETPLACE}",
+            "name": name,
+            "display_name": str(catalog_node.get("display_name") or name),
+            "marketplace": CODEX_REMOTE_MARKETPLACE,
+            "installed": True,
+            "version": real_version,
+            "real_version": real_version,
+            "enabled": None,
+            "install_state_source": "desktop-cache",
+            "always_on_tokens": None,
+            "components": manifest["components"],
+            "components_source": manifest["components_source"],
+            "skill_count": len(manifest["components"].get("skills", [])),
+            "app_count": len(manifest["components"].get("apps", [])),
+            "installation_policy": str(catalog_node.get("installation_policy") or ""),
+            "description": description,
+            "description_key": register_translatable(cache, description, "plugin_desc"),
+            "note": manifest["note"],
+            "source_ref": {"url": manifest["source_url"]},
+            "source": "desktop-cache",
+        }
+
+    return list(remote_by_name.values()), notes
+
+
+def merge_codex_remote_plugins(
+    section: JsonDict,
+    remote: list[JsonDict],
+    home: Path,
+) -> None:
+    """按完整插件 ID 合并远程记录；不同市场的同名插件完整保留。"""
+    if not remote:
+        return
+    remote_by_id = {
+        str(plugin.get("id") or ""): plugin
+        for plugin in remote
+        if isinstance(plugin, dict) and plugin.get("id")
+    }
+    remote_ids = set(remote_by_id)
+    section["plugins"] = [
+        plugin for plugin in section.get("plugins", []) if str(plugin.get("id") or "") not in remote_ids
+    ]
+    section["available_plugins"] = [
+        plugin
+        for plugin in section.get("available_plugins", [])
+        if str(plugin.get("id") or "") not in remote_ids
+    ]
+    for plugin in remote_by_id.values():
+        target = "plugins" if plugin.get("installed") else "available_plugins"
+        section[target].append(plugin)
+
+    market = next(
+        (
+            item
+            for item in section.get("marketplaces", [])
+            if item.get("name") == CODEX_REMOTE_MARKETPLACE
+        ),
+        None,
+    )
+    if market is None:
+        section.setdefault("marketplaces", []).append(
+            {
+                "name": CODEX_REMOTE_MARKETPLACE,
+                "repo": str(home / ".codex" / "cache" / "remote_plugin_catalog"),
+                "source_type": "desktop-remote-catalog",
+                "source": "filesystem",
+            }
+        )
 
 
 def read_plugin_component_descs(install_path: str) -> dict[str, str]:
@@ -1243,6 +1408,7 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
                     "enabled": item.get("enabled"),
                     "server_type": str(transport.get("type") or "unknown"),
                     "target": str(transport.get("command") or transport.get("url") or ""),
+                    "source_cwd": str(transport.get("cwd") or ""),
                     "auth_status": str(item.get("auth_status") or ""),
                     "source": "cli",
                 }
@@ -1250,6 +1416,17 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
 
         section["notes"].append(
             "Codex 无 `plugin details` 命令，插件自带技能与 token 成本未逐插件展开（已知缩减项）。"
+        )
+
+    # Codex Desktop 的远程插件不属于 `codex plugin list` 所列 marketplace snapshot：
+    # catalog 补带 Skills 的可装清单，本地缓存补安装证据与完整组件。CLI 缺失时也照常采集。
+    remote_plugins, remote_notes = collect_codex_desktop_remote_plugins(home, cache)
+    merge_codex_remote_plugins(section, remote_plugins, home)
+    section["notes"].extend(remote_notes)
+    if remote_plugins:
+        section["notes"].append(
+            "Codex Desktop 远程插件来自 remote_plugin_catalog（仅带 Skills）与 "
+            "openai-curated-remote 本地缓存；同名不同市场分别保留。"
         )
 
     # 技能：独立目录治理入口（用户级 + 项目级，逐级向上到 repo 根）
@@ -1274,22 +1451,64 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
 # 插件自带 MCP 归属 + 会话可见态对照
 # --------------------------------------------------------------------------- #
 def reassign_plugin_mcps(section: JsonDict) -> None:
-    """`mcp list` 里 `plugin:<插件>:<mcp>` 是插件自带的 MCP，不该混在「独立 MCP」里。
+    """把 `mcp list` 中能唯一证明归属的插件 MCP 从独立列表移入插件。
 
-    把它们从独立列表挪到对应插件的 components.mcp 下，并带上类型/状态/scope；
-    独立列表只留真正不属于任何插件的 MCP。找不到归属插件的仍当独立。
+    兼容旧式 `plugin:<插件>:<mcp>` 与新版裸服务名。裸名按已安装插件声明匹配；
+    重名时再用非敏感 cwd 和 target 缩小候选。无法唯一判定时仍当独立 MCP。
     """
     by_name: dict[str, JsonDict] = {}
+    declared: dict[str, list[JsonDict]] = {}
     for p in section.get("plugins", []):
         by_name.setdefault(str(p.get("name") or ""), p)
+        components = p.get("components") if isinstance(p.get("components"), dict) else {}
+        for component in components.get("mcp", []):
+            if isinstance(component, dict) and component.get("name"):
+                declared.setdefault(str(component["name"]), []).append(p)
     keep: list[JsonDict] = []
     for srv in section.get("mcp_servers", []):
-        m = re.match(r"^plugin:([^:]+):(.+)$", str(srv.get("name") or ""))
+        full_name = str(srv.get("name") or "")
+        m = re.match(r"^plugin:([^:]+):(.+)$", full_name)
         plug = by_name.get(m.group(1)) if m else None
-        if not m or not plug:
+        mcpname = m.group(2) if m else full_name
+        if not m and section.get("platform") == "codex":
+            candidates = declared.get(mcpname, [])
+            if len(candidates) == 1:
+                plug = candidates[0]
+            elif len(candidates) > 1:
+                cwd_parts = Path(str(srv.get("source_cwd") or "")).parts
+                cwd_matches = [
+                    candidate
+                    for candidate in candidates
+                    if (
+                        str(candidate.get("marketplace") or ""),
+                        str(candidate.get("name") or ""),
+                    )
+                    in zip(cwd_parts, cwd_parts[1:])
+                ]
+                if len(cwd_matches) == 1:
+                    plug = cwd_matches[0]
+                else:
+                    target_value = str(srv.get("target") or "")
+                    target_pool = cwd_matches or candidates
+                    target_matches = [
+                        candidate
+                        for candidate in target_pool
+                        if target_value
+                        and any(
+                            isinstance(component, dict)
+                            and component.get("name") == mcpname
+                            and component.get("target") == target_value
+                            for component in (
+                                candidate.get("components", {}).get("mcp", [])
+                                if isinstance(candidate.get("components"), dict)
+                                else []
+                            )
+                        )
+                    ]
+                    plug = target_matches[0] if len(target_matches) == 1 else None
+        if not plug:
             keep.append(srv)
             continue
-        mcpname = m.group(2)
         comps = plug.setdefault("components", {"skills": [], "agents": [], "hooks": [], "mcp": [], "lsp": []})
         mcps = comps.setdefault("mcp", [])
         target = next((c for c in mcps if c.get("name") == mcpname), None)
@@ -1299,7 +1518,7 @@ def reassign_plugin_mcps(section: JsonDict) -> None:
         target["server_type"] = srv.get("server_type", "")
         target["status"] = srv.get("status") or srv.get("auth_status") or ""
         target["scope"] = srv.get("scope", "")
-        target["full_name"] = str(srv.get("name") or "")  # 供会话可见匹配
+        target["full_name"] = full_name  # 供会话可见匹配
     section["mcp_servers"] = keep
 
 
@@ -1479,14 +1698,15 @@ def build_rankings(platforms: dict[str, JsonDict]) -> JsonDict:
 
 def build_boundaries() -> list[JsonDict]:
     return [
-        {"scope": "codex", "limit": "Codex 无 plugin details 命令，插件组件来自本地清单，全程无 token 成本，仅列清单。"},
+        {"scope": "codex", "limit": "Codex 无 plugin details 命令：CLI 插件和桌面远程已装插件的组件来自本地清单，全程无 token 成本。"},
+        {"scope": "codex-desktop", "limit": "Codex Desktop 远程市场只收录 catalog 中带 Skills 的插件；本地 openai-curated-remote 缓存可证明已安装，但不能独立证明启用状态。同名 CLI/远程插件按市场分别保留。"},
         {"scope": "mcp", "limit": "MCP 服务器在两平台都无 token 成本数据，按数量/列表展示，不排成本。"},
-        {"scope": "available", "limit": "未安装插件无法展开完整 details（CLI 报 not found），只提供中文用途 + 热度 + 源码链接，成本装后可见。"},
+        {"scope": "available", "limit": "未安装插件无法展开本地组件：CLI 可装项提供清单可得字段；Codex 远程可装项提供 catalog 完整用途与 skill/app 数量摘要。"},
         {"scope": "claude-hooks", "limit": "Hooks 为 harness-only，不进模型上下文，无 token 成本。"},
         {"scope": "claude-lsp", "limit": "LSP 为 out-of-process 工具，不进模型上下文，无 token 成本。"},
         {"scope": "skills-dir", "limit": "技能经目录扫描，未覆盖 enterprise/managed 与子目录按需加载的 nested 技能。"},
         {"scope": "cloud-skills", "limit": "claude.ai / 桌面版的账号级技能为云端管理、不落本地文件（本地只有按会话临时缓存）。本报告只审计 Claude Code（本地 ~/.claude/skills）与 Codex，不覆盖云端 surface 的技能；技能官方设计为按 surface 隔离、不跨端同步。"},
-        {"scope": "ui-surface", "limit": "本报告不审计宿主应用 UI 面：Claude Desktop、Codex Desktop、claude.ai、Codex App 的账号级连接器、产品开关、实验功能、窗口状态、授权弹窗和运行时临时工具，若未通过 CLI、本地插件清单、MCP 清单、技能目录或会话快照暴露，可能不会出现在报告中。"},
+        {"scope": "ui-surface", "limit": "除 Codex Desktop 远程技能 catalog/缓存外，本报告不审计宿主应用 UI 面：账号级实时启用开关、纯 App catalog、产品开关、实验功能、窗口状态、授权弹窗和运行时临时工具，若未通过既有数据源暴露，可能不会出现在报告中。"},
     ]
 
 
@@ -1857,7 +2077,10 @@ def session_snapshot_template() -> JsonDict:
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="用官方 CLI 治理入口审计 Claude Code 与 Codex 的插件 / MCP / 市场源，技能走目录。"
+        description=(
+            "用官方 CLI 治理入口审计 Claude Code 与 Codex 的插件 / MCP / 市场源，"
+            "补充 Codex Desktop 远程技能 catalog / 缓存，独立技能走目录。"
+        )
     )
     parser.add_argument("--home", type=Path, default=Path.home(), help="要检查的 home 目录（默认当前用户）。")
     parser.add_argument("--cwd", type=Path, default=None, help="项目级技能扫描的起始目录（默认当前工作目录）。")
