@@ -489,5 +489,114 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
         )
 
 
+class PluginComponentDescTests(unittest.TestCase):
+    """read_plugin_component_descs：details 只给组件名，描述得从插件目录里翻出来。"""
+
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.root = Path(self.tempdir.name)
+
+    def write_md(self, rel: str, description: str, name: str | None = None) -> None:
+        path = self.root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        front = [f"name: {name}"] if name else []
+        front.append(f"description: {description}")
+        path.write_text("---\n" + "\n".join(front) + "\n---\n正文\n", encoding="utf-8")
+
+    def write_manifest(self, **fields: object) -> None:
+        write_json(self.root / ".claude-plugin" / "plugin.json", {"name": "demo", **fields})
+
+    def test_default_skills_dir_scans_one_level(self) -> None:
+        """官方默认位置是 `skills/<name>/SKILL.md` 一层，分层放的不会被自动发现。"""
+        self.write_md("skills/flat/SKILL.md", "一层技能")
+        self.write_md("skills/engineering/tdd/SKILL.md", "分层技能")
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"]["flat"], "一层技能")
+        self.assertNotIn("tdd", descs["skills"])
+
+    def test_manifest_skills_add_to_default_scan(self) -> None:
+        """`skills` 字段是追加语义：默认目录照扫，manifest 列出的一并加载。"""
+        self.write_md("skills/flat/SKILL.md", "一层技能")
+        self.write_md("skills/engineering/tdd/SKILL.md", "测试驱动开发")
+        self.write_md("skills/deprecated/tdd/SKILL.md", "废弃版")
+        self.write_manifest(skills=["./skills/engineering/tdd"])
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"]["flat"], "一层技能")
+        # 只有 manifest 点名的那个被加载，同名的 deprecated 版不参与
+        self.assertEqual(descs["skills"]["tdd"], "测试驱动开发")
+
+    def test_manifest_skills_can_point_at_parent_dir(self) -> None:
+        """manifest 条目也可以指向装着若干技能的父目录。"""
+        self.write_md("skills/engineering/tdd/SKILL.md", "测试驱动开发")
+        self.write_md("skills/engineering/triage/SKILL.md", "分诊")
+        self.write_manifest(skills="./skills/engineering")
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"]["tdd"], "测试驱动开发")
+        self.assertEqual(descs["skills"]["triage"], "分诊")
+
+    def test_manifest_paths_outside_plugin_are_ignored(self) -> None:
+        self.write_md("skills/ok/SKILL.md", "正常技能")
+        self.write_manifest(skills=["../外面", "/etc"])
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"], {"ok": "正常技能"})
+
+    def test_commands_count_as_skills(self) -> None:
+        """`claude plugin details` 把 commands 也算进 Skills 一栏。"""
+        self.write_md("commands/review.md", "审查改动")
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"]["review"], "审查改动")
+        # commands 无 frontmatter name 时不能拿父目录名建键
+        self.assertNotIn("commands", descs["skills"])
+
+    def test_manifest_commands_replace_default_dir(self) -> None:
+        """`commands` 是替换语义：manifest 写了就不再扫默认 commands/。"""
+        self.write_md("commands/review.md", "默认目录里的")
+        self.write_md("extras/deploy.md", "自定义路径里的")
+        self.write_manifest(commands=["./extras/deploy.md"])
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"], {"deploy": "自定义路径里的"})
+
+    def test_same_name_across_component_types_not_mixed(self) -> None:
+        """同名的 skill 与 agent 各归各的，混表会让 agent 领到 skill 的描述。"""
+        self.write_md("skills/rescue/SKILL.md", "技能版救援")
+        self.write_md("agents/rescue.md", "Agent 版救援")
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"]["rescue"], "技能版救援")
+        self.assertEqual(descs["agents"]["rescue"], "Agent 版救援")
+
+    def test_unlisted_sibling_skill_never_wins(self) -> None:
+        """真实布局：deprecated/tdd 与 engineering/tdd 同深度，只有 manifest 点名的算数。
+
+        递归扫描时按字母序 deprecated 会抢先占位，这正是这次要根治的错配。
+        """
+        self.write_md("skills/deprecated/tdd/SKILL.md", "废弃版")
+        self.write_md("skills/engineering/tdd/SKILL.md", "正牌版")
+        self.write_manifest(skills=["./skills/engineering/tdd"])
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"]["tdd"], "正牌版")
+
+    def test_explicit_skill_name_also_indexed(self) -> None:
+        """SKILL.md 的 frontmatter name 与目录名不同时，两个键都能查到。"""
+        self.write_md("skills/dir-name/SKILL.md", "带前缀的技能", name="plugin:dir-name")
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"]["dir-name"], "带前缀的技能")
+        self.assertEqual(descs["skills"]["plugin:dir-name"], "带前缀的技能")
+
+    def test_dependency_trees_are_not_scanned(self) -> None:
+        """依赖树 / 版本库里的同名组件文件不该被当成插件组件。"""
+        self.write_md("skills/node_modules/pkg/tdd/SKILL.md", "依赖树里的假货")
+        self.write_md("skills/.git/tdd/SKILL.md", "版本库里的假货")
+        self.write_md("node_modules/pkg/skills/tdd/SKILL.md", "根依赖树里的假货")
+        descs = doctor.read_plugin_component_descs(str(self.root))
+        self.assertEqual(descs["skills"], {})
+
+    def test_missing_path_returns_empty_groups(self) -> None:
+        descs = doctor.read_plugin_component_descs("")
+        self.assertEqual(descs, {"skills": {}, "agents": {}})
+        descs = doctor.read_plugin_component_descs(str(self.root / "不存在"))
+        self.assertEqual(descs, {"skills": {}, "agents": {}})
+
+
 if __name__ == "__main__":
     unittest.main()
