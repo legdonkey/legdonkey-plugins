@@ -1115,34 +1115,135 @@ def merge_codex_remote_plugins(
         )
 
 
-def read_plugin_component_descs(install_path: str) -> dict[str, str]:
-    """从插件本地目录读各组件描述：`claude plugin details` 只给组件名，描述写在
-    `<installPath>/skills/<name>/SKILL.md` 与 `<installPath>/agents/<name>.md` 的 frontmatter 里。
+def _manifest_paths(base: Path, key: str) -> list[Path]:
+    """取 `.claude-plugin/plugin.json` 里 `key` 声明的组件路径（字符串或数组）。
 
-    返回 名字 -> 描述 的映射（同时按 frontmatter name 与目录/文件名建键，便于匹配）。绝不抛。
+    官方约定路径以 `./` 开头且相对插件根；越界的（`../`、绝对路径）一律丢掉。绝不抛。
     """
-    out: dict[str, str] = {}
+    manifest = base / ".claude-plugin" / "plugin.json"
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8", errors="replace"))
+    except (OSError, ValueError):
+        return []
+    raw = data.get(key) if isinstance(data, dict) else None
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list):
+        return []
+    out: list[Path] = []
+    for item in raw:
+        if not isinstance(item, str) or not item:
+            continue
+        target = (base / item).resolve()
+        try:  # 只认插件目录内的路径
+            target.relative_to(base.resolve())
+        except ValueError:
+            continue
+        out.append(target)
+    return out
+
+
+def _skill_files(base: Path) -> list[Path]:
+    """按 Claude Code 的加载规则列出插件的 SKILL.md。
+
+    官方规则：默认位置 `skills/` 扫的是 `<name>/SKILL.md` **一层**；manifest 的 `skills`
+    字段是**追加**（"The default skills/ directory is always scanned, and directories listed
+    in skills are loaded alongside it"）。别自作主张递归——mattpocock-skills 那样把技能按
+    `skills/<分类>/<name>/` 分层的插件，没列进 manifest 的 `deprecated/`、`in-progress/`
+    压根不会被 Claude Code 加载，递归扫进来只会让同名技能抢错描述。
+    """
+    files: list[Path] = []
+    seen: set[Path] = set()
+
+    def add(f: Path) -> None:
+        if f.is_file() and f not in seen:
+            seen.add(f)
+            files.append(f)
+
+    def scan_one_level(d: Path) -> None:
+        try:
+            for child in sorted(d.iterdir()):
+                if child.is_dir():
+                    add(child / "SKILL.md")
+        except OSError:
+            return
+
+    default_dir = base / "skills"
+    if default_dir.is_dir():
+        scan_one_level(default_dir)
+    for target in _manifest_paths(base, "skills"):
+        # manifest 条目可以直接指向含 SKILL.md 的技能目录，也可以指向装技能的父目录
+        if (target / "SKILL.md").is_file():
+            add(target / "SKILL.md")
+        elif target.is_dir():
+            scan_one_level(target)
+    return files
+
+
+def _flat_md_files(base: Path, subdir: str, manifest_key: str) -> list[Path]:
+    """列出 `commands/` 或 `agents/` 下的扁平 Markdown。
+
+    这两个字段是**替换**语义（"Replaces the default: commands, agents"），manifest 写了就
+    不再扫默认目录。绝不抛。
+    """
+    targets = _manifest_paths(base, manifest_key)
+    if not targets:
+        targets = [base / subdir]
+    files: list[Path] = []
+    seen: set[Path] = set()
+    for target in targets:
+        if target.is_file() and target.suffix == ".md" and target not in seen:
+            seen.add(target)
+            files.append(target)
+            continue
+        try:
+            for child in sorted(target.iterdir()):
+                if child.is_file() and child.suffix == ".md" and child not in seen:
+                    seen.add(child)
+                    files.append(child)
+        except OSError:
+            continue
+    return files
+
+
+def read_plugin_component_descs(install_path: str) -> dict[str, dict[str, str]]:
+    """从插件本地目录读各组件描述：`claude plugin details` 只给组件名，描述写在各组件
+    Markdown 的 frontmatter 里。
+
+    扫描范围严格对齐 Claude Code 自己的加载规则（见 _skill_files / _flat_md_files）——
+    只有真正会被加载的组件才有描述可言，扫多了反而让没装的同名组件抢答。
+
+    返回 `{"skills": {名字: 描述}, "agents": {...}}`——**按组件类型分开**，同名的 skill 与
+    agent 各归各的，混成一张表会让 agent 领到 skill 的描述。commands 并入 skills，因为
+    details 就是这么归类的。绝不抛。
+    """
+    out: dict[str, dict[str, str]] = {"skills": {}, "agents": {}}
     if not install_path:
         return out
     base = Path(install_path)
-    sdir = base / "skills"
-    if sdir.is_dir():
-        for child in sorted(sdir.iterdir()):
-            f = child / "SKILL.md"
-            if f.exists():
-                header = parse_skill_header(f)
-                desc = str(header.get("description") or "")
-                if desc:
-                    out.setdefault(str(header.get("name") or child.name), desc)
-                    out.setdefault(child.name, desc)
-    adir = base / "agents"
-    if adir.is_dir():
-        for f in sorted(adir.glob("*.md")):
-            header = parse_skill_header(f)
-            desc = str(header.get("description") or "")
-            if desc:
-                out.setdefault(str(header.get("name") or f.stem), desc)
-                out.setdefault(f.stem, desc)
+    if not base.is_dir():
+        return out
+
+    def record(group: str, f: Path, name: str, use_header_name: bool) -> None:
+        header = parse_skill_header(f)
+        desc = str(header.get("description") or "")
+        if not desc:
+            return
+        out[group].setdefault(name, desc)
+        if use_header_name:
+            # 只有 SKILL.md 的 frontmatter name 可信：官方允许它覆盖目录名（"the frontmatter
+            # name field in SKILL.md determines the skill's invocation name"）。commands/agents
+            # 无 name 时 parse_skill_header 会回落成父目录名，那不是组件名，所以只用文件名。
+            header_name = str(header.get("name") or "")
+            if header_name and header_name != name:
+                out[group].setdefault(header_name, desc)
+
+    for f in _skill_files(base):
+        record("skills", f, f.parent.name, use_header_name=True)
+    for f in _flat_md_files(base, "commands", "commands"):
+        record("skills", f, f.stem, use_header_name=False)
+    for f in _flat_md_files(base, "agents", "agents"):
+        record("agents", f, f.stem, use_header_name=False)
     return out
 
 
@@ -1209,7 +1310,7 @@ def collect_claude(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
                 descs = read_plugin_component_descs(entry["source_ref"].get("installPath", ""))
                 for grp in ("skills", "agents"):
                     for comp in entry["components"].get(grp, []):
-                        d = descs.get(comp.get("name", ""))
+                        d = descs[grp].get(comp.get("name", ""))
                         if d:
                             comp["description"] = d
                 _register_component_descriptions(cache, entry["components"])
