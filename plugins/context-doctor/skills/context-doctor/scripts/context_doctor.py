@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""跨平台上下文审计：用官方 CLI 治理入口盘点 Claude Code 与 Codex 的插件 / MCP / 市场源，
-补充 Codex Desktop 远程技能 catalog / 缓存；独立技能走目录治理入口，并可对照会话可见态。
+"""跨平台上下文审计：用官方治理入口盘点 Claude Code 与 Codex 的插件 / MCP / 市场源 / 技能。
 
-设计原则：CLI 优先。Claude 插件及两平台市场/MCP 调官方命令；Codex Desktop 远程插件
-不在 marketplace snapshot CLI 的完整覆盖内，故读取本地 remote catalog 与安装缓存补齐。
-独立技能没有任何 CLI 列举命令，按官方文件式治理方式扫描技能目录。
+设计原则：CLI 优先。Codex 的 OpenAI 公共目录按 CLI/Desktop 投影分开；其他本地
+marketplace、插件、MCP 与文件技能归共享层，并可对照当前会话可见态。
 """
 
 from __future__ import annotations
@@ -36,6 +34,7 @@ DETAIL_TIMEOUT = 60
 # `mcp get` 要做联网健康检查、单次可能十几秒；给较宽上限并配合失败重试，确保类型/scope 拿得到。
 MCP_GET_TIMEOUT = 35
 MAX_WORKERS = 8
+CODEX_CLI_CURATED_MARKETPLACE = "openai-curated"
 CODEX_REMOTE_MARKETPLACE = "openai-curated-remote"
 # 插件 always-on token 超过此阈值，提示「开销偏大」。
 TOKEN_HEAVY_THRESHOLD = 1000
@@ -45,8 +44,8 @@ GITHUB_STARS_GRAPHQL_BATCH = 40
 GITHUB_STARS_TTL_SECONDS = 7 * 24 * 60 * 60
 _GITHUB_TOKEN: str | None = None
 
-# 当前 inventory 的 schema 版本：2 = 层级化（市场→插件→组件）+ 排行 + 翻译键。
-SCHEMA_VERSION = 2
+# 当前 inventory 的 schema 版本：6 = Desktop 公共目录已安装插件按默认启用记录。
+SCHEMA_VERSION = 6
 
 
 # --------------------------------------------------------------------------- #
@@ -853,10 +852,11 @@ def _read_json_file(path: Path) -> Any:
         return None
 
 
-def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
+def read_codex_plugin_manifest(item: JsonDict, home: Path | None = None) -> JsonDict:
     """从 Codex 插件本地目录手搓 details 等价物（Codex 无 plugin details 命令）。
 
-    顺 `source.path` 读插件目录里的约定文件：
+    已安装插件优先读 `~/.codex/plugins/cache/<市场>/<插件>/<版本>`，否则回退
+    `source.path`，再读取目录里的约定文件：
       - `.codex-plugin/plugin.json` → 真 version / description / repository / homepage
       - `skills/*/SKILL.md` → 技能（拼 <plugin>:<skill>，带描述）
       - `.mcp.json` → 插件自带 MCP（只取名字 + command/url 作类型/目标，绝不读 env/args 防泄密）
@@ -874,8 +874,20 @@ def read_codex_plugin_manifest(item: JsonDict) -> JsonDict:
     }
     src = item.get("source") if isinstance(item.get("source"), dict) else {}
     path_str = str(src.get("path") or "")
+    if home is not None and item.get("installed") is True:
+        cached = (
+            home
+            / ".codex"
+            / "plugins"
+            / "cache"
+            / str(item.get("marketplaceName") or "")
+            / name
+            / str(item.get("version") or "")
+        )
+        if cached.is_dir():
+            path_str = str(cached)
     if not path_str:
-        result["note"] = "无 source.path，未能读取插件清单。"
+        result["note"] = "未找到安装缓存或 source.path，未能读取插件清单。"
         return result
     base = Path(path_str)
 
@@ -981,7 +993,7 @@ def collect_codex_desktop_remote_plugins(
     """采集 Codex Desktop 的远程技能插件。
 
     catalog 只提供带 Skills 的可安装清单；本地 openai-curated-remote 缓存提供安装证据
-    与完整组件。缓存只证明已安装，不证明启用，因此 enabled 固定为 None。
+    与完整组件。Desktop 公共目录没有独立启用开关，因此已安装插件按默认启用记录。
     """
     notes: list[str] = []
     catalog = _latest_valid_codex_remote_catalog(home)
@@ -1052,7 +1064,8 @@ def collect_codex_desktop_remote_plugins(
             "installed": True,
             "version": real_version,
             "real_version": real_version,
-            "enabled": None,
+            "enabled": True,
+            "enablement_source": "desktop-public-default",
             "install_state_source": "desktop-cache",
             "always_on_tokens": None,
             "components": manifest["components"],
@@ -1108,6 +1121,7 @@ def merge_codex_remote_plugins(
         section.setdefault("marketplaces", []).append(
             {
                 "name": CODEX_REMOTE_MARKETPLACE,
+                "display_name": "OpenAI 公共目录",
                 "repo": str(home / ".codex" / "cache" / "remote_plugin_catalog"),
                 "source_type": "desktop-remote-catalog",
                 "source": "filesystem",
@@ -1423,10 +1437,11 @@ def parse_codex_marketplace_json(data: JsonDict) -> list[JsonDict]:
     return rows
 
 
-def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
-    section: JsonDict = {
-        "platform": "codex",
-        "label": "Codex",
+def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> dict[str, JsonDict]:
+    cli_section: JsonDict = {
+        "platform": "codex_cli",
+        "surface": "cli",
+        "label": "Codex CLI",
         "cli_present": cli_available("codex"),
         "supports_token_cost": False,  # Codex 无 token 计算，组件只列清单
         "plugins": [],
@@ -1436,23 +1451,55 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
         "skills": [],
         "notes": [],
     }
-    if not section["cli_present"]:
-        section["notes"].append("未检测到 `codex` CLI，跳过 Codex 的 CLI 审计。")
+    desktop_section: JsonDict = {
+        "platform": "codex_desktop",
+        "surface": "desktop",
+        "label": "Codex Desktop",
+        "cli_present": None,
+        "supports_token_cost": False,
+        "plugins": [],
+        "available_plugins": [],
+        "marketplaces": [],
+        "mcp_servers": [],
+        "skills": [],
+        "notes": [],
+    }
+    shared_section: JsonDict = {
+        "platform": "codex_shared",
+        "surface": "shared",
+        "label": "Codex 本地共享",
+        "cli_present": None,
+        "supports_token_cost": False,
+        "plugins": [],
+        "available_plugins": [],
+        "marketplaces": [],
+        "mcp_servers": [],
+        "skills": [],
+        "notes": [],
+    }
+    if not cli_section["cli_present"]:
+        cli_section["notes"].append("未检测到 `codex` CLI，跳过 Codex CLI 审计。")
 
-    if section["cli_present"]:
+    if cli_section["cli_present"]:
         installed, available = plugin_lists(
             run_cli_json(["codex", "plugin", "list", "--json", "--available"])
         )
         for item in installed:
             if not isinstance(item, dict):
                 continue
-            manifest = read_codex_plugin_manifest(item)
+            manifest = read_codex_plugin_manifest(item, home)
             _register_component_descriptions(cache, manifest["components"])
-            section["plugins"].append(
+            marketplace = str(item.get("marketplaceName") or "")
+            target = (
+                cli_section
+                if marketplace == CODEX_CLI_CURATED_MARKETPLACE
+                else shared_section
+            )
+            target["plugins"].append(
                 {
                     "id": str(item.get("pluginId") or item.get("name") or ""),
                     "name": str(item.get("name") or ""),
-                    "marketplace": str(item.get("marketplaceName") or ""),
+                    "marketplace": marketplace,
                     "installed": True,
                     "version": str(item.get("version") or ""),
                     "real_version": manifest["real_version"],
@@ -1470,13 +1517,19 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
         for item in available:
             if not isinstance(item, dict):
                 continue
-            manifest = read_codex_plugin_manifest(item)
+            manifest = read_codex_plugin_manifest(item, home)
             # 可装插件只译「插件级用途」供浏览，不译每个组件描述（177 插件 × 多技能会让待译量爆炸）。
-            section["available_plugins"].append(
+            marketplace = str(item.get("marketplaceName") or "")
+            target = (
+                cli_section
+                if marketplace == CODEX_CLI_CURATED_MARKETPLACE
+                else shared_section
+            )
+            target["available_plugins"].append(
                 {
                     "id": str(item.get("pluginId") or item.get("name") or ""),
                     "name": str(item.get("name") or ""),
-                    "marketplace": str(item.get("marketplaceName") or ""),
+                    "marketplace": marketplace,
                     "installed": False,
                     "version": str(item.get("version") or ""),
                     "real_version": manifest["real_version"],
@@ -1494,7 +1547,15 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
         # 市场源（--json 保留真实源类型）
         mdata = run_cli_json(["codex", "plugin", "marketplace", "list", "--json"])
         if isinstance(mdata, dict):
-            section["marketplaces"] = parse_codex_marketplace_json(mdata)
+            for marketplace in parse_codex_marketplace_json(mdata):
+                target = (
+                    cli_section
+                    if marketplace.get("name") == CODEX_CLI_CURATED_MARKETPLACE
+                    else shared_section
+                )
+                if marketplace.get("name") == CODEX_CLI_CURATED_MARKETPLACE:
+                    marketplace["display_name"] = "OpenAI 公共目录"
+                target["marketplaces"].append(marketplace)
 
         # MCP（有 --json）
         # codex mcp list --json 会做健康检查、约十几秒，偶发超时返回空：放宽超时 + 重试
@@ -1503,7 +1564,7 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
             if not isinstance(item, dict):
                 continue
             transport = item.get("transport") if isinstance(item.get("transport"), dict) else {}
-            section["mcp_servers"].append(
+            shared_section["mcp_servers"].append(
                 {
                     "name": str(item.get("name") or ""),
                     "enabled": item.get("enabled"),
@@ -1515,22 +1576,22 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
                 }
             )
 
-        section["notes"].append(
-            "Codex 无 `plugin details` 命令，插件自带技能与 token 成本未逐插件展开（已知缩减项）。"
+        shared_section["notes"].append(
+            "Codex 无 `plugin details` 命令，插件组件从本地清单展开且无 token 成本。"
         )
 
-    # Codex Desktop 的远程插件不属于 `codex plugin list` 所列 marketplace snapshot：
-    # catalog 补带 Skills 的可装清单，本地缓存补安装证据与完整组件。CLI 缺失时也照常采集。
+    # Codex Desktop 的公共托管目录使用独立投影，不并入 CLI 的 openai-curated snapshot。
+    # catalog 补带 Skills 的可装清单，本地缓存补安装证据与完整组件。
     remote_plugins, remote_notes = collect_codex_desktop_remote_plugins(home, cache)
-    merge_codex_remote_plugins(section, remote_plugins, home)
-    section["notes"].extend(remote_notes)
+    merge_codex_remote_plugins(desktop_section, remote_plugins, home)
+    desktop_section["notes"].extend(remote_notes)
     if remote_plugins:
-        section["notes"].append(
+        desktop_section["notes"].append(
             "Codex Desktop 远程插件来自 remote_plugin_catalog（仅带 Skills）与 "
-            "openai-curated-remote 本地缓存；同名不同市场分别保留。"
+            "openai-curated-remote 本地缓存；公共目录没有独立开关，已安装插件按默认启用记录。"
         )
 
-    # 技能：独立目录治理入口（用户级 + 项目级，逐级向上到 repo 根）
+    # 非 curated marketplace、插件、MCP 与独立文件技能由本机 CLI/Desktop 共用。
     roots = [
         (home / ".codex" / "skills" / ".system", "codex-system"),
         (home / ".codex" / "skills", "codex"),
@@ -1538,14 +1599,18 @@ def collect_codex(home: Path, cwd: Path, cache: JsonDict) -> JsonDict:
     ]
     roots.extend((d, "codex-project") for d in project_skill_dirs(cwd, Path(".codex") / "skills"))
     roots.extend((d, "agents-project") for d in project_skill_dirs(cwd, Path(".agents") / "skills"))
-    section["skills"] = collect_skills_from_dirs(roots)
-    section["notes"].append(
-        "技能来自目录扫描：Codex 没有列举技能的 CLI，目录即官方治理入口。"
+    shared_section["skills"] = collect_skills_from_dirs(roots)
+    shared_section["notes"].append(
+        "除 OpenAI 公共目录的 surface 投影外，本地 marketplace、插件、MCP 与独立技能由 Codex CLI/Desktop 共用。"
     )
-    section["notes"].append(
+    shared_section["notes"].append(
         "App / 连接器全量审计在 CLI 模式下暂不覆盖（Codex 无对应 list --json 命令）。"
     )
-    return section
+    return {
+        "codex_cli": cli_section,
+        "codex_desktop": desktop_section,
+        "codex_shared": shared_section,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -1671,6 +1736,23 @@ def clear_session_visibility(section: JsonDict) -> None:
                 c["visible_in_session"] = None
 
 
+def section_matches_session(section: JsonDict, session_snapshot: JsonDict) -> bool:
+    """判断会话快照属于哪个展示域；缺少 Codex surface 时不猜 CLI/Desktop。"""
+    host_platform = str(session_snapshot.get("host_platform") or "")
+    platform = str(section.get("platform") or "")
+    if platform == "claude":
+        return host_platform == "claude"
+    if platform == "codex_shared":
+        return host_platform == "codex"
+    if platform in ("codex_cli", "codex_desktop"):
+        if host_platform != "codex":
+            return False
+        host_surface = str(session_snapshot.get("host_surface") or "")
+        section_surface = str(section.get("surface") or platform.removeprefix("codex_"))
+        return bool(host_surface) and host_surface == section_surface
+    return platform == host_platform
+
+
 # --------------------------------------------------------------------------- #
 # 卫生建议
 # --------------------------------------------------------------------------- #
@@ -1718,9 +1800,7 @@ def build_recommendations(sections: list[JsonDict]) -> list[JsonDict]:
                     }
                 )
 
-        if not section["cli_present"]:
-            continue
-        # 同名插件多来源
+        # 同名插件只在当前 surface 内比较；CLI/Desktop 已拆成独立 section。
         for name, ids in duplicate_names(section["plugins"]).items():
             recs.append(
                 {
@@ -1740,12 +1820,16 @@ def build_recommendations(sections: list[JsonDict]) -> list[JsonDict]:
                         "platform": platform,
                         "area": "plugin",
                         "subject": plugin.get("id") or plugin.get("name"),
-                        "reason": "已安装但当前禁用",
-                        "action": "确认不再需要可卸载以省磁盘与 always-on token",
+                        "reason": "已安装但当前禁用，不占用新会话上下文",
+                        "action": "确认不再需要时可卸载以释放磁盘空间",
                     }
                 )
             tokens = plugin.get("always_on_tokens")
-            if isinstance(tokens, int) and tokens >= TOKEN_HEAVY_THRESHOLD:
+            if (
+                plugin.get("enabled") is True
+                and isinstance(tokens, int)
+                and tokens >= TOKEN_HEAVY_THRESHOLD
+            ):
                 recs.append(
                     {
                         "severity": "review",
@@ -1762,8 +1846,18 @@ def build_recommendations(sections: list[JsonDict]) -> list[JsonDict]:
 # --------------------------------------------------------------------------- #
 # 层级化 / 排行 / 边界
 # --------------------------------------------------------------------------- #
+def active_always_on_tokens(section: JsonDict) -> int:
+    """返回当前明确启用插件的 always-on token 预计总量。"""
+    return sum(
+        tokens
+        for plugin in section.get("plugins", [])
+        if plugin.get("enabled") is True
+        and isinstance((tokens := plugin.get("always_on_tokens")), int)
+    )
+
+
 def build_rankings(platforms: dict[str, JsonDict]) -> JsonDict:
-    """成本排行：只遍历 supports_token_cost 平台（Claude）。Codex 无 token，不进榜。"""
+    """当前成本排行：只计明确启用且支持 token 成本的平台插件。"""
     skills: list[JsonDict] = []
     agents: list[JsonDict] = []
     plugins: list[JsonDict] = []
@@ -1772,6 +1866,8 @@ def build_rankings(platforms: dict[str, JsonDict]) -> JsonDict:
             continue
         platform = section["platform"]
         for plugin in section.get("plugins", []):
+            if plugin.get("enabled") is not True:
+                continue
             pid = plugin.get("id") or plugin.get("name")
             tot = plugin.get("always_on_tokens")
             if isinstance(tot, int):
@@ -1793,21 +1889,23 @@ def build_rankings(platforms: dict[str, JsonDict]) -> JsonDict:
         "top_skills_by_cost": sorted(skills, key=by_invoke, reverse=True),
         "top_agents_by_cost": sorted(agents, key=by_invoke, reverse=True),
         "top_plugins_by_cost": sorted(plugins, key=lambda x: x.get("always_on_tokens") or 0, reverse=True),
-        "basis": "claude_plugin_details_per_component（on-invoke 优先，回退 always-on）",
+        "basis": "仅明确启用插件；claude_plugin_details_per_component（on-invoke 优先，回退 always-on）",
     }
 
 
 def build_boundaries() -> list[JsonDict]:
     return [
-        {"scope": "codex", "limit": "Codex 无 plugin details 命令：CLI 插件和桌面远程已装插件的组件来自本地清单，全程无 token 成本。"},
-        {"scope": "codex-desktop", "limit": "Codex Desktop 远程市场只收录 catalog 中带 Skills 的插件；本地 openai-curated-remote 缓存可证明已安装，但不能独立证明启用状态。同名 CLI/远程插件按市场分别保留。"},
+        {"scope": "claude-token-cost", "limit": "`claude plugin details` 返回启用后的预计 token 成本；当前总量、排行与高开销建议只计算 enabled=true，禁用或启用未知的插件不计入。"},
+        {"scope": "codex-public-directory", "limit": "OpenAI 公共插件目录在本机表现为 CLI 的 openai-curated snapshot 与 Desktop 的 openai-curated-remote catalog/cache；两者分 surface 展示，不按同名判重，版本可能不同。Desktop 公共目录没有独立开关，已安装插件按默认启用记录。"},
+        {"scope": "codex-desktop", "limit": "Codex Desktop 公共目录只收录 catalog 中带 Skills 的插件；缓存可证明安装包存在，但不能独立证明启用状态。"},
+        {"scope": "codex-shared", "limit": "除 OpenAI 公共目录的两个 surface 投影外，CLI 列出的本地 marketplace、插件、MCP，以及文件技能作为 CLI/Desktop 共享层单列；组件是否受具体 surface 支持仍以会话可见态为准。"},
         {"scope": "mcp", "limit": "MCP 服务器在两平台都无 token 成本数据，按数量/列表展示，不排成本。"},
-        {"scope": "available", "limit": "未安装插件无法展开本地组件：CLI 可装项提供清单可得字段；Codex 远程可装项提供 catalog 完整用途与 skill/app 数量摘要。"},
+        {"scope": "available", "limit": "未安装插件无法展开本地组件：CLI 公共目录与共享 marketplace 可装项提供清单可得字段；Desktop 公共目录可装项提供 catalog 完整用途与 skill/app 数量摘要。"},
         {"scope": "claude-hooks", "limit": "Hooks 为 harness-only，不进模型上下文，无 token 成本。"},
         {"scope": "claude-lsp", "limit": "LSP 为 out-of-process 工具，不进模型上下文，无 token 成本。"},
         {"scope": "skills-dir", "limit": "技能经目录扫描，未覆盖 enterprise/managed 与子目录按需加载的 nested 技能。"},
-        {"scope": "cloud-skills", "limit": "claude.ai / 桌面版的账号级技能为云端管理、不落本地文件（本地只有按会话临时缓存）。本报告只审计 Claude Code（本地 ~/.claude/skills）与 Codex，不覆盖云端 surface 的技能；技能官方设计为按 surface 隔离、不跨端同步。"},
-        {"scope": "ui-surface", "limit": "除 Codex Desktop 远程技能 catalog/缓存外，本报告不审计宿主应用 UI 面：账号级实时启用开关、纯 App catalog、产品开关、实验功能、窗口状态、授权弹窗和运行时临时工具，若未通过既有数据源暴露，可能不会出现在报告中。"},
+        {"scope": "cloud-skills", "limit": "claude.ai / 桌面版的账号级技能为云端管理、不落本地文件（本地只有按会话临时缓存）。本报告只审计 Claude Code 本地技能与 Codex 本地共享技能，不覆盖云端 surface 的技能。"},
+        {"scope": "ui-surface", "limit": "除 Codex Desktop 公共目录 catalog/缓存外，本报告不审计宿主应用 UI 面；实时启用开关、纯 App catalog、产品开关、实验功能和授权状态若无官方可调用数据源，均标未知。"},
     ]
 
 
@@ -1832,15 +1930,15 @@ def build_inventory(
     if platform in ("both", "claude"):
         sections.append(collect_claude(home, cwd, cache))
     if platform in ("both", "codex"):
-        sections.append(collect_codex(home, cwd, cache))
+        sections.extend(collect_codex(home, cwd, cache).values())
 
-    host_platform = str(session_snapshot.get("host_platform") or "")
     for section in sections:
         reassign_plugin_mcps(section)  # 先把插件自带 MCP 从独立列表挪进插件
+        section["active_always_on_tokens"] = active_always_on_tokens(section)
         if not has_session_snapshot:
             clear_session_visibility(section)
-        # 会话快照只属于「跑技能的那个平台」：指定了 host_platform 时，非宿主平台不映射
-        elif host_platform and section["platform"] != host_platform:
+        # Codex CLI/Desktop 是独立 surface；缺失 host_surface 时宁可不映射，也不重复点亮。
+        elif not section_matches_session(section, session_snapshot):
             clear_session_visibility(section)
         else:
             mark_visibility(section, session_snapshot)
@@ -1864,6 +1962,8 @@ def build_inventory(
         "platform_filter": platform,
         "session": {
             "snapshot_provided": has_session_snapshot,
+            "host_platform": str(session_snapshot.get("host_platform") or ""),
+            "host_surface": str(session_snapshot.get("host_surface") or ""),
             "tool_count": len(session_snapshot.get("tools") or []),
             "skill_count": len(session_snapshot.get("skills") or []),
         },
@@ -1880,8 +1980,8 @@ def build_inventory(
         "translation_cache_path": str(translation_cache_path()),
         "notes": [
             "插件 / 市场 / MCP 经各平台官方 CLI 治理命令获取；技能经目录获取（无 CLI，官方设计）。",
-            "当前会话可见态只对 --session-snapshot 中提供的内容精确，且仅对宿主平台有意义。",
-            "Claude 的插件 token 成本来自 `claude plugin details`；Codex 暂无等价命令。",
+            "当前会话可见态只对 --session-snapshot 中提供的内容精确；Codex 还需 host_surface 区分 CLI/Desktop。",
+            "Claude 的插件 token 字段来自 `claude plugin details`，属于启用后预计成本；当前总量和排行只计算 enabled=true。Codex 暂无等价命令。",
             "插件/技能的中文用途经 ~/.cache/context-doctor/translations.json 缓存翻译，缺失时回退英文。",
             "GitHub stars 优先经 `gh api graphql` 批量查询 GitHub GraphQL（按仓库 URL 提取 owner/repo），失败时降级到单仓库 REST API；环境变量 GITHUB_TOKEN/GH_TOKEN 或本机 `gh auth token` 可提升限额（token 不写入报告），结果缓存在 ~/.cache/context-doctor/github-stars.json；默认 7 天缓存，可用 --github-stars live 强制刷新，或 --github-stars off 关闭；API 失败或限流时降级为空。",
         ],
@@ -1916,7 +2016,7 @@ def render_platform_section(section: JsonDict) -> list[str]:
     lines: list[str] = []
     lines.append(f"## {section['label']}")
     lines.append("")
-    if not section["cli_present"]:
+    if section.get("cli_present") is False:
         lines.append(f"> 未检测到 `{section['platform']}` CLI，本平台仅列出目录中的技能（如有）。")
         lines.append("")
 
@@ -1930,7 +2030,8 @@ def render_platform_section(section: JsonDict) -> list[str]:
             if p.get("bundled_skills"):
                 extras.append(f"{len(p['bundled_skills'])} 技能")
             if isinstance(p.get("always_on_tokens"), int):
-                extras.append(f"~{p['always_on_tokens']} tok")
+                cost_label = "当前常驻" if p.get("enabled") is True else "启用后预计"
+                extras.append(f"{cost_label} ~{p['always_on_tokens']} tok")
             rows.append(
                 [
                     p.get("id") or p.get("name"),
@@ -2045,7 +2146,9 @@ def render_markdown(inventory: JsonDict) -> str:
     )
     # 每平台一行小结
     for platform in inventory["platforms"].values():
-        if not platform["cli_present"] and not platform["skills"]:
+        if platform.get("cli_present") is False and not any(
+            platform.get(key) for key in ("plugins", "available_plugins", "marketplaces", "mcp_servers", "skills")
+        ):
             continue
         lines.append(
             f"- {platform['label']}：插件 `{len(platform['plugins'])}`，"
@@ -2133,7 +2236,9 @@ def render_html(inventory: JsonDict, cache: JsonDict, template_path: Path | None
 def short_summary(inventory: JsonDict) -> str:
     parts: list[str] = []
     for platform in inventory["platforms"].values():
-        if not platform["cli_present"] and not platform["skills"]:
+        if platform.get("cli_present") is False and not any(
+            platform.get(key) for key in ("plugins", "available_plugins", "marketplaces", "mcp_servers", "skills")
+        ):
             continue
         parts.append(
             f"{platform['label']}: 插件 {len(platform['plugins'])}、"
@@ -2160,6 +2265,7 @@ def load_session_snapshot(path: Path | None) -> JsonDict | None:
 def session_snapshot_template() -> JsonDict:
     return {
         "host_platform": "claude 或 codex —— 跑这个技能的平台；只有该平台会标会话可见态",
+        "host_surface": "Codex 必填：desktop 或 cli；Claude 可省略",
         "tools": [
             {
                 "namespace": "mcp__example",

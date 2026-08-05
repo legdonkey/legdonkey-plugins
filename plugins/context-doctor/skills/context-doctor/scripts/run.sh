@@ -86,9 +86,19 @@ print(f"HTML={html_path}")
 print(f"报告={report_path}")
 print(f"JSON={inventory_path}")
 for platform in data.get("platforms", {}).values():
-    if not platform.get("cli_present") and not platform.get("skills"):
+    has_inventory = any(
+        platform.get(key)
+        for key in (
+            "plugins",
+            "available_plugins",
+            "marketplaces",
+            "mcp_servers",
+            "skills",
+        )
+    )
+    if platform.get("cli_present") is False and not has_inventory:
         continue
-    cli = "" if platform.get("cli_present") else "(CLI 未检测到)"
+    cli = "(CLI 未检测到)" if platform.get("cli_present") is False else ""
     print(
         f"{platform['label']}{cli}="
         f"已装:{len(platform.get('plugins', []))} "

@@ -23,7 +23,7 @@
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
   --r:10px;
 }
-[data-platform="codex"]{--accent:var(--codex);}
+[data-platform^="codex"]{--accent:var(--codex);}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
@@ -123,6 +123,7 @@ header{padding:40px 0 26px;}
 .badge{font-family:var(--mono); font-size:10px; padding:1px 6px; border-radius:4px; letter-spacing:.04em; white-space:nowrap;}
 .badge.on{color:var(--signal); background:color-mix(in srgb,var(--signal) 14%,transparent);}
 .badge.off{color:var(--danger); background:color-mix(in srgb,var(--danger) 14%,transparent);}
+.badge.cached{color:var(--dim); background:color-mix(in srgb,var(--dim) 12%,transparent); border:1px solid var(--line2);}
 .badge.avail{color:var(--info); background:color-mix(in srgb,var(--info) 12%,transparent);}
 .badge.hot{color:var(--warn); background:color-mix(in srgb,var(--warn) 12%,transparent);}
 .badge.star{color:#a8b6ff; background:rgba(108,126,255,.16); border:1px solid rgba(168,182,255,.18);}
@@ -215,7 +216,7 @@ body[data-theme="paper"] .ecg path{filter:none;}
       </div>
       <div class="mark">CONTEXT<b>//</b>DOCTOR</div>
     </div>
-    <p class="tagline">跨平台上下文审计 · 市场 → 插件 → 组件的层级体检，含 token 占用与最贵组件排行。插件 / MCP / 市场源以官方 CLI 为主，并补充 Codex Desktop 远程目录与安装缓存；技能经目录扫描。</p>
+    <p class="tagline">跨平台上下文审计 · Claude Code、Codex CLI、Codex Desktop 与 Codex 本地共享分域展示。OpenAI 公共目录按 CLI/Desktop 投影分开，其他本地 marketplace、插件、MCP 与文件技能归共享层。</p>
     <div class="metaline" id="meta"></div>
   </header>
 
@@ -260,10 +261,10 @@ body[data-theme="paper"] .ecg path{filter:none;}
 
 <script>
 "use strict";
-const MOCK={schema_version:2,generated_at:"2026-06-29T12:00:00+08:00",cwd:"/demo",
+const MOCK={schema_version:6,generated_at:"2026-06-29T12:00:00+08:00",cwd:"/demo",
  session:{snapshot_provided:false,tool_count:0,skill_count:0},
  pending_translation_count:1,translation_cache_path:"~/.cache/context-doctor/translations.json",
- platforms:{claude:{platform:"claude",label:"Claude Code",cli_present:true,supports_token_cost:true,
+ platforms:{claude:{platform:"claude",label:"Claude Code",cli_present:true,supports_token_cost:true,active_always_on_tokens:420,
    marketplaces:[{name:"demo-market",source_type:"github",repo:"acme/demo"}],
    plugins:[{id:"demo@demo-market",name:"demo",marketplace:"demo-market",installed:true,version:"1.0.0",enabled:true,
      always_on_tokens:420,description_zh:"演示插件：把样例数据渲染成报告。",last_updated:"2026-06-01T00:00:00Z",
@@ -315,7 +316,7 @@ function renderHeader(){
   const s=DATA.session||{};
   const meta=[`<span><b>生成</b> ${esc((DATA.generated_at||"").replace("T"," ").slice(0,19))}</span>`,
     DATA.cwd?`<span><b>工作目录</b> ${esc(DATA.cwd)}</span>`:"",
-    `<span><b>会话快照</b> ${s.snapshot_provided?"是":"否"}</span>`];
+    `<span><b>会话快照</b> ${s.snapshot_provided?"是":"否"}${s.host_surface?` · ${esc(s.host_surface)}`:""}</span>`];
   let pend="";
   const pendNames=collectPending(DATA.platforms);
   if(pendNames.length){
@@ -331,11 +332,11 @@ function renderHeader(){
   const cells=[];
   for(const p of Object.values(DATA.platforms||{})){
     const inst=(p.plugins||[]).length, avail=(p.available_plugins||[]).length;
-    const tok=(p.plugins||[]).reduce((a,x)=>a+(x.always_on_tokens||0),0);
+    const tok=p.active_always_on_tokens||0;
     cells.push(`<div class="stat"><div class="n">${inst}<small> / ${avail}</small></div><div class="l">${esc(p.label)} 插件 已装/可装</div></div>`);
-    cells.push(`<div class="stat"><div class="n">${(p.mcp_servers||[]).length}</div><div class="l">${esc(p.label)} MCP</div></div>`);
-    cells.push(`<div class="stat"><div class="n">${(p.skills||[]).length}</div><div class="l">${esc(p.label)} 独立技能</div></div>`);
-    if(p.supports_token_cost) cells.push(`<div class="stat"><div class="n">${fmtTok(tok)||0}</div><div class="l">${esc(p.label)} 常驻 token</div></div>`);
+    if(p.platform==="claude"||p.surface==="shared") cells.push(`<div class="stat"><div class="n">${(p.mcp_servers||[]).length}</div><div class="l">${esc(p.label)} MCP</div></div>`);
+    if(p.platform==="claude"||p.surface==="shared") cells.push(`<div class="stat"><div class="n">${(p.skills||[]).length}</div><div class="l">${esc(p.label)} 独立技能</div></div>`);
+    if(p.supports_token_cost) cells.push(`<div class="stat"><div class="n">${fmtTok(tok)||0}</div><div class="l">${esc(p.label)} 当前常驻 token</div></div>`);
   }
   $("#stats").innerHTML=cells.join("");
 }
@@ -345,11 +346,12 @@ function renderStatusGuide(){
     <h3>状态说明</h3>
     <div class="status-item"><div class="idx">1.</div><div>
       <h4>插件状态</h4>
-      <p>插件有安装状态和启用状态：<span class="badge on">已启用</span> 表示已安装且当前配置启用，<span class="badge off">已禁用</span> 表示已安装但当前配置禁用，<span class="badge on">已安装</span> 表示桌面缓存能证明插件包存在、但无法可靠判断启用状态，<span class="badge avail">可装</span> 表示市场中可安装但本机未安装。</p>
+      <p>OpenAI 公共目录按 CLI/Desktop surface 分开；其他本地 marketplace 与插件状态由两端共用。Desktop 公共目录没有独立开关，已安装即默认启用。<span class="badge on">已启用</span> 表示显式启用或默认启用，<span class="badge off">已禁用</span> 表示当前配置禁用，<span class="badge cached">已安装 · 启用未知</span> 表示其他来源未返回开关状态，<span class="badge avail">可装</span> 表示当前分区尚未安装。</p>
+      <p style="margin-top:5px">token 总数与排行只计算明确启用的插件；禁用或启用未知的插件只展示“启用后预计”成本，不计入当前上下文。</p>
     </div></div>
     <div class="status-item"><div class="idx">2.</div><div>
       <h4>会话可见</h4>
-      <p>技能、Agent、MCP 的会话可见状态只放在名称前：<span class="vis on">●</span> 表示本次会话可见，<span class="vis off">○</span> 表示本次会话不可见，<span class="vis na">-</span> 表示未对照。它的判断依据是本次运行报告时传入的会话快照：由当前 Codex/Claude 会话里的模型把自己实际看到的技能名和工具名写入 <code>--session-snapshot</code>，报告再拿这个清单与本机插件/技能/MCP 清单做匹配。所以“技能可见”的意思是该技能名出现在本轮暴露给模型的技能列表里，模型知道有这个技能；它不等于允许自动调用。</p>
+      <p>技能、Agent、MCP 的会话可见状态只放在名称前：<span class="vis on">●</span> 表示本次会话可见，<span class="vis off">○</span> 表示本次会话不可见，<span class="vis na">-</span> 表示未对照。Codex 快照必须用 <code>host_surface</code> 区分 CLI 与 Desktop；同名组件不会再跨 surface 同时点亮。</p>
     </div></div>
     <div class="status-item"><div class="idx">3.</div><div>
       <h4>MCP 状态</h4>
@@ -369,7 +371,7 @@ function renderTabs(){
     const b=document.createElement("button");
     b.className="tab"; b.setAttribute("role","tab");
     b.setAttribute("aria-selected", k===activePlat?"true":"false");
-    const col=k==="codex"?"var(--codex)":"var(--claude)";
+    const col=k.startsWith("codex")?"var(--codex)":"var(--claude)";
     b.innerHTML=`<span class="dot" style="background:${col}"></span>${esc(p.label)}`;
     b.onclick=()=>{activePlat=k; document.body.dataset.platform=k; renderTabs(); renderPanel(); renderRanks();};
     t.appendChild(b);
@@ -391,7 +393,7 @@ function visDot(x){
   if(x.visible_in_session===null) return `<span class="vis na" title="未对照（非宿主平台或无会话快照）">-</span>`;
   return "";
 }
-function compRow(x,maxv,showCost){
+function compRow(x,maxv,showCost,activeCost){
   const desc=x.description_zh?`<span class="cd">${x.description_pending?'<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>':''}${esc(x.description_zh)}</span>`:"";
   const cn=`<div class="cn">${visDot(x)}${esc(x.name)}${desc}</div>`;
   if(x.cost_note!=null){
@@ -412,12 +414,15 @@ function compRow(x,maxv,showCost){
   }
   const inv=x.on_invoke_tokens, aon=x.always_on_tokens;
   const w=Math.max(2,Math.round(100*(inv||aon||0)/maxv));
-  const lab=[aon!=null?`常驻 ${fmtTok(aon)}`:"",inv!=null?`触发 ${fmtTok(inv)}`:""].filter(Boolean).join(" · ")||"—";
+  const lab=[
+    aon!=null?(activeCost?`常驻 ${fmtTok(aon)}`:`预计常驻 ${fmtTok(aon)}`):"",
+    inv!=null?(activeCost?`触发 ${fmtTok(inv)}`:`预计触发 ${fmtTok(inv)}`):"",
+  ].filter(Boolean).join(" · ")||"—";
   return `<div class="comp">${cn}<div class="bar"><div class="fill" style="width:${w}%"></div><div class="lab">${lab}</div></div></div>`;
 }
-function compGroup(title,arr,maxv,showCost){
+function compGroup(title,arr,maxv,showCost,activeCost){
   if(!arr||!arr.length) return "";
-  return `<div class="cgroup"><h4>${title}（${arr.length}）</h4>${arr.map(x=>compRow(x,maxv,showCost)).join("")}</div>`;
+  return `<div class="cgroup"><h4>${title}（${arr.length}）</h4>${arr.map(x=>compRow(x,maxv,showCost,activeCost)).join("")}</div>`;
 }
 function pluginMatches(pl){
   if(filterMode==="installed"&&!pl.installed) return false;
@@ -432,7 +437,7 @@ function comparePlugins(a,b,platform){
   const installedDelta=(b.installed?1:0)-(a.installed?1:0);
   if(installedDelta) return installedDelta;
   if(!a.installed&&!b.installed){
-    const metric=platform==="codex"?"github_stars":"install_count";
+    const metric=platform.startsWith("codex")?"github_stars":"install_count";
     const ac=Number.isFinite(a[metric])?a[metric]:null;
     const bc=Number.isFinite(b[metric])?b[metric]:null;
     if(ac!=null&&bc!=null&&ac!==bc) return bc-ac;
@@ -453,7 +458,7 @@ function pluginNode(pl,maxv,showCost){
       ? `<span class="badge on">已启用</span>`
       : pl.enabled===false
         ? `<span class="badge off">已禁用</span>`
-        : `<span class="badge on">已安装</span>`)
+        : `<span class="badge cached">已安装 · 启用未知</span>`)
     : `<span class="badge avail">可装</span>`);
   if(pl.install_count!=null) badges.push(`<span class="badge hot">▲ ${fmtCount(pl.install_count)}</span>`);
   if(pl.github_stars!=null) badges.push(`<span class="badge star" title="GitHub stars">★ ${fmtCount(pl.github_stars)}</span>`);
@@ -462,18 +467,22 @@ function pluginNode(pl,maxv,showCost){
   const ver=esc(pl.real_version||pl.version||"");
   const scope=(pl.installed&&pl.scope)?`<span class="pscope" title="安装范围">${esc(scopeZh(pl.scope))}</span>`:"";
   let tok="";
-  if(pl.installed&&showCost&&pl.always_on_tokens!=null) tok=`<span class="ptok">常驻 <b>${fmtTok(pl.always_on_tokens)}</b> tok</span>`;
+  if(pl.installed&&showCost&&pl.always_on_tokens!=null){
+    const label=pl.enabled===true?"当前常驻":"启用后预计";
+    tok=`<span class="ptok">${label} <b>${fmtTok(pl.always_on_tokens)}</b> tok</span>`;
+  }
   else if(!pl.installed&&showCost) tok=`<span class="ptok" style="color:var(--faint)">成本装后可见</span>`;
 
   let body="";
   if(!leaf){
+    const activeCost=pl.enabled===true;
     body=`<div class="pbody">`+
-      compGroup("Skills",c.skills,maxv,showCost)+
-      compGroup("Agents",c.agents,maxv,showCost)+
-      compGroup("Hooks",c.hooks,maxv,showCost)+
-      compGroup("MCP",c.mcp,maxv,showCost)+
-      compGroup("LSP",c.lsp,maxv,showCost)+
-      compGroup("Apps",c.apps,maxv,showCost)+
+      compGroup("Skills",c.skills,maxv,showCost,activeCost)+
+      compGroup("Agents",c.agents,maxv,showCost,activeCost)+
+      compGroup("Hooks",c.hooks,maxv,showCost,activeCost)+
+      compGroup("MCP",c.mcp,maxv,showCost,activeCost)+
+      compGroup("LSP",c.lsp,maxv,showCost,activeCost)+
+      compGroup("Apps",c.apps,maxv,showCost,activeCost)+
       src+`</div>`;
   }
   const pmark=pl.description_pending?`<span title="翻译回退英文" style="color:var(--warn)">⏳ </span>`:"";
@@ -536,7 +545,7 @@ function renderPanel(){
   for(const name of order){
     const g=groups.get(name); if(!g.plugins.length) continue; any=true;
     g.plugins.sort((a,b)=>comparePlugins(a,b,p.platform));
-    html+=`<div class="mkt"><div class="mkt-head"><span class="name">${esc(name)}</span>`+
+    html+=`<div class="mkt"><div class="mkt-head"><span class="name">${esc(g.meta.display_name||name)}</span>`+
       (g.meta.source_type?`<span class="type">${esc(g.meta.source_type)}</span>`:"")+
       (g.meta.repo?`<span class="repo">${esc(g.meta.repo)}</span>`:"")+`</div>`+
       g.plugins.map(pl=>pluginNode(pl,maxv,showCost)).join("")+`</div>`;
@@ -545,9 +554,9 @@ function renderPanel(){
   html+=`</div>`;
 
   // standalone MCP
-  html+=`<div class="sec"><h2>独立 MCP 服务器 <span class="c">${(p.mcp_servers||[]).length}</span></h2>`+mcpTable(p)+`</div>`;
+  if(p.platform==="claude"||p.surface==="shared") html+=`<div class="sec"><h2>独立 MCP 服务器 <span class="c">${(p.mcp_servers||[]).length}</span></h2>`+mcpTable(p)+`</div>`;
   // standalone skills
-  html+=`<div class="sec"><h2>独立技能 · 目录扫描 <span class="c">${(p.skills||[]).length}</span></h2>`+skillTable(p)+`</div>`;
+  if(p.platform==="claude"||p.surface==="shared") html+=`<div class="sec"><h2>独立技能 · 目录扫描 <span class="c">${(p.skills||[]).length}</span></h2>`+skillTable(p)+`</div>`;
   root.innerHTML=html;
   bindTree();
 }
@@ -555,7 +564,7 @@ function mcpTable(p){
   const rows=(p.mcp_servers||[]).filter(s=>!query||(s.name||"").toLowerCase().includes(query));
   if(!rows.length) return `<div class="empty">无（或不匹配搜索）。</div>`;
   // 列按平台区分：Claude 有 scope（范围）、状态=连接状态；Codex 无 scope、有启用、状态=鉴权方式
-  const isCodex=p.platform==='codex';
+  const isCodex=p.platform.startsWith('codex');
   const cols=isCodex
     ? [["名称",s=>visDot(s)+esc(s.name),"mono"],["类型",s=>esc(s.server_type||"—"),"mono"],
        ["启用",s=>s.enabled===true?"是":s.enabled===false?"否":"—",""],
@@ -605,7 +614,7 @@ function rankTable(key,title,arr,kind){
 function renderRanks(){
   const r=DATA.rankings||{};
   const has=(r.top_skills_by_cost||[]).length||(r.top_agents_by_cost||[]).length||(r.top_plugins_by_cost||[]).length;
-  $("#rankBasis").textContent="仅 Claude · Codex 无 token 成本不计入";
+  $("#rankBasis").textContent="仅明确启用的 Claude 插件 · Codex 无 token 成本不计入";
   if(!has){ $("#ranks").innerHTML=`<div class="empty">当前数据无可计成本的组件（Codex 无 token 数据）。</div>`; return; }
   let html=rankTable("skills","最贵技能",r.top_skills_by_cost,"技能")
           +rankTable("agents","最贵 Agent",r.top_agents_by_cost,"Agent");

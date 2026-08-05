@@ -25,7 +25,7 @@
   <a href="plugins/context-doctor/"><img src="plugins/context-doctor/assets/banner.svg" alt="context-doctor" width="100%"></a>
 </p>
 
-用各平台**官方 CLI 治理入口**盘点 **Claude Code 与 Codex** 的插件 / MCP / 市场源（技能走目录治理入口），输出一份含两个分区的报告，给出重名、禁用、token 开销偏大等卫生建议。纯 Python 3 + Bash，只读。**→ [详细说明](plugins/context-doctor/README.md)**
+用官方治理入口盘点 **Claude Code、Codex CLI、Codex Desktop 与 Codex 本地共享**的插件 / MCP / 市场源 / 技能，分 surface 统计并给出重名、禁用、token 开销偏大等卫生建议。纯 Python 3 + Bash，只读。**→ [详细说明](plugins/context-doctor/README.md)**
 
 ### [cosyvoice-tts](plugins/cosyvoice-tts/) — 阿里百炼 CosyVoice 中文配音
 
@@ -39,7 +39,7 @@
 
 三个插件在同一个市场，CC 与 Codex 都能装，命令行与桌面端图形界面都行。装完重启对应客户端即可。
 
-> **想一键装两边？** 跑 `./install-plugins.sh`，它用各自 CLI 把三个插件装进 Claude Code 与 Codex。每个平台的 CLI 与桌面端共享配置，装一次即覆盖两者。需本机有 `claude` / `codex` CLI。
+> **想一键装两边？** 跑 `./install-plugins.sh`，它用各自 CLI 把三个插件装进 Claude Code 与 Codex 的本地共享插件层；同一台机器上的 Codex CLI 与 Desktop 共用这类 marketplace、安装缓存和启用状态。OpenAI 公共目录则按 CLI/Desktop 各自的投影管理。需本机有 `claude` / `codex` CLI。
 
 ### ① Claude Code —— 插件市场
 

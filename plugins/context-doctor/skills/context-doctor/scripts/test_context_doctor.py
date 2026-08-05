@@ -113,7 +113,7 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
         self.assertEqual(remote[0]["description"], "新版本")
         self.assertEqual(remote[0]["version"], "2.0.0")
 
-    def test_cached_plugin_becomes_installed_with_unknown_enabled_state(self) -> None:
+    def test_cached_public_plugin_is_enabled_by_default(self) -> None:
         self.write_catalog(
             [catalog_plugin("demo", description="远程完整描述", display_name="Demo Desktop")]
         )
@@ -123,7 +123,8 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
         plugin = next(p for p in remote if p["name"] == "demo")
 
         self.assertTrue(plugin["installed"])
-        self.assertIsNone(plugin["enabled"])
+        self.assertTrue(plugin["enabled"])
+        self.assertEqual(plugin["enablement_source"], "desktop-public-default")
         self.assertEqual(plugin["install_state_source"], "desktop-cache")
         self.assertEqual(plugin["display_name"], "Demo Desktop")
         self.assertEqual(plugin["description"], "远程完整描述")
@@ -148,17 +149,10 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
         self.assertEqual([p["name"] for p in remote], ["cache-only"])
         self.assertTrue(any("catalog" in note for note in notes))
 
-    def test_merge_preserves_same_name_from_different_marketplaces(self) -> None:
+    def test_desktop_merge_keeps_remote_marketplace_identity(self) -> None:
         section = {
             "plugins": [],
-            "available_plugins": [
-                {
-                    "id": "demo@openai-curated",
-                    "name": "demo",
-                    "marketplace": "openai-curated",
-                    "installed": False,
-                }
-            ],
+            "available_plugins": [],
             "marketplaces": [],
         }
         remote = [
@@ -173,9 +167,9 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
         doctor.merge_codex_remote_plugins(section, remote, self.home)
 
         self.assertEqual(len(section["plugins"]), 1)
-        self.assertEqual(len(section["available_plugins"]), 1)
-        self.assertEqual(section["available_plugins"][0]["id"], "demo@openai-curated")
+        self.assertEqual(section["available_plugins"], [])
         self.assertEqual(section["marketplaces"][-1]["name"], "openai-curated-remote")
+        self.assertEqual(section["marketplaces"][-1]["display_name"], "OpenAI 公共目录")
 
     def test_merge_replaces_exact_remote_id(self) -> None:
         section = {
@@ -211,7 +205,8 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
         template = Path(doctor.__file__).with_name("report_template.html").read_text(encoding="utf-8")
 
         self.assertIn('pl.enabled===true', template)
-        self.assertIn('已安装</span>', template)
+        self.assertIn('class="badge cached">已安装 · 启用未知</span>', template)
+        self.assertIn('.badge.cached', template)
 
     def test_report_template_shows_remote_catalog_component_counts(self) -> None:
         template = Path(doctor.__file__).with_name("report_template.html").read_text(encoding="utf-8")
@@ -220,22 +215,76 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
         self.assertIn('Skills ${pl.skill_count}', template)
         self.assertIn('Apps ${pl.app_count}', template)
 
-    def test_collect_codex_includes_cli_and_desktop_remote_plugins(self) -> None:
+    def test_report_template_shows_shared_plugins_and_mcp(self) -> None:
+        template = Path(doctor.__file__).with_name("report_template.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertNotIn('p.surface==="shared"?"":`<div class="sec"><h2>市场', template)
+        self.assertNotIn('for(const name of p.surface==="shared"?[]:order)', template)
+        self.assertIn(
+            'if(p.platform==="claude"||p.surface==="shared") html+=`<div class="sec"><h2>独立 MCP',
+            template,
+        )
+
+    def test_collect_codex_splits_cli_desktop_and_shared_sections(self) -> None:
         self.write_catalog(
             [catalog_plugin("demo", description="远程完整描述", display_name="Demo Desktop")]
         )
         self.write_cached_plugin("demo")
+        shared_skill = self.home / ".codex" / "skills" / "shared-example" / "SKILL.md"
+        shared_skill.parent.mkdir(parents=True, exist_ok=True)
+        shared_skill.write_text(
+            "---\nname: shared-example\ndescription: 共享技能\n---\n",
+            encoding="utf-8",
+        )
+        shared_plugin_root = self.home / "shared-plugin-source"
+        write_json(
+            shared_plugin_root / ".codex-plugin" / "plugin.json",
+            {
+                "name": "team-plugin",
+                "version": "2.0.0",
+                "skills": "./skills/",
+            },
+        )
+        shared_plugin_skill = shared_plugin_root / "skills" / "team-skill" / "SKILL.md"
+        shared_plugin_skill.parent.mkdir(parents=True, exist_ok=True)
+        shared_plugin_skill.write_text(
+            "---\nname: team-skill\ndescription: 团队技能\n---\n",
+            encoding="utf-8",
+        )
 
         def fake_cli(args, **_kwargs):
             if args[:3] == ["codex", "plugin", "list"]:
                 return {
-                    "installed": [],
-                    "available": [
+                    "installed": [
                         {
                             "pluginId": "demo@openai-curated",
                             "name": "demo",
                             "marketplaceName": "openai-curated",
                             "version": "1.0.0",
+                            "installed": True,
+                            "enabled": True,
+                            "source": {},
+                        },
+                        {
+                            "pluginId": "team-plugin@team-market",
+                            "name": "team-plugin",
+                            "marketplaceName": "team-market",
+                            "version": "2.0.0",
+                            "installed": True,
+                            "enabled": True,
+                            "source": {"path": str(shared_plugin_root)},
+                        },
+                    ],
+                    "available": [
+                        {
+                            "pluginId": "future-plugin@team-market",
+                            "name": "future-plugin",
+                            "marketplaceName": "team-market",
+                            "version": "1.0.0",
+                            "installed": False,
+                            "enabled": False,
                             "source": {},
                         }
                     ],
@@ -246,9 +295,123 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
                         {
                             "name": "openai-curated",
                             "root": "/tmp/openai-curated",
-                        }
+                        },
+                        {
+                            "name": "team-market",
+                            "root": "/tmp/team-market",
+                            "marketplaceSource": {
+                                "sourceType": "git",
+                                "source": "https://example.com/team-market.git",
+                            },
+                        },
                     ]
                 }
+            if args[:3] == ["codex", "mcp", "list"]:
+                return [
+                    {
+                        "name": "shared-mcp",
+                        "enabled": True,
+                        "transport": {"type": "stdio", "command": "shared-mcp"},
+                    }
+                ]
+            self.fail(f"未预期的 CLI 调用：{args}")
+
+        with patch.object(doctor, "cli_available", return_value=True), patch.object(
+            doctor, "run_cli_json", side_effect=fake_cli
+        ):
+            sections = doctor.collect_codex(self.home, self.home, self.cache)
+
+        self.assertEqual(set(sections), {"codex_cli", "codex_desktop", "codex_shared"})
+        self.assertEqual(
+            [plugin["id"] for plugin in sections["codex_cli"]["plugins"]],
+            ["demo@openai-curated"],
+        )
+        self.assertEqual(
+            [plugin["id"] for plugin in sections["codex_desktop"]["plugins"]],
+            ["demo@openai-curated-remote"],
+        )
+        self.assertEqual(
+            [plugin["id"] for plugin in sections["codex_shared"]["plugins"]],
+            ["team-plugin@team-market"],
+        )
+        self.assertEqual(
+            sections["codex_shared"]["plugins"][0]["components"]["skills"][0]["name"],
+            "team-plugin:team-skill",
+        )
+        self.assertEqual(
+            [plugin["id"] for plugin in sections["codex_shared"]["available_plugins"]],
+            ["future-plugin@team-market"],
+        )
+        self.assertEqual(
+            [market["name"] for market in sections["codex_cli"]["marketplaces"]],
+            ["openai-curated"],
+        )
+        self.assertEqual(
+            sections["codex_cli"]["marketplaces"][0]["display_name"],
+            "OpenAI 公共目录",
+        )
+        self.assertEqual(
+            [market["name"] for market in sections["codex_shared"]["marketplaces"]],
+            ["team-market"],
+        )
+        self.assertEqual(
+            [server["name"] for server in sections["codex_shared"]["mcp_servers"]],
+            ["shared-mcp"],
+        )
+        self.assertEqual(sections["codex_cli"]["mcp_servers"], [])
+        self.assertEqual(sections["codex_cli"]["skills"], [])
+        self.assertEqual(sections["codex_desktop"]["skills"], [])
+        self.assertEqual(
+            [skill["name"] for skill in sections["codex_shared"]["skills"]],
+            ["shared-example"],
+        )
+
+    def test_shared_git_plugin_reads_components_from_installed_cache(self) -> None:
+        cached_root = (
+            self.home
+            / ".codex"
+            / "plugins"
+            / "cache"
+            / "team-market"
+            / "team-plugin"
+            / "2.0.0"
+        )
+        write_json(
+            cached_root / ".codex-plugin" / "plugin.json",
+            {
+                "name": "team-plugin",
+                "version": "2.0.0",
+                "skills": "./skills/",
+            },
+        )
+        skill = cached_root / "skills" / "team-skill" / "SKILL.md"
+        skill.parent.mkdir(parents=True, exist_ok=True)
+        skill.write_text(
+            "---\nname: team-skill\ndescription: 团队技能\n---\n",
+            encoding="utf-8",
+        )
+
+        def fake_cli(args, **_kwargs):
+            if args[:3] == ["codex", "plugin", "list"]:
+                return {
+                    "installed": [
+                        {
+                            "pluginId": "team-plugin@team-market",
+                            "name": "team-plugin",
+                            "marketplaceName": "team-market",
+                            "version": "2.0.0",
+                            "installed": True,
+                            "enabled": True,
+                            "source": {
+                                "source": "git",
+                                "url": "https://example.com/team-plugin.git",
+                            },
+                        }
+                    ],
+                    "available": [],
+                }
+            if args[:4] == ["codex", "plugin", "marketplace", "list"]:
+                return {"marketplaces": [{"name": "team-market", "root": "/tmp/team"}]}
             if args[:3] == ["codex", "mcp", "list"]:
                 return []
             self.fail(f"未预期的 CLI 调用：{args}")
@@ -256,20 +419,59 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
         with patch.object(doctor, "cli_available", return_value=True), patch.object(
             doctor, "run_cli_json", side_effect=fake_cli
         ):
-            section = doctor.collect_codex(self.home, self.home, self.cache)
+            sections = doctor.collect_codex(self.home, self.home, self.cache)
 
-        self.assertEqual(
-            {plugin["id"] for plugin in section["plugins"]},
-            {"demo@openai-curated-remote"},
-        )
-        self.assertIn(
-            "demo@openai-curated",
-            {plugin["id"] for plugin in section["available_plugins"]},
-        )
-        self.assertIn(
-            "openai-curated-remote",
-            {market["name"] for market in section["marketplaces"]},
-        )
+        plugin = sections["codex_shared"]["plugins"][0]
+        self.assertEqual(plugin["components"]["skills"][0]["name"], "team-plugin:team-skill")
+        self.assertNotIn("无 source.path", plugin["note"])
+
+    def test_session_surface_matches_only_the_active_codex_surface(self) -> None:
+        snapshot = {"host_platform": "codex", "host_surface": "desktop"}
+
+        self.assertFalse(doctor.section_matches_session({"platform": "codex_cli"}, snapshot))
+        self.assertTrue(doctor.section_matches_session({"platform": "codex_desktop"}, snapshot))
+        self.assertTrue(doctor.section_matches_session({"platform": "codex_shared"}, snapshot))
+        self.assertFalse(doctor.section_matches_session({"platform": "claude"}, snapshot))
+
+    def test_missing_codex_surface_does_not_guess_cli_or_desktop(self) -> None:
+        snapshot = {"host_platform": "codex"}
+
+        self.assertFalse(doctor.section_matches_session({"platform": "codex_cli"}, snapshot))
+        self.assertFalse(doctor.section_matches_session({"platform": "codex_desktop"}, snapshot))
+        self.assertTrue(doctor.section_matches_session({"platform": "codex_shared"}, snapshot))
+
+    def test_cross_surface_same_name_is_not_a_duplicate_recommendation(self) -> None:
+        sections = [
+            {
+                "platform": "codex_cli",
+                "label": "Codex CLI",
+                "cli_present": True,
+                "skills": [],
+                "plugins": [{"id": "demo@openai-curated", "name": "demo", "enabled": True}],
+            },
+            {
+                "platform": "codex_desktop",
+                "label": "Codex Desktop",
+                "cli_present": None,
+                "skills": [],
+                "plugins": [
+                    {
+                        "id": "demo@openai-curated-remote",
+                        "name": "demo",
+                        "enabled": None,
+                    }
+                ],
+            },
+        ]
+
+        recommendations = doctor.build_recommendations(sections)
+
+        self.assertFalse(any(rec["area"] == "plugin" for rec in recommendations))
+
+    def test_snapshot_template_requires_codex_surface(self) -> None:
+        template = doctor.session_snapshot_template()
+
+        self.assertIn("host_surface", template)
 
     def test_reassigns_uniquely_declared_bare_mcp_to_installed_plugin(self) -> None:
         section = {
@@ -481,12 +683,154 @@ class CodexDesktopRemotePluginTests(unittest.TestCase):
         with patch.object(doctor, "cli_available", return_value=True), patch.object(
             doctor, "run_cli_json", side_effect=fake_cli
         ):
-            section = doctor.collect_codex(self.home, self.home, self.cache)
+            sections = doctor.collect_codex(self.home, self.home, self.cache)
 
         self.assertEqual(
-            section["mcp_servers"][0]["source_cwd"],
+            sections["codex_shared"]["mcp_servers"][0]["source_cwd"],
             "/Users/demo/.codex/plugins/cache/market/plugin/1.0.0/.",
         )
+
+
+class ContextCostTests(unittest.TestCase):
+    def test_disabled_plugin_recommendation_is_disk_cleanup_only(self) -> None:
+        sections = [
+            {
+                "platform": "claude",
+                "label": "Claude Code",
+                "skills": [],
+                "plugins": [
+                    {
+                        "id": "disabled@example",
+                        "name": "disabled",
+                        "enabled": False,
+                        "always_on_tokens": doctor.TOKEN_HEAVY_THRESHOLD + 1,
+                    }
+                ],
+            }
+        ]
+
+        recommendations = doctor.build_recommendations(sections)
+
+        self.assertEqual(
+            recommendations,
+            [
+                {
+                    "severity": "info",
+                    "platform": "Claude Code",
+                    "area": "plugin",
+                    "subject": "disabled@example",
+                    "reason": "已安装但当前禁用，不占用新会话上下文",
+                    "action": "确认不再需要时可卸载以释放磁盘空间",
+                }
+            ],
+        )
+
+    def test_cost_rankings_include_only_enabled_plugins(self) -> None:
+        def plugin(name: str, enabled: bool | None, cost: int) -> dict[str, object]:
+            return {
+                "id": f"{name}@example",
+                "name": name,
+                "enabled": enabled,
+                "always_on_tokens": cost,
+                "components": {
+                    "skills": [
+                        {
+                            "name": f"{name}-skill",
+                            "always_on_tokens": cost,
+                            "on_invoke_tokens": cost * 2,
+                        }
+                    ],
+                    "agents": [
+                        {
+                            "name": f"{name}-agent",
+                            "always_on_tokens": cost,
+                            "on_invoke_tokens": cost * 3,
+                        }
+                    ],
+                },
+            }
+
+        rankings = doctor.build_rankings(
+            {
+                "claude": {
+                    "platform": "claude",
+                    "supports_token_cost": True,
+                    "plugins": [
+                        plugin("enabled", True, 10),
+                        plugin("disabled", False, 100),
+                        plugin("unknown", None, 1000),
+                    ],
+                }
+            }
+        )
+
+        self.assertEqual(
+            [row["id"] for row in rankings["top_plugins_by_cost"]],
+            ["enabled@example"],
+        )
+        self.assertEqual(
+            [row["name"] for row in rankings["top_skills_by_cost"]],
+            ["enabled-skill"],
+        )
+        self.assertEqual(
+            [row["name"] for row in rankings["top_agents_by_cost"]],
+            ["enabled-agent"],
+        )
+
+    def test_active_always_on_total_requires_explicitly_enabled_plugin(self) -> None:
+        section = {
+            "plugins": [
+                {"enabled": True, "always_on_tokens": 10},
+                {"enabled": False, "always_on_tokens": 100},
+                {"enabled": None, "always_on_tokens": 1000},
+                {"enabled": True, "always_on_tokens": None},
+            ]
+        }
+
+        self.assertEqual(doctor.active_always_on_tokens(section), 10)
+
+    def test_report_distinguishes_active_and_projected_plugin_cost(self) -> None:
+        template = Path(doctor.__file__).with_name("report_template.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("active_always_on_tokens", template)
+        self.assertIn("当前常驻 token", template)
+        self.assertIn("启用后预计", template)
+        self.assertIn("预计常驻", template)
+
+    def test_markdown_labels_disabled_plugin_cost_as_projected(self) -> None:
+        section = {
+            "platform": "claude",
+            "label": "Claude Code",
+            "cli_present": True,
+            "plugins": [
+                {
+                    "id": "enabled@example",
+                    "version": "1.0.0",
+                    "enabled": True,
+                    "marketplace": "example",
+                    "always_on_tokens": 10,
+                },
+                {
+                    "id": "disabled@example",
+                    "version": "1.0.0",
+                    "enabled": False,
+                    "marketplace": "example",
+                    "always_on_tokens": 100,
+                },
+            ],
+            "available_plugins": [],
+            "marketplaces": [],
+            "mcp_servers": [],
+            "skills": [],
+            "notes": [],
+        }
+
+        markdown = "\n".join(doctor.render_platform_section(section))
+
+        self.assertIn("当前常驻 ~10 tok", markdown)
+        self.assertIn("启用后预计 ~100 tok", markdown)
 
 
 class PluginComponentDescTests(unittest.TestCase):
