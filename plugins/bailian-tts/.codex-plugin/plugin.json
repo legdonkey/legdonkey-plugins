@@ -1,0 +1,39 @@
+{
+  "name": "bailian-tts",
+  "version": "2.0.0",
+  "description": "阿里百炼 Qwen-Audio-3.1-TTS 语音合成：自然语言指令与文本内情感标签控制语气、方言与多语种音色、按脚本批量生成配音与字幕、复刻自己的声音。跨 Claude Code 与 Codex。",
+  "author": {
+    "name": "legdonkey",
+    "url": "https://github.com/legdonkey"
+  },
+  "homepage": "https://github.com/legdonkey/legdonkey-plugins",
+  "repository": "https://github.com/legdonkey/legdonkey-plugins",
+  "keywords": [
+    "bailian",
+    "qwen-audio",
+    "dashscope",
+    "tts",
+    "voice",
+    "voice-cloning",
+    "audio",
+    "aliyun"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "bailian-tts",
+    "shortDescription": "用阿里百炼 Qwen-Audio-TTS 生成配音、字幕和复刻音色",
+    "longDescription": "用 qwen-audio-3.1-tts-flash 把文案合成自然语音：任意自然语言指令控制语气、语速与方言，文本内嵌 [excited]、[laughing] 等标签；可试听音色、单段生成 wav、按脚本批量生成并输出 SRT 字幕与拼接音轨，也能用自己的录音复刻音色。只在手动点名时运行。",
+    "developerName": "legdonkey",
+    "category": "Media",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Network"
+    ],
+    "defaultPrompt": [
+      "用 bailian-tts 帮我生成一段中文配音",
+      "试听几个适合新闻播报的女声",
+      "把这份旁白脚本生成配音和字幕"
+    ]
+  }
+}
