@@ -39,7 +39,8 @@ https://help.aliyun.com/zh/model-studio/qwen-audio-tts-voice-list
 
 - 接口:`dashscope.audio.tts_v2.VoiceEnrollmentService`(`create_voice` / `list_voices` / `query_voice` / `delete_voice`),`target_model` 固定为 `qwen-audio-3.1-tts-flash`,必须与合成时一致。
 - 录音:推荐 10~20 秒,最长 60 秒,至少 5 秒连续清晰朗读;WAV(16bit)/MP3/M4A,≥16kHz,≤10MB;单人、无背景音乐和噪音。
-- 上传:只接受**公网可访问且无需鉴权**的 URL(常用 OSS 签名 URL),不接受本地文件或 base64 Data URI。
+- 上传:接口只接受 URL,不接受本地文件或 base64 Data URI。脚本对本地录音的处理是:ffmpeg 转码 → `dashscope.utils.oss_utils.OssUtils.upload(model="voice-enrollment")` 上传到百炼免费临时存储(48 小时有效,文件与 `voice-enrollment` 和本账号绑定)→ 得到 `oss://` 地址 → 创建音色时带请求头 `X-DashScope-OssResourceResolve: enable`。临时文件过期不影响已创建的音色。也可直接传公网可访问且无需鉴权的 http(s) URL(此时不需要该请求头)。
+- 临时存储文档:https://help.aliyun.com/zh/model-studio/get-temporary-file-url
 - 可选参数:`language_hints`(录音语种,默认 `zh`)、`max_prompt_audio_length`(参考音频最大时长 3~30 秒,默认 10)、`enable_preprocess`(降噪/增强/音量规整,有底噪时开)。
 - 音色 ID:`qwen-audio-3.1-tts-flash-{prefix}-{唯一标识}`,`prefix` 仅数字和字母,≤10 字符。
 - 配额与费用:创建免费;每个账号 Qwen-Audio-TTS/CosyVoice 共享 1000 个上限,满了需手动删除;1 年未用于合成会被自动删除。
@@ -48,6 +49,6 @@ https://help.aliyun.com/zh/model-studio/qwen-audio-tts-voice-list
 ## 常见报错
 
 - **411**(`InvalidParameter` + `[cosyvoice:]Engine error [411]: TTS speak operation failed`):音色不属于本模型。
-- 复刻失败:录音不合规或 URL 需要鉴权、无法直接下载。
+- 复刻失败:录音不合规;或直接传的 URL 需要鉴权、无法下载;或 `oss://` 地址缺少 `X-DashScope-OssResourceResolve: enable` 请求头。
 
 文档:https://help.aliyun.com/zh/model-studio/realtime-tts-user-guide

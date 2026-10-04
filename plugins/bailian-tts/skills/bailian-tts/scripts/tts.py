@@ -5,7 +5,7 @@
 - preview: 合成一句并播放(试听)
 - gen:     合成整段并保存 wav(规范化 + 时长)
 - script:  按脚本逐段生成 wav,并输出 manifest.json、subtitles.srt 与拼接好的 all.wav
-- clone:   用一段公网可访问的录音复刻音色
+- clone:   用本地录音(自动转码、上传百炼临时存储)或公网 URL 复刻音色
 - delete:  删除一个复刻音色
 
 指令(instruction):任意自然语言,≤100 字符(汉字计 2),系统音色与复刻音色都支持。
@@ -181,22 +181,59 @@ def list_mine():
         print("其它模型的音色本插件无法合成;不再需要可用 delete <voice_id> 释放配额。")
 
 
+def prepare_recording(path):
+    """把本地录音转成 24kHz 单声道 16bit wav 并检查时长,返回临时 wav 路径。"""
+    if not os.path.isfile(path):
+        sys.exit(f"找不到录音文件:{path}")
+    fd, out = tempfile.mkstemp(suffix=".wav", prefix="clone_"); os.close(fd)
+    r = subprocess.run(["ffmpeg", "-y", "-i", path, "-ar", "24000", "-ac", "1", "-c:a", "pcm_s16le", out],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    if r.returncode:
+        os.unlink(out)
+        sys.exit(f"录音转码失败(ffmpeg 无法读取 {path}):{r.stderr.strip().splitlines()[-1:]}")
+    d = duration(out)
+    if not 5 <= d <= 60:
+        os.unlink(out)
+        sys.exit(f"录音时长 {d:.1f}s,需在 5~60 秒之间(推荐 10~20 秒)")
+    if not 10 <= d <= 20:
+        print(f"⚠ 录音时长 {d:.1f}s,推荐 10~20 秒效果最好", file=sys.stderr)
+    return out
+
+
+def upload_recording(path):
+    """上传到百炼免费临时存储(48 小时有效),返回 oss:// 地址。文件与 voice-enrollment 绑定。"""
+    from dashscope.utils.oss_utils import OssUtils
+    url, _ = OssUtils.upload(model="voice-enrollment", file_path=path, api_key=get_key())
+    return url
+
+
 def cmd_clone(a):
     from dashscope.audio.tts_v2 import VoiceEnrollmentService
-    if not re.fullmatch(r"[A-Za-z0-9]{1,10}", a.prefix):
-        sys.exit("--prefix 只能是数字和英文字母,最多 10 个字符")
-    if not re.match(r"https?://", a.url):
-        sys.exit("--url 必须是公网可访问的 http(s) 地址(本模型不接受本地文件或 base64)")
+    prefix = a.prefix.lower()  # SDK 约定前缀为小写字母和数字
+    if not re.fullmatch(r"[a-z0-9]{1,10}", prefix):
+        sys.exit("--prefix 只能是英文字母和数字,最多 10 个字符")
     init_dashscope()
-    svc = VoiceEnrollmentService()
-    kw: dict = dict(target_model=MODEL, prefix=a.prefix, url=a.url, language_hints=[a.lang],
-              max_prompt_audio_length=a.max_seconds)
+    if re.match(r"https?://", a.source):
+        url, svc = a.source, VoiceEnrollmentService()
+    else:
+        wav = prepare_recording(a.source)
+        try:
+            print("⬆ 上传录音到百炼临时存储…")
+            url = upload_recording(wav)
+        except Exception as e:
+            sys.exit(f"✗ 上传失败:{str(e)[-200:]}")
+        finally:
+            os.unlink(wav)
+        # oss:// 临时地址必须带这个请求头,服务端才会去解析
+        svc = VoiceEnrollmentService(headers={"X-DashScope-OssResourceResolve": "enable"})
+    kw: dict = dict(target_model=MODEL, prefix=prefix, url=url, language_hints=[a.lang],
+                    max_prompt_audio_length=a.max_seconds)
     if a.denoise:
         kw["enable_preprocess"] = True
     try:
         voice_id = svc.create_voice(**kw)
     except Exception as e:
-        sys.exit(f"✗ 复刻失败:{str(e)[-200:]}\n检查录音:10~20 秒、单人、无背景音、≥16kHz、≤10MB,URL 公网可直接下载")
+        sys.exit(f"✗ 复刻失败:{str(e)[-200:]}\n检查录音:10~20 秒、单人、无背景音;用 URL 时须公网可直接下载")
     print(f"已提交复刻:{voice_id}")
     status = None
     for _ in range(30):  # 最多等约 60 秒
@@ -343,9 +380,9 @@ def main():
     sp.add_argument("--gap", type=float, default=0.3, help="段间静音秒数(默认 0.3)")
     sp.set_defaults(func=cmd_script)
 
-    sp = sub.add_parser("clone", help="用公网录音 URL 复刻音色")
-    sp.add_argument("--url", required=True, help="录音的公网 URL(10~20 秒,单人,无背景音)")
-    sp.add_argument("--prefix", required=True, help="音色名前缀(字母数字,≤10 字符)")
+    sp = sub.add_parser("clone", help="用本地录音或公网 URL 复刻音色")
+    sp.add_argument("source", help="本地录音路径(m4a/mp3/wav 等,自动转码上传)或公网 http(s) URL")
+    sp.add_argument("--prefix", required=True, help="音色名前缀(字母数字,≤10 字符,自动转小写)")
     sp.add_argument("--lang", choices=CLONE_LANGS, default="zh", help="录音语种(默认 zh)")
     sp.add_argument("--max-seconds", type=float, default=10.0, dest="max_seconds", help="参考音频最大时长 3-30 秒")
     sp.add_argument("--denoise", action="store_true", help="开启降噪/增强(录音有底噪时用)")

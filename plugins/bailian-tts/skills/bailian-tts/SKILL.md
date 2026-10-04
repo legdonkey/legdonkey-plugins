@@ -69,9 +69,10 @@ disable-model-invocation: true
 [excited]它真的太好用了！[laughing]
 ```
 
-**clone** —— 复刻用户自己的声音。录音须是**公网可直接下载的 URL**(本模型不接受本地文件或 base64,常用 OSS 签名 URL);10~20 秒、单人、无背景音、≥16kHz、≤10MB:
+**clone** —— 复刻用户自己的声音。直接给**本地录音路径**(m4a/mp3/wav 等,如 macOS 语音备忘录导出的文件):脚本用 ffmpeg 转成 24kHz 单声道 wav、检查时长(5~60 秒,推荐 10~20 秒),上传到百炼免费临时存储,再提交复刻并等待音色可用。用户不需要自己的 OSS。已有公网 URL 时也可直接传 URL。录音要求:单人、无背景音乐和噪音、至少 5 秒连续清晰朗读:
 ```bash
-... tts.py clone --url "https://...signed-url..." --prefix ygd [--lang zh] [--denoise]
+... tts.py clone ~/Desktop/我的录音.m4a --prefix ygd [--lang zh] [--denoise]
+... tts.py clone "https://..." --prefix ygd
 ```
 成功后打印 `voice_id`(形如 `qwen-audio-3.1-tts-flash-ygd-<hex>`),之后 `-v <voice_id>` 使用,复刻音色同样支持指令。**每次调用都会新建一个音色**(账号上限 1000 个),不要重复提交。
 
@@ -82,13 +83,13 @@ disable-model-invocation: true
 1. 用户给文案 + 想要的语气/音色;用 `voices` 按性别、场景缩小范围。
 2. `preview` 试听 1~2 个候选(音色 × 指令),让用户拍板。
 3. 单段用 `gen`;多段/视频用 `script`,把 `all.wav` 和 `subtitles.srt` 交给剪辑工具。
-4. 用户要用自己的声音:先确认已有公网 URL 的录音,再 `clone`。
+4. 用户要用自己的声音:让用户录 10~20 秒清晰朗读,拿到本地文件路径后 `clone`。
 
 ## 排错
 
 - `411`(`[cosyvoice:]Engine error [411]: TTS speak operation failed`):音色不属于本模型。换 `voices` 列出的 `_v3.1` 音色,或为本模型重新 `clone`。
 - 指令被拒或效果不明显:缩短指令、改成具体的声音特征描述;情绪切换优先用文本标签。
-- 复刻失败:检查录音质量与 URL 是否无需鉴权即可下载;有底噪时加 `--denoise`。
+- 复刻失败:检查录音质量(单人、无背景音);有底噪时加 `--denoise`;用 URL 时确认无需鉴权即可下载。
 
 ## 边界
 
