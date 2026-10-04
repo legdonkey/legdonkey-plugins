@@ -29,10 +29,10 @@
       "category": "Developer Tools"
     },
     {
-      "name": "cosyvoice-tts",
+      "name": "bailian-tts",
       "source": {
         "source": "local",
-        "path": "./plugins/cosyvoice-tts"
+        "path": "./plugins/bailian-tts"
       },
       "policy": {
         "installation": "AVAILABLE",

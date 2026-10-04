@@ -28,7 +28,7 @@
   </g>
 
   <!-- top meta bar -->
-  <text x="44" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#c43c30">中文配音 · COSYVOICE-TTS</text>
+  <text x="44" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#c43c30">中文配音 · BAILIAN-TTS</text>
   <text x="1236" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#6f685a" text-anchor="end">CLAUDE CODE / CODEX</text>
   <line x1="44" y1="62" x2="1236" y2="62" stroke="#211e18" stroke-opacity="0.25" stroke-width="0.8"/>
 
@@ -37,7 +37,7 @@
 
   <!-- ===== left: microphone + waveform line-art, centered y=200 ===== -->
   <g transform="translate(82,200)">
-    <text x="0" y="-82" class="mono" font-size="12" fill="#6f685a">DashScope / CosyVoice</text>
+    <text x="0" y="-82" class="mono" font-size="12" fill="#6f685a">DashScope / Qwen-Audio</text>
 
     <!-- microphone -->
     <g stroke="#211e18" stroke-width="1.6" fill="#f7f0e2">
@@ -67,20 +67,20 @@
   </g>
 
   <!-- ===== right: title + tts cells ===== -->
-  <text x="412" y="120" class="disp" font-size="48" font-weight="600" fill="#211e18" letter-spacing="-0.5">cosyvoice-tts</text>
-  <text x="414" y="152" class="body" font-size="16.5" fill="#5f584b">阿里百炼 CosyVoice 中文配音 · Instruct 情感控制 · 试听后批量生成 wav</text>
+  <text x="412" y="120" class="disp" font-size="48" font-weight="600" fill="#211e18" letter-spacing="-0.5">bailian-tts</text>
+  <text x="414" y="152" class="body" font-size="16.5" fill="#5f584b">阿里百炼 Qwen-Audio 配音 · 自然语言指令 · 脚本批量配音与字幕</text>
 
   <!-- 6 tts cells: 2 rows x 3 cols -->
   <g>
     <g transform="translate(412,180)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
       <text x="14" y="24" class="mono" font-size="12.5" letter-spacing="1" fill="#c43c30">01</text>
-      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">Instruct 情感</text>
+      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">自然语言指令</text>
     </g>
     <g transform="translate(692,180)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
       <text x="14" y="24" class="mono" font-size="12.5" letter-spacing="1" fill="#c43c30">02</text>
-      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">音色清单</text>
+      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">情感标签</text>
     </g>
     <g transform="translate(972,180)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
@@ -90,20 +90,20 @@
     <g transform="translate(412,250)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
       <text x="14" y="24" class="mono" font-size="12.5" letter-spacing="1" fill="#c43c30">04</text>
-      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">批量生成 wav</text>
+      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">脚本批量配音</text>
     </g>
     <g transform="translate(692,250)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
       <text x="14" y="24" class="mono" font-size="12.5" letter-spacing="1" fill="#c43c30">05</text>
-      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">语速 / 音调 / 音量</text>
+      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">声音复刻</text>
     </g>
     <g transform="translate(972,250)">
       <rect width="268" height="58" fill="#e7ddc8" stroke="#c43c30" stroke-width="1.2"/>
       <text x="14" y="24" class="mono" font-size="12.5" letter-spacing="1" fill="#c43c30">06</text>
-      <text x="14" y="45" class="body" font-size="16" font-weight="700" fill="#26221b">视频旁白对轴</text>
+      <text x="14" y="45" class="body" font-size="16" font-weight="700" fill="#26221b">SRT 字幕对轴</text>
     </g>
   </g>
 
   <!-- footer flow -->
-  <text x="414" y="346" class="mono" font-size="13" fill="#6f685a">选音色 <tspan fill="#c43c30">→</tspan> 试听情感 <tspan fill="#c43c30">→</tspan> 生成 wav <tspan fill="#c43c30">→</tspan> 记录时长给时间轴</text>
+  <text x="414" y="346" class="mono" font-size="13" fill="#6f685a">选音色 <tspan fill="#c43c30">→</tspan> 试听指令 <tspan fill="#c43c30">→</tspan> 按脚本生成 <tspan fill="#c43c30">→</tspan> 音轨 + 字幕进剪辑</text>
 </svg>

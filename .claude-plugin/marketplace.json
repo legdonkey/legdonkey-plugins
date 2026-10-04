@@ -1,7 +1,7 @@
 {
   "name": "legdonkey",
   "owner": { "name": "legdonkey" },
-  "description": "legdonkey 的 Claude Code 工具集市，收录三个独立插件：privatize-fork（开源 fork 一次性私有化脚手架）、context-doctor（跨平台上下文审计）与 cosyvoice-tts（阿里百炼 CosyVoice 中文配音）。",
+  "description": "legdonkey 的 Claude Code 工具集市，收录三个独立插件：privatize-fork（开源 fork 一次性私有化脚手架）、context-doctor（跨平台上下文审计）与 bailian-tts（阿里百炼 Qwen-Audio 配音）。",
   "plugins": [
     {
       "name": "privatize-fork",
@@ -16,10 +16,10 @@
       "version": "3.0.3"
     },
     {
-      "name": "cosyvoice-tts",
-      "source": "./plugins/cosyvoice-tts",
-      "description": "阿里百炼 CosyVoice 中文语音合成：支持 Instruct 情感/场景/角色控制、试听音色、批量生成 wav。跨 Claude Code 与 Codex。",
-      "version": "1.0.0"
+      "name": "bailian-tts",
+      "source": "./plugins/bailian-tts",
+      "description": "阿里百炼 Qwen-Audio-3.1-TTS 语音合成：自然语言指令与文本内情感标签控制语气、方言与多语种音色、按脚本批量生成配音与字幕、复刻自己的声音。跨 Claude Code 与 Codex。",
+      "version": "2.0.0"
     }
   ]
 }

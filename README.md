@@ -27,13 +27,13 @@
 
 用官方治理入口盘点 **Claude Code、Codex CLI、Codex Desktop 与 Codex 本地共享**的插件 / MCP / 市场源 / 技能，分 surface 统计并给出重名、禁用、token 开销偏大等卫生建议。纯 Python 3 + Bash，只读。**→ [详细说明](plugins/context-doctor/README.md)**
 
-### [cosyvoice-tts](plugins/cosyvoice-tts/) — 阿里百炼 CosyVoice 中文配音
+### [bailian-tts](plugins/bailian-tts/) — 阿里百炼 Qwen-Audio 配音
 
 <p align="center">
-  <a href="plugins/cosyvoice-tts/"><img src="plugins/cosyvoice-tts/assets/banner.svg" alt="cosyvoice-tts" width="100%"></a>
+  <a href="plugins/bailian-tts/"><img src="plugins/bailian-tts/assets/banner.svg" alt="bailian-tts" width="100%"></a>
 </p>
 
-用阿里百炼 CosyVoice 把中文文案合成自然语音，支持 Instruct 情感 / 场景 / 角色 / 身份控制，能先试听音色再批量生成 `wav`，并打印时长方便视频、PPT、课件和旁白对轴。**→ [详细说明](plugins/cosyvoice-tts/README.md)**
+用阿里百炼 `qwen-audio-3.1-tts-flash` 把文案合成自然语音：自然语言指令和文本内 `[excited]`、`[laughing]` 等标签控制语气，支持方言与多语种音色；能先试听再生成，按脚本批量输出分段 `wav`、拼接音轨和 SRT 字幕，也能复刻自己的声音。**→ [详细说明](plugins/bailian-tts/README.md)**
 
 ## 安装
 
@@ -49,7 +49,7 @@
 /plugin marketplace add legdonkey/legdonkey-plugins
 /plugin install privatize-fork@legdonkey
 /plugin install context-doctor@legdonkey   # 按需，可只装一个
-/plugin install cosyvoice-tts@legdonkey    # 按需，可只装一个
+/plugin install bailian-tts@legdonkey      # 按需，可只装一个
 ```
 
 之后用 `/plugin marketplace update` 拉取更新。
@@ -58,7 +58,7 @@
 
 ![Claude Code 添加插件市场](assets/install-claude-gui.png)
 
-> 插件方式的 skill 触发名带命名空间：`/privatize-fork:privatize-fork`、`/context-doctor:context-doctor`、`/cosyvoice-tts:cosyvoice-tts`。
+> 插件方式的 skill 触发名带命名空间：`/privatize-fork:privatize-fork`、`/context-doctor:context-doctor`、`/bailian-tts:bailian-tts`。
 
 ### ② Codex —— 插件市场
 
@@ -68,14 +68,14 @@
 codex plugin marketplace add legdonkey/legdonkey-plugins --ref main
 codex plugin add privatize-fork@legdonkey
 codex plugin add context-doctor@legdonkey   # 按需，可只装一个
-codex plugin add cosyvoice-tts@legdonkey    # 按需，可只装一个
+codex plugin add bailian-tts@legdonkey      # 按需，可只装一个
 ```
 
 **桌面端图形界面**：设置 →「添加插件市场」，来源填 `legdonkey/legdonkey-plugins`、Git 引用 `main`（稀疏路径留空），点「添加市场」；再到插件列表按需安装。
 
 ![Codex 添加插件市场](assets/install-codex-gui.png)
 
-> 三个插件分别在 `plugins/privatize-fork`、`plugins/context-doctor`、`plugins/cosyvoice-tts` 子目录（标准布局），任意 Codex 版本都能装。
+> 三个插件分别在 `plugins/privatize-fork`、`plugins/context-doctor`、`plugins/bailian-tts` 子目录（标准布局），任意 Codex 版本都能装。
 
 > **不会自动调用**：CC 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——两边都只能由你手动触发。
 
@@ -97,12 +97,12 @@ plugins/
 │   ├── assets/                                #   该插件 README 配图（banner / audit-overview）
 │   ├── README.md                              #   插件详细说明
 │   └── skills/context-doctor/                 #   技能本体（SKILL.md + scripts）
-└── cosyvoice-tts/                             # 插件③：阿里百炼 CosyVoice 中文配音
+└── bailian-tts/                               # 插件③：阿里百炼 Qwen-Audio 配音
     ├── .claude-plugin/plugin.json             #   CC 插件清单
     ├── .codex-plugin/plugin.json              #   Codex 插件清单
     ├── assets/                                #   该插件 README 配图（banner）
     ├── README.md                              #   插件详细说明
-    └── skills/cosyvoice-tts/                  #   技能本体（SKILL.md + scripts + references）
+    └── skills/bailian-tts/                    #   技能本体（SKILL.md + scripts + references）
 install-plugins.sh                             # 一键把三个插件装进 CC + Codex
 assets/                                        # 共享配图：安装截图 + build-svg.sh（生成各插件 SVG）
 README.md                                      # 本文件（仓库总览 / 导航）

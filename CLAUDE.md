@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `plugins/privatize-fork/` — 开源 fork 一次性私有化脚手架。
 - `plugins/context-doctor/` — 跨平台审计 Claude Code 与 Codex 的插件 / MCP / 市场源 / 技能（调官方 CLI 治理入口，技能走目录）。
-- `plugins/cosyvoice-tts/` — 阿里百炼 CosyVoice 中文配音脚手架（固定 `cosyvoice-v3-flash` catalog）。
+- `plugins/bailian-tts/` — 阿里百炼 Qwen-Audio 配音脚手架（固定 `qwen-audio-3.1-tts-flash` 与其音色 catalog；含脚本批量配音、SRT 字幕与声音复刻）。
 
 每个插件目录含 `.claude-plugin/plugin.json`（CC）+ `.codex-plugin/plugin.json`（Codex）+ `skills/<name>/`。两个市场清单在仓库根：`.claude-plugin/marketplace.json`（CC）、`.agents/plugins/marketplace.json`（Codex），各列出这三个插件。
 
