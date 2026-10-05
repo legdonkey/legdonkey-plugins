@@ -1,4 +1,4 @@
-# legdonkey-plugins — Claude Code 与 Codex 插件集市
+# legdonkey-plugins — Claude Code、Codex 与 Pi 插件集市
 
 <p align="center">
   <a href="https://github.com/legdonkey/legdonkey-plugins/releases"><img src="https://img.shields.io/github/v/release/legdonkey/legdonkey-plugins?sort=semver&label=release&color=2563eb" alt="release"></a>
@@ -7,7 +7,7 @@
   <a href="https://agentskills.io"><img src="https://img.shields.io/badge/Agent%20Skills-Compatible-1F6FEB" alt="Agent Skills Compatible"></a>
 </p>
 
-> 三个跨 **Claude Code** 与 **Codex** 的独立插件，同一个 `legdonkey` 市场，按需各装各的。底层是开放标准 [skill](https://agentskills.io)，都**只在手动点名时运行、不会自动调用**。
+> 三个跨 **Claude Code** 与 **Codex** 的独立插件，同一个 `legdonkey` 市场，按需各装各的；其中 bailian-tts 也可作为 **Pi** 包安装。底层是开放标准 [skill](https://agentskills.io)，都**只在手动点名时运行、不会自动调用**。
 
 ## 插件
 
@@ -77,11 +77,20 @@ codex plugin add bailian-tts@legdonkey      # 按需，可只装一个
 
 > 三个插件分别在 `plugins/privatize-fork`、`plugins/context-doctor`、`plugins/bailian-tts` 子目录（标准布局），任意 Codex 版本都能装。
 
-> **不会自动调用**：CC 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——两边都只能由你手动触发。
+### ③ Pi —— Pi 包（仅 bailian-tts）
+
+```bash
+pi install git:github.com/legdonkey/legdonkey-plugins
+```
+
+仓库根的 `package.json` 用 `pi.skills` 只向 Pi 暴露 `bailian-tts`；privatize-fork 与 context-doctor 不加载（context-doctor 审计的是 Claude Code / Codex 的配置，在 Pi 里没有对象）。触发名 `/skill:bailian-tts`，用 `pi update` 更新。
+
+> **不会自动调用**：CC 与 Pi 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——都只能由你手动触发。
 
 ## 仓库结构
 
 ```text
+package.json                                   # Pi 包入口（pi.skills 只列 bailian-tts）
 .claude-plugin/marketplace.json                # CC 市场清单（列出 3 个插件）
 .agents/plugins/marketplace.json               # Codex 市场清单（列出 3 个插件）
 plugins/

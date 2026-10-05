@@ -4,11 +4,11 @@
 
 # bailian-tts
 
-> 一个跨 **Claude Code** 与 **Codex** 的插件（基于开放标准 [skill](https://agentskills.io)）：用阿里百炼 `qwen-audio-3.1-tts-flash` 把文案合成自然语音。
+> 一个跨 **Claude Code**、**Codex** 与 **Pi** 的插件（基于开放标准 [skill](https://agentskills.io)）：用阿里百炼 `qwen-audio-3.1-tts-flash` 把文案合成自然语音。
 >
 > ← 返回[仓库总览](../../README.md) ｜ 姊妹插件：[privatize-fork](../privatize-fork/) / [context-doctor](../context-doctor/)
 
-同一份技能可安装到 Claude Code 与 Codex。它固定使用百炼当前一代的 `qwen-audio-3.1-tts-flash`：68 个系统音色都接受任意自然语言指令，文案里可以直接嵌入情感与拟声标签，还能用自己的录音复刻音色。
+同一份技能可安装到 Claude Code、Codex 与 Pi。它固定使用百炼当前一代的 `qwen-audio-3.1-tts-flash`：68 个系统音色都接受任意自然语言指令，文案里可以直接嵌入情感与拟声标签，还能用自己的录音复刻音色。
 
 ## 解决什么问题
 
@@ -24,7 +24,7 @@
 | **方言与多语种** | 4 个音色支持上海话、广东话、东北话、重庆话等 8 种方言和 8 种外语，用指令切换。 |
 | **先试听再生成** | `preview` 合成一句并播放；`gen` 生成正式 `wav`，统一规范化为 24kHz 单声道并打印时长。 |
 | **脚本批量配音** | `script` 按脚本逐段生成，每段可切换音色和指令，输出分段 `wav`、拼接好的 `all.wav`、`subtitles.srt` 和 `manifest.json`，可直接拖进剪辑工具。 |
-| **复刻向导** | `clone-ui` 在浏览器打开本地向导页：直接录音（音量条、时长提示、回放重录）→ 复刻 → 原声与复刻对比试听 → 设为默认或收藏，全程不碰命令行。服务只监听 `127.0.0.1` 并校验一次性 token。 |
+| **复刻向导** | `clone-ui` 在浏览器打开本地向导页，按「朗读 → 评定 → 试听 → 完成」四项走完：开录后整屏只留念稿和实时电平；录完逐项评定时长、音量、破音，不合格时直接提示重读；再对比原声与复刻音色，设为默认或收藏，全程不碰命令行。服务只监听 `127.0.0.1` 并校验一次性 token。 |
 | **声音复刻** | `clone` 直接接收本地录音（m4a/mp3/wav 等），自动转码、检查时长、上传百炼临时存储并完成复刻，无需自备 OSS；`voices --mine` 查询、`delete` 删除。 |
 | **收藏音色** | `fav add` 收藏常用音色，`voices` 中标 ★；未指定音色时默认用收藏的第 1 个，收藏存在本机 `~/.config/bailian-tts/favorites.txt`，重装插件不丢。 |
 | **提前拦截错配** | 音色不属于本模型（其它模型的系统音色、为其它模型创建的复刻音色）时直接提示，不让服务端只回一个 `411`。 |
@@ -41,9 +41,12 @@
 # Codex
 codex plugin marketplace add legdonkey/legdonkey-plugins --ref main
 codex plugin add bailian-tts@legdonkey
+
+# Pi（整个仓库作为 Pi 包安装，只暴露 bailian-tts 这一个技能）
+pi install git:github.com/legdonkey/legdonkey-plugins
 ```
 
-装完重启对应客户端。触发名：**Claude Code** 用 `/bailian-tts`（插件命名空间下 `/bailian-tts:bailian-tts`）；**Codex** 用 `$bailian-tts`。**不会自动调用**——CC 靠 frontmatter `disable-model-invocation: true`、Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动点名。
+装完重启对应客户端（Pi 会话内可用 `/reload`）。触发名：**Claude Code** 用 `/bailian-tts`（插件命名空间下 `/bailian-tts:bailian-tts`）；**Codex** 用 `$bailian-tts`；**Pi** 用 `/skill:bailian-tts`。**不会自动调用**——CC 与 Pi 都读 frontmatter 的 `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动点名。Pi 下用 `pi update` 跟进新版本。
 
 ## 运行环境
 
@@ -103,7 +106,7 @@ plugins/bailian-tts/
     ├── SKILL.md                    # 入口（禁自动调用，只手动点名才跑）
     ├── agents/openai.yaml          # Codex 专属元数据
     ├── scripts/tts.py              # 合成、试听、脚本批量配音、声音复刻
-    ├── scripts/clone_ui.html       # 复刻向导页面（由 clone-ui 在本机提供）
+    ├── assets/clone_ui.html        # 复刻向导页面（由 clone-ui 在本机提供）
     └── references/
         ├── voices.md               # 指令、文本标签、复刻与排错说明
         └── voices.json             # qwen-audio-3.1-tts-flash 音色清单

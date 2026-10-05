@@ -1,0 +1,584 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-05T11:00:00+08:00",
+  "title": "Design System: bailian-tts 复刻向导",
+  "extensions": {
+    "colorMeta": {
+      "exam-blue": {
+        "role": "primary",
+        "displayName": "考务蓝",
+        "canonical": "#1f3a5f",
+        "darkValue": "#3d6699",
+        "cssVar": "--exam",
+        "tonalRamp": [
+          "#13233a",
+          "#213d64",
+          "#2e578e",
+          "#3c71b9",
+          "#618ecc",
+          "#8cacd9",
+          "#bed0ea",
+          "#ecf1f9"
+        ]
+      },
+      "exam-ink": {
+        "role": "primary",
+        "displayName": "考位白字",
+        "canonical": "#ffffff",
+        "darkValue": "#ffffff",
+        "cssVar": "--exam-ink",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#969696",
+          "#b2b2b2",
+          "#d4d4d4",
+          "#f2f2f2"
+        ]
+      },
+      "exam-soft": {
+        "role": "primary",
+        "displayName": "考位浅蓝",
+        "canonical": "#c6d3e6",
+        "darkValue": "#dbe6f4",
+        "cssVar": "--exam-soft",
+        "tonalRamp": [
+          "#172335",
+          "#283d5c",
+          "#3a5783",
+          "#4b71aa",
+          "#6e8fbf",
+          "#95add0",
+          "#c3d0e5",
+          "#edf1f7"
+        ]
+      },
+      "seat-grey": {
+        "role": "neutral",
+        "displayName": "卡座灰",
+        "canonical": "#eef1f5",
+        "darkValue": "#10161f",
+        "cssVar": "--ground",
+        "tonalRamp": [
+          "#1c2530",
+          "#314053",
+          "#465b77",
+          "#5b769a",
+          "#7b93b2",
+          "#9fb0c6",
+          "#c8d2df",
+          "#eff2f6"
+        ]
+      },
+      "card-white": {
+        "role": "neutral",
+        "displayName": "朗读卡白",
+        "canonical": "#ffffff",
+        "darkValue": "#182230",
+        "cssVar": "--card",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#969696",
+          "#b2b2b2",
+          "#d4d4d4",
+          "#f2f2f2"
+        ]
+      },
+      "rule-line": {
+        "role": "neutral",
+        "displayName": "细线灰蓝",
+        "canonical": "#c9d3e0",
+        "darkValue": "#2e3b4e",
+        "cssVar": "--rule",
+        "tonalRamp": [
+          "#1c2531",
+          "#304054",
+          "#455b78",
+          "#59769c",
+          "#7a93b3",
+          "#9eb0c7",
+          "#c8d2df",
+          "#eff2f6"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "墨色",
+        "canonical": "#17212e",
+        "darkValue": "#e8edf4",
+        "cssVar": "--ink",
+        "tonalRamp": [
+          "#192533",
+          "#2c3f58",
+          "#3f5a7e",
+          "#5275a3",
+          "#7492b9",
+          "#99afcc",
+          "#c5d2e2",
+          "#eef2f6"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "说明灰",
+        "canonical": "#4f5d70",
+        "darkValue": "#a3b0c2",
+        "cssVar": "--muted",
+        "tonalRamp": [
+          "#20252d",
+          "#37414e",
+          "#4e5c6f",
+          "#657790",
+          "#8494a9",
+          "#a5b0c0",
+          "#ccd3db",
+          "#f0f2f4"
+        ]
+      },
+      "pass": {
+        "role": "semantic",
+        "displayName": "合格绿",
+        "canonical": "#1f7a4d",
+        "darkValue": "#6fcf9b",
+        "cssVar": "--pass",
+        "tonalRamp": [
+          "#0f3d27",
+          "#1b6a43",
+          "#26965f",
+          "#32c37b",
+          "#58d597",
+          "#85e0b3",
+          "#baedd4",
+          "#ebfaf2"
+        ]
+      },
+      "pass-bg": {
+        "role": "semantic",
+        "displayName": "合格浅底",
+        "canonical": "#e3f2ea",
+        "darkValue": "#173326",
+        "cssVar": "--pass-bg",
+        "tonalRamp": [
+          "#183425",
+          "#2a5b41",
+          "#3c815c",
+          "#4ea777",
+          "#70bd94",
+          "#97ceb1",
+          "#c4e4d3",
+          "#eef7f2"
+        ]
+      },
+      "warn": {
+        "role": "semantic",
+        "displayName": "可用琥珀",
+        "canonical": "#8a5a00",
+        "darkValue": "#e8b55a",
+        "cssVar": "--warn",
+        "tonalRamp": [
+          "#4c3200",
+          "#855600",
+          "#bd7b00",
+          "#f5a000",
+          "#ffb62e",
+          "#ffca66",
+          "#ffe1a8",
+          "#fff6e5"
+        ]
+      },
+      "warn-bg": {
+        "role": "semantic",
+        "displayName": "可用浅底",
+        "canonical": "#fbf0d9",
+        "darkValue": "#3a2c12",
+        "cssVar": "--warn-bg",
+        "tonalRamp": [
+          "#453107",
+          "#78550d",
+          "#ab7912",
+          "#dd9d17",
+          "#ebb442",
+          "#f0c875",
+          "#f7e0b1",
+          "#fdf6e8"
+        ]
+      },
+      "fail": {
+        "role": "semantic",
+        "displayName": "需重录红",
+        "canonical": "#b3261e",
+        "darkValue": "#f08a80",
+        "cssVar": "--fail",
+        "tonalRamp": [
+          "#420e0b",
+          "#721813",
+          "#a2221b",
+          "#d22d23",
+          "#e1544c",
+          "#e9827c",
+          "#f3b8b5",
+          "#fbeae9"
+        ]
+      },
+      "fail-bg": {
+        "role": "semantic",
+        "displayName": "需重录浅底",
+        "canonical": "#fbe4e2",
+        "darkValue": "#3d1c1a",
+        "cssVar": "--fail-bg",
+        "tonalRamp": [
+          "#430e09",
+          "#751810",
+          "#a62217",
+          "#d72d1e",
+          "#e65447",
+          "#ec8279",
+          "#f4b8b3",
+          "#fceae9"
+        ]
+      },
+      "band": {
+        "role": "semantic",
+        "displayName": "区间绿",
+        "canonical": "#4f9a72",
+        "darkValue": "#3d8a5f",
+        "cssVar": "--band",
+        "tonalRamp": [
+          "#1a3325",
+          "#2d5841",
+          "#407d5c",
+          "#53a278",
+          "#75b894",
+          "#9acbb1",
+          "#c6e2d3",
+          "#eef6f2"
+        ]
+      },
+      "band-soft": {
+        "role": "semantic",
+        "displayName": "区间浅绿",
+        "canonical": "#d6e8dd",
+        "darkValue": "#1f3b2c",
+        "cssVar": "--band-soft",
+        "tonalRamp": [
+          "#1b3124",
+          "#30553e",
+          "#447958",
+          "#589d73",
+          "#79b490",
+          "#9dc8ae",
+          "#c7e0d1",
+          "#eff6f1"
+        ]
+      },
+      "focus": {
+        "role": "semantic",
+        "displayName": "焦点蓝",
+        "canonical": "#3b7dd8",
+        "darkValue": "#7aa9ec",
+        "cssVar": "--focus",
+        "tonalRamp": [
+          "#0d2240",
+          "#163b6f",
+          "#1f549d",
+          "#296dcc",
+          "#518bdc",
+          "#7faae6",
+          "#b7cff1",
+          "#eaf1fb"
+        ]
+      },
+      "exam-dark": {
+        "role": "primary",
+        "displayName": "暗色考务蓝",
+        "canonical": "#3d6699",
+        "cssVar": "--exam (dark)",
+        "tonalRamp": [
+          "#162437",
+          "#263f5f",
+          "#365a87",
+          "#4675af",
+          "#6a92c3",
+          "#92afd3",
+          "#c1d2e6",
+          "#edf2f8"
+        ]
+      },
+      "exam-soft-dark": {
+        "role": "primary",
+        "displayName": "暗色考位浅蓝",
+        "canonical": "#dbe6f4",
+        "cssVar": "--exam-soft (dark)",
+        "tonalRamp": [
+          "#12243b",
+          "#1f3e66",
+          "#2c5891",
+          "#3973bc",
+          "#5f90ce",
+          "#8aaedb",
+          "#bdd1eb",
+          "#ebf1f9"
+        ]
+      },
+      "ground-dark": {
+        "role": "neutral",
+        "displayName": "夜间卡座",
+        "canonical": "#10161f",
+        "cssVar": "--ground (dark)",
+        "tonalRamp": [
+          "#1a2432",
+          "#2d3e57",
+          "#40587c",
+          "#5373a1",
+          "#7590b8",
+          "#9aaecb",
+          "#c6d1e1",
+          "#eef1f6"
+        ]
+      },
+      "live-dot": {
+        "role": "semantic",
+        "displayName": "录音红点",
+        "canonical": "#ff5a4f",
+        "cssVar": "(hard-coded in .bar .live i)",
+        "tonalRamp": [
+          "#4c0500",
+          "#850800",
+          "#bd0c00",
+          "#f50f00",
+          "#ff3b2e",
+          "#ff7066",
+          "#ffaea8",
+          "#ffe7e5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "全屏念稿",
+        "purpose": "只用于录音中的全屏念稿。"
+      },
+      "headline": {
+        "displayName": "朗读稿",
+        "purpose": "朗读卡内的正文朗读稿；窄屏 19px。"
+      },
+      "verdict": {
+        "displayName": "总评结论词",
+        "purpose": "评定表总评结论词，按结论着色。"
+      },
+      "title": {
+        "displayName": "标题",
+        "purpose": "卡头标题、须知标题、区块小标题。"
+      },
+      "body": {
+        "displayName": "正文",
+        "purpose": "页面基础正文。"
+      },
+      "control": {
+        "displayName": "控件",
+        "purpose": "按钮、输入框、表格、须知条目、电平提示句。"
+      },
+      "label": {
+        "displayName": "说明",
+        "purpose": "卡头副信息、字段说明、提示、消息、考位条进度。"
+      },
+      "stamp": {
+        "displayName": "印章",
+        "purpose": "印章标签文字。"
+      },
+      "scale": {
+        "displayName": "刻度",
+        "purpose": "刻度数字、区间标注与须知序号；电平图例用 Label 的 14px。"
+      },
+      "mono": {
+        "displayName": "等宽",
+        "purpose": "仅用于音色编号。"
+      }
+    },
+    "shadows": [],
+    "extraTokens": [
+      {
+        "name": "--fill",
+        "value": "#1f3a5f",
+        "darkValue": "#dbe7fb",
+        "purpose": "计时刻度进度填充。"
+      },
+      {
+        "name": "--exam-btn",
+        "value": "#1f3a5f",
+        "darkValue": "#3d6699",
+        "purpose": "主按钮底色，当前与 --exam 同值。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-enter",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "视图切换（.35s 上移 6px 淡入）与评定行（.4s 左移 6px 淡入、逐行 .08s 延迟）。"
+      },
+      {
+        "name": "control-transition",
+        "value": ".15s",
+        "purpose": "按钮背景与描边过渡。"
+      },
+      {
+        "name": "meter-follow",
+        "value": ".08s linear",
+        "purpose": "电平填充跟随。"
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce 下关闭全部动画与过渡",
+        "purpose": "无障碍。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "考位条",
+      "kind": "nav",
+      "refersTo": "exam-bar",
+      "description": "贴顶的考务蓝考位信息条，左为任务名与步骤，右为文字进度。",
+      "html": "<header class=\"ds-bar\"><h1>声音复刻 <span>· 朗读录音</span></h1><div class=\"ds-bar-progress\">第 <b>1</b> 项 / 共 4 项</div></header>",
+      "css": ".ds-bar { height: 56px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--exam, #1f3a5f); color: var(--exam-ink, #ffffff); font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-bar h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: .02em; } .ds-bar h1 span { color: var(--exam-soft, #c6d3e6); font-weight: 400; } .ds-bar-progress { font-size: 14px; color: var(--exam-soft, #c6d3e6); font-variant-numeric: tabular-nums; } .ds-bar-progress b { color: var(--exam-ink, #ffffff); font-weight: 600; }"
+    },
+    {
+      "name": "录音中考位条",
+      "kind": "custom",
+      "refersTo": "exam-bar",
+      "description": "录音状态下考位条收起为红点、「录音中」与计时。",
+      "html": "<header class=\"ds-bar-live\"><span class=\"ds-live\"><i></i>录音中 <span class=\"ds-live-t\">11.3 秒</span></span></header>",
+      "css": ".ds-bar-live { height: 56px; padding: 0 24px; display: flex; align-items: center; background: var(--exam, #1f3a5f); color: var(--exam-ink, #ffffff); font: 16px/1.7 -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-live { display: flex; align-items: center; gap: 10px; font-weight: 600; } .ds-live i { width: 10px; height: 10px; border-radius: 50%; background: #ff5a4f; /* live-dot */ } .ds-live-t { font-variant-numeric: tabular-nums; font-weight: 400; color: var(--exam-soft, #c6d3e6); }"
+    },
+    {
+      "name": "主按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "每个区块唯一的主动作，考务蓝底白字，可带线性图标。",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"9\" y=\"3\" width=\"6\" height=\"11\" rx=\"3\"/><path d=\"M5 11a7 7 0 0 0 14 0M12 18v3\"/></svg><span>开始朗读</span></button>",
+      "css": ".ds-btn-primary { font: 15px/1.7 -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 6px; cursor: pointer; border: 1px solid var(--rule, #c9d3e0); background: var(--card, #ffffff); color: var(--ink, #17212e); transition: background .15s, border-color .15s; background: var(--exam, #1f3a5f); border-color: var(--exam, #1f3a5f); color: var(--exam-ink, #ffffff); font-weight: 600; } .ds-btn-primary:hover { filter: brightness(1.12); } .ds-btn-primary:focus-visible { outline: 2px solid var(--focus, #3b7dd8); outline-offset: 2px; } .ds-btn-primary svg { flex: none; }"
+    },
+    {
+      "name": "次级按钮",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "白底细线按钮，悬停描边变考务蓝。",
+      "html": "<button class=\"ds-btn\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4\"/></svg><span>重新朗读</span></button>",
+      "css": ".ds-btn { font: 15px/1.7 -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 6px; cursor: pointer; border: 1px solid var(--rule, #c9d3e0); background: var(--card, #ffffff); color: var(--ink, #17212e); transition: background .15s, border-color .15s; } .ds-btn:hover { border-color: var(--exam, #1f3a5f); } .ds-btn:focus-visible { outline: 2px solid var(--focus, #3b7dd8); outline-offset: 2px; } .ds-btn svg { flex: none; }"
+    },
+    {
+      "name": "危险按钮",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "次级按钮外观、需重录红文字，用于删除重录。",
+      "html": "<button class=\"ds-btn-danger\">不满意，删除后重录</button>",
+      "css": ".ds-btn-danger { font: 15px/1.7 -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 6px; cursor: pointer; border: 1px solid var(--rule, #c9d3e0); background: var(--card, #ffffff); color: var(--ink, #17212e); transition: background .15s, border-color .15s; color: var(--fail, #b3261e); } .ds-btn-danger:hover { border-color: var(--exam, #1f3a5f); } .ds-btn-danger:focus-visible { outline: 2px solid var(--focus, #3b7dd8); outline-offset: 2px; }"
+    },
+    {
+      "name": "输入框",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "字段说明在上，白底细线 6px 圆角输入框。",
+      "html": "<label class=\"ds-field\"><span>英文字母或数字，1～10 位，会出现在音色编号里（例如 ygd）</span><input class=\"ds-input\" type=\"text\" maxlength=\"10\"></label>",
+      "css": ".ds-field { display: block; font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-field > span { display: block; font-size: 14px; color: var(--muted, #4f5d70); margin-bottom: 6px; } .ds-input { font: 15px/1.7 -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; width: 100%; padding: 9px 12px; border-radius: 6px; border: 1px solid var(--rule, #c9d3e0); background: var(--card, #ffffff); color: var(--ink, #17212e); } .ds-input:focus-visible { outline: 2px solid var(--focus, #3b7dd8); outline-offset: 2px; }"
+    },
+    {
+      "name": "印章标签",
+      "kind": "chip",
+      "refersTo": "mark-pass",
+      "description": "评定结论的描边文字印章：合格 / 可用 / 需重录 / 未检测。",
+      "html": "<span class=\"ds-mark ds-pass\">合格</span> <span class=\"ds-mark ds-warn\">可用</span> <span class=\"ds-mark ds-fail\">需重录</span> <span class=\"ds-mark ds-na\">未检测</span>",
+      "css": ".ds-mark { display: inline-block; padding: 2px 10px 2px 11px; border-radius: 2px; font: 700 14px/1.7 -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; letter-spacing: .1em; border: 1.5px solid currentColor; background: transparent; } .ds-pass { color: var(--pass, #1f7a4d); } .ds-warn { color: var(--warn, #8a5a00); } .ds-fail { color: var(--fail, #b3261e); } .ds-na { color: var(--muted, #4f5d70); }"
+    },
+    {
+      "name": "评定卡",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "卡头 + 评定表行 + 总评行 + 区块的标准卡片结构。",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-head\"><b>录音评定</b><span>本次朗读</span></div><table class=\"ds-sheet\"><tr><th>时长</th><td class=\"ds-val\">11.3 秒</td><td><span class=\"ds-mark ds-pass\">合格</span></td></tr><tr><th>音量</th><td class=\"ds-val\">偏小</td><td><span class=\"ds-mark ds-fail\">需重录</span></td></tr></table><div class=\"ds-verdict\"><b>建议重读</b><span>带着这些问题复刻，声音会不干净。</span></div></div>",
+      "css": ".ds-card { background: var(--card, #ffffff); border: 1px solid var(--rule, #c9d3e0); border-radius: 8px; color: var(--ink, #17212e); font: 16px/1.7 -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--rule, #c9d3e0); font-size: 14px; color: var(--muted, #4f5d70); } .ds-card-head b { color: var(--ink, #17212e); font-size: 19px; font-weight: 600; } .ds-sheet { width: 100%; border-collapse: collapse; font-size: 15px; } .ds-sheet th, .ds-sheet td { text-align: left; padding: 14px 24px; border-bottom: 1px solid var(--rule, #c9d3e0); } .ds-sheet th { width: 22%; font-weight: 600; color: var(--muted, #4f5d70); } .ds-val { font-variant-numeric: tabular-nums; } .ds-mark { display: inline-block; padding: 2px 10px 2px 11px; border-radius: 2px; font-size: 14px; font-weight: 700; letter-spacing: .1em; border: 1.5px solid currentColor; } .ds-pass { color: var(--pass, #1f7a4d); } .ds-fail { color: var(--fail, #b3261e); } .ds-verdict { padding: 20px 24px; display: flex; gap: 16px; align-items: baseline; } .ds-verdict b { font-size: 20px; color: var(--fail, #b3261e); white-space: nowrap; }"
+    },
+    {
+      "name": "计时刻度",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "0–30 秒细轨道，10～20 秒建议区间画在轨道上，进度从左覆盖。",
+      "html": "<div class=\"ds-scale\"><span class=\"ds-tag\">建议 10～20 秒</span><div class=\"ds-track\"><div class=\"ds-ok\"></div><div class=\"ds-fill\"></div></div><span class=\"ds-edge\" style=\"left:33.33%\"></span><span class=\"ds-edge\" style=\"left:66.67%\"></span><div class=\"ds-ticks\"><span style=\"left:0\">0 秒</span><span style=\"left:33.33%;transform:translateX(-50%)\">10</span><span style=\"left:66.67%;transform:translateX(-50%)\">20</span><span style=\"left:100%;transform:translateX(-100%)\">30 秒</span></div></div>",
+      "css": ".ds-scale { position: relative; height: 46px; font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-track { position: absolute; left: 0; right: 0; top: 20px; height: 8px; background: var(--card, #ffffff); border: 1px solid var(--rule, #c9d3e0); border-radius: 4px; overflow: hidden; } .ds-ok { position: absolute; top: 0; bottom: 0; left: 33.33%; width: 33.33%; background: var(--band, #4f9a72); } .ds-fill { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; background: var(--fill, #1f3a5f); transform: scaleX(.38); transform-origin: left; } .ds-edge { position: absolute; top: 14px; width: 1px; height: 20px; background: var(--band, #4f9a72); } .ds-tag { position: absolute; top: 0; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--pass, #1f7a4d); white-space: nowrap; } .ds-ticks { position: absolute; left: 0; right: 0; top: 30px; font-size: 12px; color: var(--muted, #4f5d70); font-variant-numeric: tabular-nums; } .ds-ticks span { position: absolute; white-space: nowrap; }"
+    },
+    {
+      "name": "电平刻度",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "录音中的电平轨道，合格区间铺底，填充按 太小 / 合适 / 太大 着色并配文字。",
+      "html": "<div class=\"ds-meter\"><div class=\"ds-mtrack\"><div class=\"ds-mok\"></div><div class=\"ds-lv\"></div></div><div class=\"ds-legend\"><span class=\"l\">太小</span><span class=\"m\">合适</span><span class=\"r\">太大</span></div><p class=\"ds-say\">音量合适，保持这个距离。</p></div>",
+      "css": ".ds-meter { font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-mtrack { position: relative; height: 10px; background: var(--card, #ffffff); border: 1px solid var(--rule, #c9d3e0); border-radius: 4px; overflow: hidden; } .ds-mok { position: absolute; top: 0; bottom: 0; left: 60%; width: 26.7%; background: var(--band-soft, #d6e8dd); } .ds-lv { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; background: var(--pass, #1f7a4d); transform: scaleX(.75); transform-origin: left; transition: transform .08s linear; } .ds-legend { position: relative; height: 20px; font-size: 14px; color: var(--muted, #4f5d70); margin-top: 6px; } .ds-legend span { position: absolute; white-space: nowrap; } .ds-legend .l { left: 0; } .ds-legend .m { left: 73.3%; transform: translateX(-50%); color: var(--pass, #1f7a4d); font-weight: 700; } .ds-legend .r { right: 0; } .ds-say { font-size: 15px; margin: 10px 0 0; color: var(--pass, #1f7a4d); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "朗读考位",
+    "overview": "复刻一段声音，就是参加一次普通话水平测试的「朗读短文」：顶部一条考务蓝考位条，卡座灰的地面上放一张纯白朗读卡，读完当场拿到一张评定表。整个世界只有一种字体、一种分隔方式（1px 细线）和一种结论语言（印章式文字标签），层级全部靠字号、字重和细线建立，不靠颜色块、阴影或渐变。\n\n密度是「考务文件」级：信息分行、分格、逐项给结论，留白克制但不空。唯一的戏剧性时刻是开录：考位条收起为一枚红点与计时，须知与卡框全部退场，念稿放大到满屏，下方只剩电平刻度与计时刻度。录音期间页面上不存在任何与「读」和「听自己音量」无关的东西。\n\n明确拒绝「顶部步骤条 + 居中卡片 + 蓝色按钮」的通用 SaaS 开通向导观感；进度以考位条右侧的文字「第 n 项 / 共 4 项」表达，不画步骤圆点。",
+    "keyCharacteristics": [
+      "考务蓝考位条（56px）贯穿所有视图，是唯一的大面积色块。",
+      "纯白卡片 + 1px 细线分格：卡头、卡体分块、表格行、对比栏之间都是同一条线。",
+      "单一系统中文无衬线字体，层级只靠字号与字重。",
+      "评定结论用描边印章文字标签，颜色只在印章、电平和结论词上出现。",
+      "刻度条带「合格区间」：计时与电平都把建议范围直接画在轨道上。",
+      "亮暗双主题由同一组 CSS 自定义属性在 `prefers-color-scheme: dark` 下整体替换。"
+    ],
+    "rules": [
+      {
+        "name": "The 一块蓝 Rule",
+        "body": "大面积的考务蓝只出现在考位条和主按钮上。卡片、区块、表头都不铺色；层级交给细线和字号。",
+        "section": "colors"
+      },
+      {
+        "name": "The 颜色只给结论 Rule",
+        "body": "绿、琥珀、红只用于评定结论（印章、结论词、电平状态、消息），从不用作装饰或分区底色；每处颜色旁边都有一个说明状态的文字词（合格 / 可用 / 需重录 / 太小 / 合适 / 太大），不只靠颜色表达状态。",
+        "section": "colors"
+      },
+      {
+        "name": "The 一种字体 Rule",
+        "body": "除音色编号用等宽字体外，全页只用系统中文无衬线栈。不要为了「有设计感」引入衬线或展示字体。",
+        "section": "typography"
+      },
+      {
+        "name": "The 数字对齐 Rule",
+        "body": "计时、进度、时长值一律 `font-variant-numeric: tabular-nums`，数字跳动时不抖。",
+        "section": "typography"
+      },
+      {
+        "name": "The 细线即结构 Rule",
+        "body": "所有分隔都是 1px `rule-line` 实线：卡框、卡头底线、区块间线、表格行线、对比栏竖线。需要再分一层时加一条线，不加阴影、不加底色。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 用 1px `rule-line` 细线完成所有分隔与分组，需要更多层级时再加一条线。",
+      "**Do** 每个评定结论都同时给出文字词与颜色（合格 / 可用 / 需重录 / 未检测），并用印章标签呈现。",
+      "**Do** 把建议范围直接画在刻度轨道上（计时 10～20 秒、电平合格区间），让用户看位置就知道好不好。",
+      "**Do** 新增视图沿用卡头 + 区块的卡片结构，并在考位条右侧以文字更新「第 n 项 / 共 4 项」。",
+      "**Do** 每个区块只保留一个主按钮，并让它指向评定推荐的下一步。",
+      "**Do** 新增颜色时在 `:root` 与 `prefers-color-scheme: dark` 两处同时定义，保持 WCAG AA 对比度。"
+    ],
+    "donts": [
+      "**Don't** 加 `box-shadow`、渐变或光晕；本系统是纯平的。",
+      "**Don't** 引入第二种正文或展示字体；等宽字体只给机器值（音色编号）。",
+      "**Don't** 用图标代替评定结论；印章是文字，按钮上的线性 SVG 图标只做动作提示。",
+      "**Don't** 画顶部步骤条或步骤圆点；进度只用考位条上的文字。",
+      "**Don't** 让语义色（绿 / 琥珀 / 红）出现在非结论位置，例如装饰性底色或分区色块。",
+      "**Don't** 在录音状态下显示念稿、电平、计时和停止按钮以外的任何内容。"
+    ]
+  }
+}
