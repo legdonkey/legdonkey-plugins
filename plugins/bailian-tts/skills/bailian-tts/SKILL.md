@@ -21,7 +21,7 @@ disable-model-invocation: true
 
 ## 模型与音色
 
-- **固定模型** `qwen-audio-3.1-tts-flash`,**默认音色** `longanhuan_v3.1`(女)。
+- **固定模型** `qwen-audio-3.1-tts-flash`。**默认音色**:未指定 `-v` 时用用户**收藏的第 1 个**(见 `fav`),收藏为空时用 `longanhuan_v3.1`(女)。脚本会在 stderr 打印实际用了哪个。
 - 68 个系统音色在 [references/voices.json](references/voices.json)(与官方列表对齐),`voices` 命令直接读。系统音色名都以 `_v3.1` 结尾,区分大小写。
 - **音色必须属于本模型**:其它模型的系统音色(如 3.0 系列的 `*_v3.6`)、为其它模型创建的复刻音色都不能用,服务端只会回 `411`。脚本会提前识别并提示。
 - 分组:**多语种与方言**(4 个,支持 8 种方言与 8 种外语)、**精品中文**(22 个,仅普通话)、**精品英文**(15 个,仅英文)、**其他系统**(27 个,角色/童声/陪伴等)。
@@ -78,9 +78,17 @@ disable-model-invocation: true
 
 **delete** —— 删除复刻音色:`... tts.py delete <voice_id>`。**删除不可恢复,执行前先向用户确认。**
 
+**fav** —— 管理用户的收藏音色,存在 `~/.config/bailian-tts/favorites.txt`(每行一个,按添加顺序,第 1 个即默认音色)。系统音色和本模型的复刻音色都能收藏;`voices` 列表里收藏的音色标 ★:
+```bash
+... tts.py fav                      # 查看收藏
+... tts.py fav add longanwen_v3.1 longanlang_v3.1
+... tts.py fav rm longanlang_v3.1
+```
+用户说"收藏这个音色""以后默认用 X"时用 `fav add`;要换默认就先 `rm` 再按想要的顺序 `add`。
+
 ## 典型协作流程
 
-1. 用户给文案 + 想要的语气/音色;用 `voices` 按性别、场景缩小范围。
+1. 用户给文案 + 想要的语气/音色。**用户没指定音色时,先 `fav` 看收藏**:只有 1 个就直接用;有多个时问用户用哪个,或用收藏音色各 `preview` 一句让用户选。收藏为空时再用 `voices` 按性别、场景缩小范围。
 2. `preview` 试听 1~2 个候选(音色 × 指令),让用户拍板。
 3. 单段用 `gen`;多段/视频用 `script`,把 `all.wav` 和 `subtitles.srt` 交给剪辑工具。
 4. 用户要用自己的声音:让用户录 10~20 秒清晰朗读,拿到本地文件路径后 `clone`。
