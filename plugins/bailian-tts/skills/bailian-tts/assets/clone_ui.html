@@ -3,218 +3,228 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>声音复刻 · 朗读录音</title>
+<meta name="color-scheme" content="dark">
+<title>声音复刻 · 录音</title>
 <style>
+  /* 只做暗色:场景是灯光压暗的录音棚 */
   :root {
-    color-scheme: light dark;
-    accent-color: var(--exam);
-    --exam: #1f3a5f;          /* 考务蓝:考位条、主按钮 */
-    --exam-ink: #ffffff;
-    --exam-soft: #c6d3e6;     /* 考位条上的次要文字 */
-    --ground: #eef1f5;        /* 卡座灰 */
-    --card: #ffffff;
-    --rule: #c9d3e0;          /* 1px 细线 */
-    --ink: #17212e;
-    --muted: #4f5d70;
-    --pass: #1f7a4d;
-    --pass-bg: #e3f2ea;
-    --warn: #8a5a00;
-    --warn-bg: #fbf0d9;
-    --fail: #b3261e;
-    --fail-bg: #fbe4e2;
-    --band: #4f9a72;          /* 计时刻度的建议区间 */
-    --band-soft: #d6e8dd;     /* 电平条的合格区间(下方叠加电平填充) */
-    --fill: #1f3a5f;          /* 计时进度 */
-    --exam-btn: #1f3a5f;
-    --focus: #3b7dd8;
+    color-scheme: dark;
+    --room: #111113;          /* 房间底色 */
+    --panel: #1a1b1e;         /* 面板 */
+    --inset: #222327;         /* 嵌入区:输入框、播放器 */
+    --groove: #2f3137;        /* 刻度轨道 */
+    --line: #2c2e33;          /* 1px 发丝线 */
+    --edge: #6b6e76;          /* 控件描边(对面板 ≥3:1) */
+    --ivory: #ece8e1;         /* 正文 */
+    --ash: #a8a196;           /* 说明 */
+    --champagne: #c9b27c;     /* 主操作、建议区间、序号 */
+    --champagne-ink: #1a1712; /* 香槟金上的文字 */
+    --champagne-soft: #3a3324;/* 电平合格区底 */
+    --ok: #8fcfa6;
+    --warn: #e3b56a;
+    --bad: #f0948a;
+    --rec: #ff5a4f;           /* 录音指示 */
     --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --exam: #3d6699; --exam-btn: #3d6699; --exam-ink: #ffffff; --exam-soft: #dbe6f4;
-      --ground: #10161f; --card: #182230; --rule: #2e3b4e;
-      --ink: #e8edf4; --muted: #a3b0c2;
-      --pass: #6fcf9b; --pass-bg: #173326; --warn: #e8b55a; --warn-bg: #3a2c12;
-      --fail: #f08a80; --fail-bg: #3d1c1a; --band: #3d8a5f; --band-soft: #1f3b2c; --fill: #dbe7fb; --focus: #7aa9ec;
-    }
+    accent-color: var(--champagne);
   }
   * { box-sizing: border-box; }
-  html { background: var(--ground); }
-  body { margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink); font: 16px/1.7 var(--font); }
-  ::selection { background: var(--exam); color: var(--exam-ink); }
-  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  html, body { background: var(--room); }
+  body { margin: 0; min-height: 100vh; color: var(--ivory); font: 16px/1.7 var(--font); -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--champagne); color: var(--champagne-ink); }
+  :focus-visible { outline: 2px solid var(--champagne); outline-offset: 3px; border-radius: 6px; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
 
-  /* ---- 考位条 ---- */
+  /* ---- 顶栏 ---- */
   .bar {
-    position: sticky; top: 0; z-index: 2; height: 56px; padding: 0 24px;
+    position: sticky; top: 0; z-index: 2; height: 64px; padding: 0 32px;
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    background: var(--exam); color: var(--exam-ink);
+    background: var(--room); border-bottom: 1px solid var(--line);
   }
-  .bar h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: .02em; }
-  .bar h1 span { color: var(--exam-soft); font-weight: 400; }
-  .bar .progress { font-size: 14px; color: var(--exam-soft); font-variant-numeric: tabular-nums; }
-  .bar .progress b { color: var(--exam-ink); font-weight: 600; }
-  .bar .live { display: none; align-items: center; gap: 10px; font-weight: 600; }
-  .bar .live i { width: 10px; height: 10px; border-radius: 50%; background: #ff5a4f; }
-  .bar .live .t { font-variant-numeric: tabular-nums; font-weight: 400; color: var(--exam-soft); }
+  .bar h1 { font-size: 15px; font-weight: 300; margin: 0; letter-spacing: .14em; }
+  .bar h1 span { color: var(--ash); font-weight: 400; }
+  .bar .progress { font-size: 14px; color: var(--ash); font-variant-numeric: tabular-nums; letter-spacing: .12em; }
+  .bar .progress b { color: var(--ivory); font-weight: 500; }
+  .bar .live { display: none; align-items: center; gap: 12px; font-size: 14px; letter-spacing: .14em; }
+  .bar .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--rec); }
+  .bar .live b { color: var(--rec); font-weight: 600; }
 
-  main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
+  main { max-width: 1120px; margin: 0 auto; padding: 48px 32px 80px; }
   .view { display: none; }
-  .view.on { display: block; animation: enter .35s cubic-bezier(.16,1,.3,1); }
-  @keyframes enter { from { opacity: 0; transform: translateY(6px); } }
+  .view.on { display: block; animation: enter .45s cubic-bezier(.16,1,.3,1); }
+  @keyframes enter { from { opacity: 0; transform: translateY(8px); } }
 
-  /* ---- 朗读:须知 + 朗读卡 ---- */
-  .read { display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: 32px; align-items: start; }
-  .notice h2 { font-size: 19px; margin: 0 0 12px; color: var(--ink); font-weight: 600; display: inline; }
-  .notice summary { list-style: none; cursor: default; margin-bottom: 12px; }
+  /* ---- 录音:准备 + 录音稿 ---- */
+  .read { display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: 48px; align-items: start; }
+  .notice h2 { font-size: 19px; font-weight: 300; margin: 0 0 20px; letter-spacing: .12em; display: inline; }
+  .notice summary { list-style: none; cursor: default; margin-bottom: 20px; }
   .notice summary::-webkit-details-marker { display: none; }
-  @media (max-width: 760px) {
-    .notice summary { cursor: pointer; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); margin: 0; }
-    .notice summary::after { content: "（3 条，点开查看）"; color: var(--muted); font-size: 14px; }
-    .notice details[open] summary::after { content: "（点击收起）"; }
-    .notice details[open] ol { margin-top: 14px; }
-  }
   .notice ol { margin: 0; padding: 0; list-style: none; counter-reset: n; }
-  .notice li { counter-increment: n; position: relative; padding: 0 0 16px 32px; font-size: 15px; }
+  .notice li { counter-increment: n; position: relative; padding: 0 0 22px 36px; font-size: 15px; }
   .notice li::before {
     content: counter(n); position: absolute; left: 0; top: 2px; width: 22px; height: 22px; border-radius: 50%;
-    border: 1px solid var(--exam); color: var(--exam); font-size: 12px; line-height: 20px; text-align: center;
+    border: 1px solid var(--champagne); color: var(--champagne); font-size: 12px; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums;
   }
-  @media (prefers-color-scheme: dark) { .notice li::before { border-color: var(--exam-soft); color: var(--exam-soft); } }
-  .notice li b { display: block; }
-  .notice li span { color: var(--muted); }
+  .notice li b { display: block; font-weight: 500; letter-spacing: .04em; }
+  .notice li span { color: var(--ash); }
   .field { display: block; margin: 8px 0 0; }
-  .field > span { display: block; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+  .field > span { display: block; font-size: 14px; color: var(--ash); margin-bottom: 8px; letter-spacing: .04em; }
   select, input[type=text], textarea {
-    font: inherit; font-size: 15px; width: 100%; padding: 9px 12px; border-radius: 6px;
-    border: 1px solid var(--rule); background: var(--card); color: var(--ink);
+    font: inherit; font-size: 15px; width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid var(--edge); background: var(--inset); color: var(--ivory);
   }
-  textarea { min-height: 76px; resize: vertical; line-height: 1.6; }
-  .hint { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+  input::placeholder, textarea::placeholder { color: var(--ash); }
+  textarea { min-height: 80px; resize: vertical; line-height: 1.6; }
+  .hint { font-size: 14px; color: var(--ash); margin: 10px 0 0; }
 
-  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
   .card-head {
     display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-    padding: 14px 24px; border-bottom: 1px solid var(--rule); font-size: 14px; color: var(--muted);
+    padding: 18px 28px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ash);
   }
-  .card-head b { color: var(--ink); font-size: 19px; font-weight: 600; }
-  .passage { margin: 0; padding: 28px 24px 24px; font-size: 22px; line-height: 2; letter-spacing: .02em; }
-  .card-foot { padding: 0 24px 24px; }
+  .card-head b { color: var(--ivory); font-size: 19px; font-weight: 300; letter-spacing: .12em; }
+  .passage { margin: 0; padding: 32px 28px 28px; font-size: 22px; line-height: 2; letter-spacing: .03em; }
+  .card-foot { padding: 0 28px 28px; }
 
-  /* 计时刻度:0–30 秒,10–20 秒为建议区间 */
-  .scale { position: relative; margin: 4px 0 18px; }
-  .scale { height: 46px; }
-  .scale .track { position: absolute; left: 0; right: 0; top: 20px; height: 8px; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
-  .scale .ok { position: absolute; top: 0; bottom: 0; left: 33.33%; width: 33.33%; background: var(--band); }
-  .scale .fill { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; background: var(--fill); transform: scaleX(0); transform-origin: left; }
-  .scale .edge { position: absolute; top: 14px; width: 1px; height: 20px; background: var(--band); }
-  .scale .tag { position: absolute; top: 0; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--pass); white-space: nowrap; }
-  .scale .ticks { position: absolute; left: 0; right: 0; top: 30px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  /* 计时刻度:0–30 秒,10–20 秒为建议区间(香槟金线标在轨道上方,不与进度重叠) */
+  .scale { position: relative; height: 50px; margin: 4px 0 20px; }
+  .scale .track { position: absolute; left: 0; right: 0; top: 22px; height: 6px; background: var(--groove); border-radius: 4px; overflow: hidden; }
+  .scale .fill { position: absolute; inset: 0; background: var(--ivory); transform: scaleX(0); transform-origin: left; }
+  .scale .ok { position: absolute; top: 16px; left: 33.33%; width: 33.34%; height: 2px; background: var(--champagne); }
+  .scale .edge { position: absolute; top: 12px; width: 1px; height: 22px; background: var(--champagne); }
+  .scale .tag { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--champagne); white-space: nowrap; letter-spacing: .06em; }
+  .scale .ticks { position: absolute; left: 0; right: 0; top: 32px; font-size: 12px; color: var(--ash); font-variant-numeric: tabular-nums; }
   .scale .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
   .scale .ticks span:first-child { transform: none; }
   .scale .ticks span:last-child { transform: translateX(-100%); }
 
-  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
   button {
-    font: inherit; font-size: 15px; display: inline-flex; align-items: center; gap: 8px;
-    padding: 10px 20px; border-radius: 6px; cursor: pointer; border: 1px solid var(--rule);
-    background: var(--card); color: var(--ink); transition: background .15s, border-color .15s;
+    font: inherit; font-size: 15px; display: inline-flex; align-items: center; gap: 10px;
+    padding: 11px 22px; border-radius: 8px; cursor: pointer; border: 1px solid var(--edge);
+    background: transparent; color: var(--ivory); letter-spacing: .04em; transition: background .2s, border-color .2s, color .2s;
   }
-  button:hover:not(:disabled) { border-color: var(--exam); }
-  button.primary { background: var(--exam-btn); border-color: var(--exam-btn); color: var(--exam-ink); font-weight: 600; }
-  button.primary:hover:not(:disabled) { filter: brightness(1.12); }
-  button.danger { color: var(--fail); }
-  button:disabled { opacity: .45; cursor: not-allowed; }
+  @media (hover: hover) { button:hover:not(:disabled) { border-color: var(--ivory); } }
+  button.primary { background: var(--champagne); border-color: var(--champagne); color: var(--champagne-ink); font-weight: 600; }
+  @media (hover: hover) { button.primary:hover:not(:disabled) { background: #d8c393; border-color: #d8c393; } }
+  button.danger { color: var(--bad); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
   button svg { width: 18px; height: 18px; flex: none; }
-  .linkish { background: none; border: 0; padding: 0; color: var(--exam); text-decoration: underline; text-underline-offset: 3px; font-size: 14px; }
-  @media (prefers-color-scheme: dark) { .linkish { color: var(--exam-soft); } }
+  .linkish { background: none; border: 0; padding: 0; color: var(--ivory); text-decoration: underline; text-decoration-color: var(--ash); text-underline-offset: 4px; font-size: 14px; }
 
   /* ---- 录音中:整屏念稿 ---- */
+  .stage { display: none; margin: 0 0 3vh; }
+  .stage { align-items: baseline; gap: 20px; }
+  .stage .clock { font: 200 64px/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "Helvetica Neue", sans-serif; font-variant-numeric: tabular-nums; letter-spacing: .02em; transition: color .3s; }
+  .stage .clock.in { color: var(--ok); } .stage .clock.over { color: var(--warn); }
+  .stage .due { font-size: 15px; color: var(--ash); letter-spacing: .06em; }
+  .stage .due.in { color: var(--ok); } .stage .due.over { color: var(--warn); }
+  body.recording .stage { display: flex; }
   body.recording .bar h1, body.recording .bar .progress { display: none; }
   body.recording .bar .live { display: flex; }
   body.recording .notice { display: none; }
   body.recording .read { grid-template-columns: 1fr; }
-  body.recording main { max-width: 960px; padding-top: 6vh; }
+  body.recording main { max-width: 980px; padding-top: 5vh; padding-bottom: 32px; }
   body.recording .card { border-color: transparent; background: transparent; }
   body.recording .card-head { display: none; }
-  body.recording .passage { font-size: clamp(28px, 3.4vw, 42px); line-height: 1.9; padding: 0 0 4vh; }
+  body.recording .passage { font-size: clamp(24px, min(3.4vw, 4.4vh), 42px); line-height: 1.85; padding: 0 0 4vh; }
   body.recording .card-foot { padding: 0; }
-  body.recording #readHint { display: none; }
-  .meter { display: none; margin: 0 0 20px; }
+  body.recording #readHint, body.recording .scale { display: none; }
+
+  /* 电平表:-60～0 dBFS,合格区 -24～-8 dBFS,每 6 dB 一道刻度 */
+  .meter { display: none; margin: 0 0 24px; }
   body.recording .meter { display: block; }
-  .meter .track { position: relative; height: 10px; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
-  .meter .ok { position: absolute; top: 0; bottom: 0; left: 60%; width: 26.7%; background: var(--band-soft); }
-  .meter .lv { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; background: var(--pass); transform: scaleX(0); transform-origin: left; transition: transform .08s linear; }
+  .meter .track { position: relative; height: 8px; background: var(--groove); border-radius: 4px; overflow: hidden; }
+  .meter .ok { position: absolute; top: 0; bottom: 0; left: 60%; width: 26.7%; background: var(--champagne-soft); box-shadow: inset 1px 0 0 var(--champagne), inset -1px 0 0 var(--champagne); }
+  .meter .lv { position: absolute; inset: 0; background: var(--ok); transform: scaleX(0); transform-origin: left; transition: transform .08s linear; }
   .meter .lv.low { background: var(--warn); }
-  .meter .lv.hot { background: var(--fail); }
-  .meter .legend { position: relative; height: 20px; font-size: 14px; color: var(--muted); margin-top: 6px; }
-  .meter .legend span { position: absolute; white-space: nowrap; }
+  .meter .lv.hot { background: var(--bad); }
+  .meter .ticks { display: flex; justify-content: space-between; height: 6px; margin-top: 4px; }
+  .meter .ticks i { width: 1px; background: var(--edge); }
+  .meter .legend { position: relative; height: 20px; font-size: 14px; color: var(--ash); margin-top: 6px; }
+  .meter .legend span { position: absolute; white-space: nowrap; letter-spacing: .06em; }
   .meter .legend .l { left: 0; } .meter .legend .m { left: 73.3%; transform: translateX(-50%); } .meter .legend .r { right: 0; }
   .meter .legend span.on { font-weight: 700; }
-  .meter[data-state="low"] .legend .l { color: var(--warn); } .meter[data-state="ok"] .legend .m { color: var(--pass); } .meter[data-state="hot"] .legend .r { color: var(--fail); }
-  .meter .say { font-size: 15px; margin: 10px 0 0; min-height: 1.5em; }
-  .meter[data-state="low"] .say { color: var(--warn); } .meter[data-state="ok"] .say { color: var(--pass); } .meter[data-state="hot"] .say { color: var(--fail); }
+  .meter[data-state="low"] .legend .l { color: var(--warn); } .meter[data-state="ok"] .legend .m { color: var(--ok); } .meter[data-state="hot"] .legend .r { color: var(--bad); }
+  .meter .say { font-size: 15px; margin: 12px 0 0; min-height: 1.5em; }
+  .meter[data-state="low"] .say { color: var(--warn); } .meter[data-state="ok"] .say { color: var(--ok); } .meter[data-state="hot"] .say { color: var(--bad); }
 
-  /* ---- 评定表 ---- */
-  .sheet { max-width: 760px; margin: 0 auto; }
+  /* ---- 质检单 ---- */
+  .sheet { max-width: 980px; margin: 0 auto; }
+  .sheet .card-head { padding: 0 0 18px; }
+  .sheet .block, .sheet .verdict { padding-left: 0; padding-right: 0; }
+  .sheet th:first-child, .sheet td:first-child { padding-left: 0; }
+  .sheet .compare > div:first-child { padding-left: 0; }
+  .sheet .compare > div:last-child { padding-right: 0; }
   .sheet table { width: 100%; border-collapse: collapse; font-size: 15px; }
-  .sheet th, .sheet td { text-align: left; padding: 14px 24px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  .sheet th { width: 22%; font-weight: 600; color: var(--muted); }
+  .sheet th, .sheet td { text-align: left; padding: 16px 28px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .sheet th { width: 22%; font-weight: 400; color: var(--ash); letter-spacing: .06em; }
   .sheet td.val { width: 26%; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .sheet tr.row { animation: rowin .4s cubic-bezier(.16,1,.3,1) both; }
+  .sheet tr.row { animation: rowin .45s cubic-bezier(.16,1,.3,1) both; }
   .sheet tr.row:nth-child(2) { animation-delay: .08s; } .sheet tr.row:nth-child(3) { animation-delay: .16s; }
   @keyframes rowin { from { opacity: 0; transform: translateX(-6px); } }
-  .mark { display: inline-block; padding: 2px 10px 2px 11px; border-radius: 2px; font-size: 14px; font-weight: 700; letter-spacing: .1em; border: 1.5px solid currentColor; background: transparent; }
-  .mark.pass { color: var(--pass); }
-  .mark.warn { color: var(--warn); }
-  .mark.fail { color: var(--fail); }
-  .mark.na { color: var(--muted); }
-  .verdict { padding: 20px 24px; display: flex; gap: 16px; align-items: baseline; border-bottom: 1px solid var(--rule); }
-  .verdict b { font-size: 20px; white-space: nowrap; }
-  .verdict.pass b { color: var(--pass); } .verdict.fail b { color: var(--fail); } .verdict.warn b { color: var(--warn); }
-  .block { padding: 20px 24px; border-bottom: 1px solid var(--rule); }
+  .mark { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; letter-spacing: .1em; }
+  .mark::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+  .mark.pass { color: var(--ok); } .mark.warn { color: var(--warn); } .mark.fail { color: var(--bad); } .mark.na { color: var(--ash); }
+  .verdict { padding: 4px 0 28px; border-bottom: 1px solid var(--line); }
+  .verdict b { display: block; font-size: 46px; line-height: 1.2; font-weight: 200; letter-spacing: .08em; }
+  .verdict span { display: block; margin-top: 10px; color: var(--ash); font-size: 15px; }
+  .verdict.pass b { color: var(--ok); } .verdict.fail b { color: var(--bad); } .verdict.warn b { color: var(--warn); }
+  .block { padding: 24px 28px; border-bottom: 1px solid var(--line); }
   .block:last-child { border-bottom: 0; }
-  .block h3 { font-size: 19px; margin: 0 0 12px; font-weight: 600; }
-  audio { width: 100%; height: 40px; border-radius: 20px; background: var(--ground); }
-  audio::-webkit-media-controls-panel { background: var(--ground); }
-  .check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--muted); margin-top: 12px; }
-  .check input { margin-top: 4px; }
+  .block h3 { font-size: 19px; margin: 0 0 14px; font-weight: 300; letter-spacing: .1em; }
+  .player { display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: var(--inset); border-radius: 8px; }
+  .player .play { width: 40px; height: 40px; padding: 0; justify-content: center; border-radius: 50%; border-color: var(--champagne); color: var(--champagne); flex: none; }
+  .player .play svg { width: 16px; height: 16px; }
+  .player .groove { position: relative; flex: 1; height: 6px; background: var(--groove); border-radius: 4px; overflow: hidden; cursor: pointer; }
+  .player .groove i { position: absolute; inset: 0; background: var(--ivory); transform: scaleX(0); transform-origin: left; }
+  .player .wf { flex: 1; height: 56px; min-width: 0; cursor: pointer; display: block; }
+  .player .time { font-size: 14px; color: var(--ash); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .player.empty .play { opacity: .4; pointer-events: none; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--ash); margin-top: 14px; }
+  .check input { margin-top: 5px; }
 
   /* ---- 试听 ---- */
-  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-bottom: 1px solid var(--rule); }
-  .compare > div { padding: 20px 24px; }
-  .compare > div + div { border-left: 1px solid var(--rule); }
-  .compare h3 { font-size: 19px; margin: 0 0 12px; font-weight: 600; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--line); }
+  .compare > div { padding: 24px 28px; }
+  .compare > div + div { border-left: 1px solid var(--line); }
+  .compare h3 { font-size: 19px; margin: 0 0 14px; font-weight: 300; letter-spacing: .1em; }
 
-  .msg { font-size: 14px; margin: 12px 0 0; min-height: 1.4em; }
-  .msg.ok { color: var(--pass); } .msg.warn { color: var(--warn); } .msg.err { color: var(--fail); }
-  .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rule); border-top-color: var(--exam); animation: rot .8s linear infinite; display: inline-block; vertical-align: -3px; margin-right: 8px; }
+  .msg { font-size: 14px; margin: 14px 0 0; min-height: 1.4em; }
+  .msg.ok { color: var(--ok); } .msg.warn { color: var(--warn); } .msg.err { color: var(--bad); }
+  .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--champagne); animation: rot .8s linear infinite; display: inline-block; vertical-align: -3px; margin-right: 8px; }
   @keyframes rot { to { transform: rotate(360deg); } }
 
-  .done { max-width: 640px; margin: 6vh auto 0; }
+  .done { margin-top: 2vh; }
   .done .card-head { align-items: center; }
   .done p { margin: 0 0 12px; }
-  .idrow { margin: 4px 0 0; }
-  .idrow > span { display: block; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+  .idrow { margin: 6px 0 0; }
+  .idrow > span { display: block; font-size: 14px; color: var(--ash); margin-bottom: 8px; }
   .idrow code {
-    display: block; overflow-x: auto; white-space: nowrap; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 6px;
-    background: var(--ground); color: var(--ink); font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; user-select: all;
+    display: block; overflow-x: auto; white-space: nowrap; padding: 11px 14px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--inset); color: var(--ivory); font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; user-select: all;
   }
 
   @media (max-width: 760px) {
-    .bar { padding: 0 16px; }
+    .bar { padding: 0 16px; height: 56px; }
     .bar h1 span { display: none; }
-    main { padding: 20px 16px 48px; }
-    .read { grid-template-columns: 1fr; gap: 20px; }
-    .passage { font-size: 19px; padding: 20px 16px; }
-    .card-head, .card-foot, .block, .verdict, .compare > div { padding-left: 16px; padding-right: 16px; }
-    .sheet th, .sheet td { padding: 12px 16px; }
+    main { padding: 24px 16px 56px; }
+    .read { grid-template-columns: 1fr; gap: 24px; }
+    .notice summary { cursor: pointer; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); margin: 0; }
+    .notice summary::after { content: "（3 条，点开查看）"; color: var(--ash); font-size: 14px; }
+    .notice details[open] summary::after { content: "（点击收起）"; }
+    .notice details[open] ol { margin-top: 18px; }
+    .passage { font-size: 19px; padding: 22px 18px; }
+    .card-head, .card-foot, .block, .verdict, .compare > div { padding-left: 18px; padding-right: 18px; }
+    .sheet th, .sheet td { padding: 14px 18px; }
     .sheet th { width: auto; white-space: nowrap; }
-    .verdict { flex-direction: column; gap: 4px; }
     .sheet td.val { width: auto; }
+    .verdict b { font-size: 34px; }
+    .player { gap: 10px; padding: 10px 12px; }
     .compare { grid-template-columns: 1fr; }
+    .compare > div + div { border-left: 0; border-top: 1px solid var(--line); }
+    .sheet .compare > div { padding-left: 0; padding-right: 0; }
     .idrow code { white-space: normal; overflow-x: visible; }  /* 窄屏按编号里的 - 换行,不裁切 */
-    .compare > div + div { border-left: 0; border-top: 1px solid var(--rule); }
+    .stage .clock { font-size: 48px; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -223,25 +233,27 @@
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
   <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
-  <symbol id="i-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/></symbol>
-  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="4" height="14" rx="1"/><rect x="13.5" y="5" width="4" height="14" rx="1"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
 </svg>
 
 <header class="bar">
-  <h1>声音复刻 <span>· <span id="stepName">朗读录音</span></span></h1>
-  <div class="progress" id="progress">第 <b>1</b> 项 / 共 4 项</div>
-  <div class="live" role="status" aria-live="polite"><i></i>录音中 <span class="t" id="liveTimer">0.0 秒</span></div>
+  <h1>声音复刻 <span>· <span id="stepName">录音</span></span></h1>
+  <div class="progress" id="progress"><b>01</b> / 04</div>
+  <div class="live" role="status" aria-live="polite"><i></i><b>REC</b> 录音中</div>
 </header>
 
 <main>
-  <!-- 1 朗读 -->
-  <section class="view on" id="v-read" aria-label="朗读录音">
+  <!-- 1 录音 -->
+  <section class="view on" id="v-read" aria-label="录音">
     <div class="read">
       <aside class="notice">
         <details id="tips" open>
-        <summary><h2>朗读须知</h2></summary>
+        <summary><h2>录音前准备</h2></summary>
         <ol>
           <li><b>选个安静、软装多的房间</b><span>窗帘、沙发、衣柜前最好；空房间、浴室、大面积玻璃和白墙会带来回响。关掉空调、风扇和音乐。</span></li>
           <li><b>麦克风越近越好</b><span>领夹麦夹在领口，嘴下方 15～20 厘米；桌面麦离嘴 10～15 厘米。电脑自带麦克风效果最差。</span></li>
@@ -250,26 +262,29 @@
         </details>
         <label class="field"><span>麦克风</span>
           <select id="mic"><option value="">系统默认输入设备</option></select></label>
-        <p class="hint" id="micHint">第一次开始朗读并允许麦克风后，这里会显示设备名称。用外接麦克风时请确认选中的是它。</p>
+        <p class="hint" id="micHint">第一次开始录音并允许麦克风后，这里会显示设备名称。用外接麦克风时请确认选中的是它。</p>
       </aside>
 
       <article class="card" aria-labelledby="passageTitle">
-        <div class="card-head"><b id="passageTitle">朗读作品</b><span>建议用时 10～20 秒 · 先停一秒再开口</span></div>
+        <div class="card-head"><b id="passageTitle">录音稿</b><span>建议 10～20 秒 · 先停一秒再开口</span></div>
+        <div class="card-foot stage"><span class="clock" id="clock" aria-hidden="true">00:00.0</span><span class="due" id="due" role="status" aria-live="polite">建议 10～20 秒</span></div>
         <p class="passage" id="passage">大家好，今天我们来聊一聊人工智能。其实它的核心原理并不复杂，就是根据已有的信息，去预测接下来最可能出现的内容。理解了这一点，很多看起来神奇的能力，也就不难解释了。</p>
         <div class="card-foot">
           <div class="meter" id="meter" data-state="">
             <div class="track" aria-hidden="true"><div class="ok"></div><div class="lv" id="lv"></div></div>
+            <div class="ticks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             <div class="legend" aria-hidden="true"><span class="l">太小</span><span class="m">合适</span><span class="r">太大</span></div>
             <p class="say" id="lvSay" role="status" aria-live="polite"></p>
           </div>
           <div class="scale" aria-hidden="true">
             <span class="tag">建议 10～20 秒</span>
-            <div class="track"><div class="ok"></div><div class="fill" id="fill"></div></div>
+            <span class="ok"></span>
             <span class="edge" style="left:33.33%"></span><span class="edge" style="left:66.67%"></span>
+            <div class="track"><div class="fill" id="fill"></div></div>
             <div class="ticks"><span style="left:0">0 秒</span><span style="left:33.33%">10</span><span style="left:66.67%">20</span><span style="left:100%">30 秒</span></div>
           </div>
           <div class="actions">
-            <button class="primary" id="recBtn"><svg><use href="#i-mic"/></svg><span>开始朗读</span></button>
+            <button class="primary" id="recBtn"><svg><use href="#i-mic"/></svg><span>开始录音</span></button>
             <span class="hint" id="readHint">已有录音文件？<label class="linkish" style="cursor:pointer">选择文件<input type="file" id="file" accept="audio/*" hidden></label></span>
           </div>
           <p class="msg" id="recMsg" role="status" aria-live="polite"></p>
@@ -278,27 +293,28 @@
     </div>
   </section>
 
-  <!-- 2 评定 -->
-  <section class="view" id="v-grade" aria-label="录音评定">
-    <div class="sheet card">
-      <div class="card-head"><b>录音评定</b><span id="gradeSource">本次朗读</span></div>
+  <!-- 2 质检 -->
+  <section class="view" id="v-grade" aria-label="录音质检">
+    <div class="sheet">
+      <div class="card-head"><b>录音质检</b><span id="gradeSource">本次录音</span></div>
+      <div class="verdict" id="verdict"><b id="verdictWord"></b><span id="verdictText"></span></div>
       <table>
         <tbody id="rows"></tbody>
       </table>
-      <div class="verdict" id="verdict"><b id="verdictWord"></b><span id="verdictText"></span></div>
       <div class="block">
         <h3>先回放听一遍</h3>
-        <audio id="mine" controls></audio>
-        <p class="hint">留意有没有回响、杂音或别人的声音。</p>
+        <div class="player wave" id="p-mine"><button class="play" aria-label="播放"><svg><use href="#i-play"/></svg></button><canvas class="wf" aria-label="录音波形，点击跳转"></canvas><span class="time">0:00 / 0:00</span></div>
+        <audio id="mine" preload="auto" hidden></audio>
+        <p class="hint">留意有没有回响、杂音或别人的声音。波形里珊瑚色的位置是破音。</p>
       </div>
       <div class="block">
         <h3>给这个声音起个名字</h3>
         <label class="field"><span>英文字母或数字，1～10 位，会出现在音色编号里（例如 ygd）</span>
           <input type="text" id="prefix" maxlength="10" autocomplete="off" spellcheck="false"></label>
         <label class="check"><input type="checkbox" id="denoise"> 录音里有底噪时勾选：先降噪、增强再复刻。房间安静就别勾，会损失一点音色细节。</label>
-        <div class="actions" style="margin-top:16px">
+        <div class="actions" style="margin-top:18px">
           <button class="primary" id="cloneBtn"><svg><use href="#i-send"/></svg><span>提交复刻</span></button>
-          <button id="rereadBtn"><svg><use href="#i-redo"/></svg><span>重新朗读</span></button>
+          <button id="rereadBtn"><svg><use href="#i-redo"/></svg><span>重新录音</span></button>
         </div>
         <p class="msg" id="cloneMsg" role="status" aria-live="polite"></p>
       </div>
@@ -307,17 +323,17 @@
 
   <!-- 3 试听 -->
   <section class="view" id="v-listen" aria-label="试听对比">
-    <div class="sheet card">
+    <div class="sheet">
       <div class="card-head"><b>听听像不像</b><span>先听原声，再听复刻</span></div>
       <div class="compare">
-        <div><h3>你的原声</h3><audio id="origin" controls></audio></div>
-        <div><h3>复刻出来的声音</h3><audio id="cloned" controls></audio></div>
+        <div><h3>你的原声</h3><div class="player" id="p-origin"><button class="play" aria-label="播放原声"><svg><use href="#i-play"/></svg></button><div class="groove"><i></i></div><span class="time">0:00 / 0:00</span></div><audio id="origin" preload="auto" hidden></audio></div>
+        <div><h3>复刻出来的声音</h3><div class="player" id="p-cloned"><button class="play" aria-label="播放复刻声音"><svg><use href="#i-play"/></svg></button><div class="groove"><i></i></div><span class="time">0:00 / 0:00</span></div><audio id="cloned" preload="auto" hidden></audio></div>
       </div>
       <div class="block">
         <h3>再试一句</h3>
         <label class="field"><span>可以写 [laughing]（笑声）、[serious]（严肃）这类标签</span>
           <textarea id="sayText">我们今天要讲的内容，[serious]非常重要，请大家认真听。</textarea></label>
-        <div class="actions" style="margin-top:12px"><button id="sayBtn">用这个声音读出来</button></div>
+        <div class="actions" style="margin-top:14px"><button id="sayBtn">用这个声音读出来</button></div>
         <p class="msg" id="tryMsg" role="status" aria-live="polite"></p>
       </div>
       <div class="block">
@@ -334,7 +350,7 @@
 
   <!-- 4 完成 -->
   <section class="view" id="v-done" aria-label="完成">
-    <div class="done card">
+    <div class="done sheet">
       <div class="card-head"><b>复刻结果</b><span class="mark pass" id="doneMark">已设为默认</span></div>
       <div class="block">
         <p id="doneText"></p>
@@ -353,14 +369,14 @@
 const token = new URLSearchParams(location.search).get("t");
 const $ = (id) => document.getElementById(id);
 const api = (path, opts = {}) => fetch(`${path}?t=${token}${opts.query || ""}`, { method: "POST", ...opts }).then((r) => r.json());
-const VIEWS = { read: ["朗读录音", 1], grade: ["录音评定", 2], listen: ["试听对比", 3], done: ["完成", 4] };
+const VIEWS = { read: ["录音", 1], grade: ["质检", 2], listen: ["试听", 3], done: ["完成", 4] };
 let blob = null, voiceId = null;
 
 function go(view) {
   document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === `v-${view}`));
   const [name, n] = VIEWS[view];
   $("stepName").textContent = name;
-  $("progress").innerHTML = `第 <b>${n}</b> 项 / 共 4 项`;
+  $("progress").innerHTML = `<b>0${n}</b> / 04`;
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function msg(el, text, kind = "") { el.textContent = text; el.className = `msg ${kind}`; }
@@ -385,32 +401,90 @@ function grade(secs, fromFile) {
     const sorted = [...frames].sort((a, b) => a - b), p90 = sorted[Math.floor(sorted.length * 0.9)];
     const volKind = p90 < -24 ? "fail" : "pass";
     out.push({ kind: volKind, html: row("音量", volKind === "pass" ? "合适" : "偏小", volKind,
-      volKind === "fail" ? "麦克风离嘴偏远时，房间的回响会被一起复刻。靠近麦克风或调高增益后重读。" : "") });
+      volKind === "fail" ? "麦克风离嘴偏远时，房间的回响会被一起复刻。靠近麦克风或调高增益后重录。" : "") });
     const clipKind = peakSample >= 0.98 ? "fail" : "pass";
     out.push({ kind: clipKind, html: row("破音", clipKind === "pass" ? "没有" : "有", clipKind,
-      clipKind === "fail" ? "声音过大被削平了，把麦克风增益调低一点再读。" : "") });
+      clipKind === "fail" ? "声音过大被削平了，把麦克风增益调低一点再录。" : "") });
   }
   $("rows").innerHTML = out.map((o) => o.html).join("");
   const kinds = out.map((o) => o.kind);
   const v = $("verdict");
-  if (durKind === "fail") { v.className = "verdict fail"; $("verdictWord").textContent = "需要重读"; $("verdictText").textContent = "时长不在 5～60 秒之间，无法提交。"; }
-  else if (kinds.includes("fail")) { v.className = "verdict fail"; $("verdictWord").textContent = "建议重读"; $("verdictText").textContent = "带着这些问题复刻，声音会不干净。仍可以提交，但不推荐。"; }
+  if (durKind === "fail") { v.className = "verdict fail"; $("verdictWord").textContent = "需要重录"; $("verdictText").textContent = "时长不在 5～60 秒之间，无法提交。"; }
+  else if (kinds.includes("fail")) { v.className = "verdict fail"; $("verdictWord").textContent = "建议重录"; $("verdictText").textContent = "带着这些问题复刻，声音会不干净。仍可以提交，但不推荐。"; }
   else if (kinds.includes("warn")) { v.className = "verdict warn"; $("verdictWord").textContent = "可以提交"; $("verdictText").textContent = "回放确认没有杂音和回响就提交。"; }
   else { v.className = "verdict pass"; $("verdictWord").textContent = "可以提交"; $("verdictText").textContent = "各项都合格。回放听一遍，没问题就起名提交。"; }
   $("cloneBtn").disabled = durKind === "fail";
-  // 结论是重读时,「重新朗读」才是主操作
+  // 结论是重录时,「重新录音」才是主操作
   const reread = durKind === "fail" || kinds.includes("fail");
   $("rereadBtn").classList.toggle("primary", reread);
   $("cloneBtn").classList.toggle("primary", !reread);
-  $("gradeSource").textContent = fromFile ? `文件：${fromFile}` : "本次朗读";
+  $("gradeSource").textContent = fromFile ? `文件：${fromFile}` : "本次录音";
 }
 function setRecording(b, secs, fromFile) {
   blob = b;
   $("mine").src = $("origin").src = URL.createObjectURL(b);
   grade(secs, fromFile);
+  requestAnimationFrame(() => buildWave(b));
   msg($("cloneMsg"), "");
   go("grade");
 }
+
+// ---- 播放器:自绘控件驱动隐藏的 <audio>,音频来源不变 ----
+const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+let wavePeaks = null;  // [{max, clip}],当前这条录音的波形
+function drawWave() {
+  const cv = document.querySelector("#p-mine .wf"), a = $("mine");
+  const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+  if (!w) return;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
+  if (!wavePeaks) return;
+  const css = getComputedStyle(document.documentElement), col = (v) => css.getPropertyValue(v).trim();
+  const n = wavePeaks.length, bw = w / n, played = a.duration ? a.currentTime / a.duration : 0;
+  wavePeaks.forEach((p, i) => {
+    const bh = Math.max(2, p.max * (h - 4));
+    g.fillStyle = p.clip ? col("--bad") : i / n < played ? col("--ivory") : col("--edge");
+    g.fillRect(i * bw + bw * 0.2, (h - bh) / 2, Math.max(1, bw * 0.6), bh);
+  });
+}
+async function buildWave(b) {
+  wavePeaks = null; drawWave();
+  try {
+    const ac = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 44100);
+    const buf = await ac.decodeAudioData(await b.arrayBuffer());
+    const data = buf.getChannelData(0), n = 160, step = Math.floor(data.length / n) || 1;
+    const peaks = [];
+    for (let i = 0; i < n; i++) {
+      let m = 0; for (let j = i * step; j < Math.min(data.length, (i + 1) * step); j++) m = Math.max(m, Math.abs(data[j]));
+      peaks.push({ max: m, clip: m >= 0.98 });
+    }
+    const top = Math.max(...peaks.map((p) => p.max), 0.05);
+    wavePeaks = peaks.map((p) => ({ max: Math.min(1, p.max / top), clip: p.clip }));
+  } catch (e) { wavePeaks = null; }
+  drawWave();
+}
+function setupPlayer(audioId, rootId) {
+  const a = $(audioId), root = $(rootId), btn = root.querySelector(".play"), time = root.querySelector(".time");
+  const bar = root.querySelector(".groove i"), seekEl = root.querySelector(".groove, .wf");
+  const sync = () => {
+    const d = isFinite(a.duration) ? a.duration : 0;
+    time.textContent = `${fmt(a.currentTime || 0)} / ${fmt(d)}`;
+    if (bar) bar.style.transform = `scaleX(${d ? a.currentTime / d : 0})`;
+    if (root.classList.contains("wave")) drawWave();
+    root.classList.toggle("empty", !a.getAttribute("src"));
+  };
+  const icon = () => { btn.innerHTML = `<svg><use href="#i-${a.paused ? "play" : "pause"}"/></svg>`; btn.setAttribute("aria-label", a.paused ? "播放" : "暂停"); };
+  btn.addEventListener("click", () => { a.paused ? a.play().catch(() => {}) : a.pause(); });
+  seekEl.addEventListener("click", (e) => {
+    const r = seekEl.getBoundingClientRect();
+    if (isFinite(a.duration)) { a.currentTime = ((e.clientX - r.left) / r.width) * a.duration; sync(); }
+  });
+  ["timeupdate", "loadedmetadata", "durationchange", "emptied"].forEach((ev) => a.addEventListener(ev, sync));
+  ["play", "pause", "ended", "emptied", "error"].forEach((ev) => a.addEventListener(ev, icon));
+  sync();
+}
+setupPlayer("mine", "p-mine"); setupPlayer("origin", "p-origin"); setupPlayer("cloned", "p-cloned");
+addEventListener("resize", drawWave);
 
 // ---- 麦克风 ----
 async function listMics() {
@@ -422,7 +496,7 @@ async function listMics() {
   if (mics.some((d) => d.label)) $("micHint").textContent = "用外接麦克风时，请确认这里选中的是它。";
 }
 navigator.mediaDevices?.addEventListener?.("devicechange", listMics);
-// 宽屏常开;窄屏默认收起,让朗读卡留在首屏
+// 宽屏常开;窄屏默认收起,让录音稿留在首屏
 const wide = matchMedia("(min-width: 761px)");
 const syncTips = () => { $("tips").open = wide.matches; };
 syncTips(); wide.addEventListener("change", syncTips);
@@ -432,7 +506,7 @@ listMics().catch(() => {});
 // ---- 录音 ----
 let recorder = null, stream = null, ctx = null, raf = 0, t0 = 0, live = false, stopSecs = 0;
 function setRecBtn(recording) {
-  $("recBtn").innerHTML = recording ? '<svg><use href="#i-stop"/></svg><span>停止</span>' : '<svg><use href="#i-mic"/></svg><span>开始朗读</span>';
+  $("recBtn").innerHTML = recording ? '<svg><use href="#i-stop"/></svg><span>停止</span>' : '<svg><use href="#i-mic"/></svg><span>开始录音</span>';
 }
 function stopMeter() {
   live = false; cancelAnimationFrame(raf);
@@ -479,6 +553,7 @@ $("recBtn").addEventListener("click", async () => {
   const buf = new Float32Array(analyser.fftSize);
   frames = []; peakSample = 0;
   const recent = [];
+  $("clock").textContent = "00:00.0"; $("clock").className = "clock"; $("due").textContent = "建议 10～20 秒"; $("due").className = "due";
   $("meter").dataset.state = ""; $("lvSay").textContent = "先停一秒再开口。";
   document.querySelectorAll("#meter .legend span").forEach((el) => el.classList.remove("on"));
   const tick = () => {
@@ -504,7 +579,11 @@ $("recBtn").addEventListener("click", async () => {
       document.querySelectorAll("#meter .legend span").forEach((el) => el.classList.toggle("on", el.classList.contains({ low: "l", ok: "m", hot: "r" }[state])));
       $("lvSay").textContent = { low: "声音偏小：靠近麦克风一点，或调高增益。", ok: "音量合适，保持这个距离。", hot: "声音太大，出现破音：调低增益或离远一点。" }[state];
     }
-    $("liveTimer").textContent = `${secs.toFixed(1)} 秒`;
+    $("clock").textContent = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${(secs % 60).toFixed(1).padStart(4, "0")}`;
+    const zone = secs < 10 ? "" : secs <= 20 ? "in" : "over";
+    $("clock").className = `clock ${zone}`;
+    const dueText = zone === "" ? `还差 ${Math.ceil(10 - secs)} 秒到建议时长` : zone === "in" ? "可以停了" : "已超过 20 秒，可以停了";
+    if ($("due").textContent !== dueText) { $("due").textContent = dueText; $("due").className = `due ${zone}`; }
     $("fill").style.transform = `scaleX(${Math.min(1, secs / 30)})`;
     raf = requestAnimationFrame(tick);
   };
@@ -539,8 +618,8 @@ $("cloneBtn").addEventListener("click", async () => {
   if (!r.voice_id) { msg($("cloneMsg"), r.error || "复刻失败，请稍后再试。", "err"); return; }
   voiceId = r.voice_id; $("doneVid").textContent = voiceId;
   msg($("cloneMsg"), ""); msg($("tryMsg"), "");
-  if (r.audio) $("cloned").src = r.audio; else msg($("tryMsg"), r.error, "warn");
-  go("listen"); $("cloned").play().catch(() => {});
+  if (r.audio) $("cloned").src = r.audio; else { $("cloned").removeAttribute("src"); $("cloned").load(); msg($("tryMsg"), r.error || "", "warn"); }
+  go("listen"); if ($("cloned").getAttribute("src")) $("cloned").play().catch(() => {});
 });
 
 $("sayBtn").addEventListener("click", async () => {
@@ -571,11 +650,11 @@ $("skipFav").addEventListener("click", () => {
   go("done");
 });
 $("redo").addEventListener("click", async () => {
-  if (!confirm("删除这个复刻音色并重新朗读？删除后不能恢复。")) return;
+  if (!confirm("删除这个复刻音色并重新录音？删除后不能恢复。")) return;
   const r = await api("/delete", { body: JSON.stringify({ voice: voiceId }) }).catch((e) => ({ error: String(e) }));
   if (r.error) { msg($("tryMsg"), r.error, "err"); return; }
   voiceId = null; blob = null; $("fill").style.transform = "scaleX(0)";
-  msg($("recMsg"), "上一个音色已删除。换个更安静的地方、离麦克风近一点，再读一遍。", "warn");
+  msg($("recMsg"), "上一个音色已删除。换个更安静的地方、离麦克风近一点，再录一遍。", "warn");
   go("read");
 });
 $("finish").addEventListener("click", async () => {
