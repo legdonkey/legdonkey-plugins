@@ -3,7 +3,7 @@
 **权威音色列表(以它为准,不要靠探测):**
 https://help.aliyun.com/zh/model-studio/qwen-audio-tts-voice-list
 
-快照在 [voices.json](voices.json),`voices` 命令直接读它。音色名以 `_v3.1` 结尾,区分大小写;同名不同后缀的音色(CosyVoice 的 `longanhuan`、3.0 系列的 `longanhuan_v3.6`)属于别的模型,不能混用。
+快照在 [voices.json](voices.json),`voices` 命令直接读它。音色名以 `_v3.1` 结尾,区分大小写;同名不同后缀的音色(如 3.0 系列的 `longanhuan_v3.6`)属于别的模型,不能混用。
 
 ## 音色分组
 
@@ -43,12 +43,12 @@ https://help.aliyun.com/zh/model-studio/qwen-audio-tts-voice-list
 - 临时存储文档:https://help.aliyun.com/zh/model-studio/get-temporary-file-url
 - 可选参数:`language_hints`(录音语种,默认 `zh`)、`max_prompt_audio_length`(参考音频最大时长 3~30 秒,默认 10)、`enable_preprocess`(降噪/增强/音量规整,有底噪时开)。
 - 音色 ID:`qwen-audio-3.1-tts-flash-{prefix}-{唯一标识}`,`prefix` 仅数字和字母,≤10 字符。
-- 配额与费用:创建免费;每个账号 Qwen-Audio-TTS/CosyVoice 共享 1000 个上限,满了需手动删除;1 年未用于合成会被自动删除。
+- 配额与费用:创建免费;每个账号的复刻音色(含其它模型)共享 1000 个上限,满了需手动删除;1 年未用于合成会被自动删除。
 - 文档:https://help.aliyun.com/zh/model-studio/voice-cloning-user-guide 、https://help.aliyun.com/zh/model-studio/voice-clone-python-sdk
 
 ## 常见报错
 
-- **411**(`InvalidParameter` + `[cosyvoice:]Engine error [411]: TTS speak operation failed`):音色不属于本模型。
+- **411**(`InvalidParameter` + `Engine error [411]: TTS speak operation failed`):音色不属于本模型。
 - 复刻失败:录音不合规;或直接传的 URL 需要鉴权、无法下载;或 `oss://` 地址缺少 `X-DashScope-OssResourceResolve: enable` 请求头。
 
 文档:https://help.aliyun.com/zh/model-studio/realtime-tts-user-guide
