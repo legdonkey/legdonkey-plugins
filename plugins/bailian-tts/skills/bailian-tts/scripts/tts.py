@@ -8,6 +8,7 @@
 - clone:   用本地录音(自动转码、上传百炼临时存储)或公网 URL 复刻音色
 - delete:  删除一个复刻音色
 - fav:     管理收藏音色;未指定 -v 时默认用收藏的第 1 个
+- clone-ui: 打开本地复刻向导页面,在浏览器里完成录音、复刻、试听与收藏
 
 指令(instruction):任意自然语言,≤100 字符(汉字计 2),系统音色与复刻音色都支持。
 文本内可直接嵌入 [excited]、[laughing] 等情感/富语言标签。
@@ -254,16 +255,17 @@ def upload_recording(path):
     return url
 
 
-def cmd_clone(a):
+def clone_voice(source, prefix, lang="zh", max_seconds=10.0, denoise=False):
+    """复刻音色:source 为本地录音路径或公网 URL。返回 (voice_id, 是否已可用);出错时 sys.exit。"""
     from dashscope.audio.tts_v2 import VoiceEnrollmentService
-    prefix = a.prefix.lower()  # SDK 约定前缀为小写字母和数字
+    prefix = prefix.lower()  # SDK 约定前缀为小写字母和数字
     if not re.fullmatch(r"[a-z0-9]{1,10}", prefix):
-        sys.exit("--prefix 只能是英文字母和数字,最多 10 个字符")
+        sys.exit("前缀只能是英文字母和数字,最多 10 个字符")
     init_dashscope()
-    if re.match(r"https?://", a.source):
-        url, svc = a.source, VoiceEnrollmentService()
+    if re.match(r"https?://", source):
+        url, svc = source, VoiceEnrollmentService()
     else:
-        wav = prepare_recording(a.source)
+        wav = prepare_recording(source)
         try:
             print("⬆ 上传录音到百炼临时存储…")
             url = upload_recording(wav)
@@ -273,24 +275,132 @@ def cmd_clone(a):
             os.unlink(wav)
         # oss:// 临时地址必须带这个请求头,服务端才会去解析
         svc = VoiceEnrollmentService(headers={"X-DashScope-OssResourceResolve": "enable"})
-    kw: dict = dict(target_model=MODEL, prefix=prefix, url=url, language_hints=[a.lang],
-                    max_prompt_audio_length=a.max_seconds)
-    if a.denoise:
+    kw: dict = dict(target_model=MODEL, prefix=prefix, url=url, language_hints=[lang],
+                    max_prompt_audio_length=max_seconds)
+    if denoise:
         kw["enable_preprocess"] = True
     try:
         voice_id = svc.create_voice(**kw)
     except Exception as e:
         sys.exit(f"✗ 复刻失败:{str(e)[-200:]}\n检查录音:10~20 秒、单人、无背景音;用 URL 时须公网可直接下载")
     print(f"已提交复刻:{voice_id}")
-    status = None
     for _ in range(30):  # 最多等约 60 秒
         info: dict = svc.query_voice(voice_id) or {}  # type: ignore[assignment]  # SDK 注解为 list,实际返回 dict
-        status = info.get("status")
-        if status == "OK":
-            print(f"✅ 可用。合成时用 -v {voice_id}")
-            return
+        if info.get("status") == "OK":
+            return voice_id, True
         time.sleep(2)
-    print(f"仍未就绪(状态 {status}),稍后用 voices --mine 查看")
+    return voice_id, False
+
+
+def cmd_clone(a):
+    voice_id, ready = clone_voice(a.source, a.prefix, a.lang, a.max_seconds, a.denoise)
+    print(f"✅ 可用。合成时用 -v {voice_id}" if ready else f"仍未就绪,稍后用 voices --mine 查看:{voice_id}")
+
+
+def cmd_clone_ui(a):
+    """本地向导:浏览器里录音 → 复刻 → 试听 → 收藏。只监听 127.0.0.1,请求须带随机 token。"""
+    import http.server, secrets, threading, types, urllib.parse, webbrowser
+    page = open(os.path.join(os.path.dirname(__file__), "clone_ui.html"), "rb").read()
+    token = secrets.token_urlsafe(16)
+    audio, created, workdir = {}, [], tempfile.mkdtemp(prefix="bailian_clone_ui_")
+    synth_opts = types.SimpleNamespace(rate=1.0, pitch=1.0, volume=50)
+
+    def say(voice, text):
+        path = os.path.join(workdir, f"say_{len(audio)}.wav")
+        synth_to_file(voice, text, None, synth_opts, path)
+        key = str(len(audio)); audio[key] = open(path, "rb").read()
+        return f"/audio?t={token}&k={key}"
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def log_message(self, format, *args):  # noqa: A002  # 静默访问日志
+            pass
+
+        def reply(self, body, ctype="application/json; charset=utf-8"):
+            data = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(data)))
+            self.end_headers(); self.wfile.write(data)
+
+        def route(self):
+            u = urllib.parse.urlparse(self.path)
+            q = {k: v[0] for k, v in urllib.parse.parse_qs(u.query).items()}
+            if q.get("t") != token:
+                self.send_error(403)
+                return None, {}
+            return u.path, q
+
+        def do_GET(self):
+            path, q = self.route()
+            if path == "/":
+                self.reply(page, "text/html; charset=utf-8")
+            elif path == "/audio" and q.get("k") in audio:
+                self.reply(audio[q["k"]], "audio/wav")
+            elif path is not None:
+                self.send_error(404)
+
+        def do_POST(self):
+            path, q = self.route()
+            if path is None:
+                return
+            body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+            try:
+                if path == "/clone":
+                    ext = {"audio/webm": ".webm", "audio/mp4": ".m4a", "audio/ogg": ".ogg", "audio/wav": ".wav",
+                           "audio/mpeg": ".mp3", "audio/x-m4a": ".m4a"}.get(
+                               (self.headers.get("Content-Type") or "").split(";")[0], ".bin")
+                    src = os.path.join(workdir, f"recording_{len(created)}{ext}")
+                    open(src, "wb").write(body)
+                    voice_id, ready = clone_voice(src, q.get("prefix", ""), denoise=q.get("denoise") == "1")
+                    created.append(voice_id)
+                    if not ready:
+                        return self.reply({"voice_id": voice_id, "error": "音色仍在处理中,请稍后再试听"})
+                    self.reply({"voice_id": voice_id,
+                                "audio": say(voice_id, "大家好，这是用我自己的声音复刻出来的音色，听起来像不像我本人？")})
+                elif path == "/say":
+                    d = json.loads(body)
+                    self.reply({"audio": say(d["voice"], d["text"][:200])})
+                elif path == "/fav":
+                    d = json.loads(body)
+                    favs = [v for v in load_favorites() if v != d["voice"]]
+                    if d.get("default"):
+                        favs.insert(0, d["voice"])
+                    else:
+                        favs.append(d["voice"])
+                    save_favorites(favs)
+                    self.reply({"favorites": favs})
+                elif path == "/delete":
+                    from dashscope.audio.tts_v2 import VoiceEnrollmentService
+                    d = json.loads(body)
+                    init_dashscope(); VoiceEnrollmentService().delete_voice(d["voice"])
+                    if d["voice"] in created:
+                        created.remove(d["voice"])
+                    save_favorites([v for v in load_favorites() if v != d["voice"]])
+                    self.reply({"deleted": d["voice"]})
+                elif path == "/done":
+                    self.reply({})
+                    threading.Thread(target=server.shutdown, daemon=True).start()
+                else:
+                    self.send_error(404)
+            except SystemExit as e:
+                self.reply({"error": str(e)})
+            except Exception as e:
+                self.reply({"error": str(e)[-300:]})
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
+    url = f"http://127.0.0.1:{server.server_address[1]}/?t={token}"
+    print(f"复刻向导已启动:{url}\n在页面上点「完成」后自动退出(或按 Ctrl-C)。", flush=True)
+    if not a.no_open:
+        webbrowser.open(url)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+        import shutil; shutil.rmtree(workdir, ignore_errors=True)
+    print("本次创建的音色:" + (" ".join(created) if created else "无"))
+    favs = load_favorites()
+    print("当前收藏:" + (" ".join(favs) if favs else "无") + (f"(默认 {favs[0]})" if favs else ""))
 
 
 def cmd_delete(a):
@@ -438,6 +548,11 @@ def main():
     sp = sub.add_parser("delete", help="删除一个复刻音色")
     sp.add_argument("voice_id")
     sp.set_defaults(func=cmd_delete)
+
+    sp = sub.add_parser("clone-ui", help="打开本地复刻向导(浏览器录音 → 复刻 → 试听 → 收藏)")
+    sp.add_argument("--port", type=int, default=0, help="监听端口(默认随机)")
+    sp.add_argument("--no-open", action="store_true", dest="no_open", help="不自动打开浏览器")
+    sp.set_defaults(func=cmd_clone_ui)
 
     sp = sub.add_parser("fav", help="管理收藏音色(第 1 个为默认音色)")
     sp.add_argument("action", nargs="?", choices=["list", "add", "rm"], default="list")
