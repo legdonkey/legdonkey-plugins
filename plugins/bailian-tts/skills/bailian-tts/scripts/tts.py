@@ -7,6 +7,7 @@
 - script:  按脚本逐段生成 wav,并输出 manifest.json、subtitles.srt 与拼接好的 all.wav
 - clone:   用本地录音(自动转码、上传百炼临时存储)或公网 URL 复刻音色
 - delete:  删除一个复刻音色
+- fav:     管理收藏音色;未指定 -v 时默认用收藏的第 1 个
 
 指令(instruction):任意自然语言,≤100 字符(汉字计 2),系统音色与复刻音色都支持。
 文本内可直接嵌入 [excited]、[laughing] 等情感/富语言标签。
@@ -26,6 +27,7 @@ CLONE_LANGS = ["zh", "en", "fr", "de", "ja", "ko", "ru", "pt", "th", "id", "vi",
 TAG = re.compile(r"\[[^\[\]]*\]")
 
 _CATALOG_PATH = os.path.join(os.path.dirname(__file__), "..", "references", "voices.json")
+FAV_PATH = os.path.expanduser("~/.config/bailian-tts/favorites.txt")
 
 
 def load_catalog():
@@ -129,6 +131,49 @@ def synth_to_file(voice, text, instr, a, out_path):
     return duration(out_path)
 
 
+def load_favorites():
+    try:
+        with open(FAV_PATH, encoding="utf-8") as f:
+            return [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        return []
+
+
+def save_favorites(favs):
+    os.makedirs(os.path.dirname(FAV_PATH), exist_ok=True)
+    with open(FAV_PATH, "w", encoding="utf-8") as f:
+        f.write("".join(v + "\n" for v in favs))
+
+
+def default_voice():
+    favs = load_favorites()
+    return (favs[0], "收藏第 1 个") if favs else (DEFAULT_VOICE, "内置默认")
+
+
+def cmd_fav(a):
+    favs = load_favorites()
+    if a.action == "add":
+        for v in a.voices:
+            check_voice(v)
+            if v not in favs:
+                favs.append(v)
+        save_favorites(favs)
+    elif a.action == "rm":
+        missing = [v for v in a.voices if v not in favs]
+        if missing:
+            print(f"⚠ 不在收藏中:{' '.join(missing)}", file=sys.stderr)
+        favs = [v for v in favs if v not in a.voices]
+        save_favorites(favs)
+    if not favs:
+        print(f"收藏为空。未指定 -v 时使用内置默认 {DEFAULT_VOICE}。用 fav add <音色> 添加。")
+        return
+    print(f"收藏音色({FAV_PATH}):第 1 个为未指定 -v 时的默认音色\n")
+    for i, v in enumerate(favs, 1):
+        e = voice_entry(v)
+        info = f"{e['name']} {e['gender']} {e.get('trait', '')}" if e else "复刻/catalog 外音色"
+        print(f"  {i}. {v:20s} {info}" + ("  ← 默认" if i == 1 else ""))
+
+
 def describe(voice):
     v = voice_entry(voice)
     return f"{voice}({v['name']}·{v['gender']})" if v else voice
@@ -144,11 +189,13 @@ def cmd_voices(a):
     groups = {}
     for v in cat:
         groups.setdefault(v["scene"], []).append(v)
-    print(f"{MODEL} 系统音色(共 {len(cat)} 个;全部支持自然语言指令)\n")
+    favs = set(load_favorites())
+    print(f"{MODEL} 系统音色(共 {len(cat)} 个;全部支持自然语言指令;★ = 已收藏)\n")
     for scene, vs in groups.items():
         print(f"【{scene}】")
         for v in vs:
-            print(f"  {v['voice']:20s} {v['name']:8s} {v['gender']:2s} {v.get('trait', ''):10s} {v['lang']}")
+            star = "★" if v["voice"] in favs else " "
+            print(f" {star}{v['voice']:20s} {v['name']:8s} {v['gender']:2s} {v.get('trait', ''):10s} {v['lang']}")
             if v.get("usage"):
                 print(f"        适用: {v['usage']}")
         print()
@@ -347,7 +394,7 @@ def cmd_script(a):
 # ---------- CLI ----------
 
 def add_synth_opts(sp):
-    sp.add_argument("-v", "--voice", default=DEFAULT_VOICE, help=f"音色(默认 {DEFAULT_VOICE};复刻音色填 voice_id)")
+    sp.add_argument("-v", "--voice", help=f"音色(默认:收藏的第 1 个,收藏为空时 {DEFAULT_VOICE};复刻音色填 voice_id)")
     sp.add_argument("--instruct", help="自然语言指令(≤100 字符,汉字计 2)")
     sp.add_argument("--emotion", choices=list(EMOTION_ZH), help="情感快捷方式(未给 --instruct 时生效)")
     sp.add_argument("--rate", type=float, default=1.0, help="语速 0.5-2.0")
@@ -392,7 +439,18 @@ def main():
     sp.add_argument("voice_id")
     sp.set_defaults(func=cmd_delete)
 
-    a = p.parse_args(); a.func(a)
+    sp = sub.add_parser("fav", help="管理收藏音色(第 1 个为默认音色)")
+    sp.add_argument("action", nargs="?", choices=["list", "add", "rm"], default="list")
+    sp.add_argument("voices", nargs="*", help="音色(add / rm 时必填,可多个)")
+    sp.set_defaults(func=cmd_fav)
+
+    a = p.parse_args()
+    if a.cmd == "fav" and a.action != "list" and not a.voices:
+        p.error(f"fav {a.action} 需要至少一个音色")
+    if getattr(a, "voice", "") is None:
+        a.voice, source = default_voice()
+        print(f"未指定音色,使用{source}:{a.voice}", file=sys.stderr)
+    a.func(a)
 
 
 if __name__ == "__main__":

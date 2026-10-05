@@ -1,6 +1,6 @@
 {
   "name": "bailian-tts",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "阿里百炼 Qwen-Audio-3.1-TTS 语音合成：自然语言指令与文本内情感标签控制语气、方言与多语种音色、按脚本批量生成配音与字幕、复刻自己的声音。跨 Claude Code 与 Codex。",
   "author": {
     "name": "legdonkey",
