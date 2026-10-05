@@ -23,7 +23,7 @@ disable-model-invocation: true
 
 - **固定模型** `qwen-audio-3.1-tts-flash`,**默认音色** `longanhuan_v3.1`(女)。
 - 68 个系统音色在 [references/voices.json](references/voices.json)(与官方列表对齐),`voices` 命令直接读。系统音色名都以 `_v3.1` 结尾,区分大小写。
-- **音色必须属于本模型**:CosyVoice 音色(如 `longanhuan`)、3.0 系列音色(`*_v3.6`)、为其它模型创建的复刻音色都不能用,服务端只会回 `411`。脚本会提前识别并提示。
+- **音色必须属于本模型**:其它模型的系统音色(如 3.0 系列的 `*_v3.6`)、为其它模型创建的复刻音色都不能用,服务端只会回 `411`。脚本会提前识别并提示。
 - 分组:**多语种与方言**(4 个,支持 8 种方言与 8 种外语)、**精品中文**(22 个,仅普通话)、**精品英文**(15 个,仅英文)、**其他系统**(27 个,角色/童声/陪伴等)。
 
 ## 控制语气
@@ -87,7 +87,7 @@ disable-model-invocation: true
 
 ## 排错
 
-- `411`(`[cosyvoice:]Engine error [411]: TTS speak operation failed`):音色不属于本模型。换 `voices` 列出的 `_v3.1` 音色,或为本模型重新 `clone`。
+- `411`(`Engine error [411]: TTS speak operation failed`):音色不属于本模型。换 `voices` 列出的 `_v3.1` 音色,或为本模型重新 `clone`。
 - 指令被拒或效果不明显:缩短指令、改成具体的声音特征描述;情绪切换优先用文本标签。
 - 复刻失败:检查录音质量(单人、无背景音);有底噪时加 `--denoise`;用 URL 时确认无需鉴权即可下载。
 

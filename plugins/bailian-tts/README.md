@@ -25,7 +25,7 @@
 | **先试听再生成** | `preview` 合成一句并播放；`gen` 生成正式 `wav`，统一规范化为 24kHz 单声道并打印时长。 |
 | **脚本批量配音** | `script` 按脚本逐段生成，每段可切换音色和指令，输出分段 `wav`、拼接好的 `all.wav`、`subtitles.srt` 和 `manifest.json`，可直接拖进剪辑工具。 |
 | **声音复刻** | `clone` 直接接收本地录音（m4a/mp3/wav 等），自动转码、检查时长、上传百炼临时存储并完成复刻，无需自备 OSS；`voices --mine` 查询、`delete` 删除。 |
-| **提前拦截错配** | 音色不属于本模型（CosyVoice 音色、3.0 系列音色、为其它模型创建的复刻音色）时直接提示，不让服务端只回一个 `411`。 |
+| **提前拦截错配** | 音色不属于本模型（其它模型的系统音色、为其它模型创建的复刻音色）时直接提示，不让服务端只回一个 `411`。 |
 
 ## 安装
 
@@ -42,15 +42,6 @@ codex plugin add bailian-tts@legdonkey
 ```
 
 装完重启对应客户端。触发名：**Claude Code** 用 `/bailian-tts`（插件命名空间下 `/bailian-tts:bailian-tts`）；**Codex** 用 `$bailian-tts`。**不会自动调用**——CC 靠 frontmatter `disable-model-invocation: true`、Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动点名。
-
-### 从 cosyvoice-tts 迁移
-
-本插件 2.0.0 起由 `cosyvoice-tts` 更名而来，并改为只支持 `qwen-audio-3.1-tts-flash`：
-
-1. 卸载旧插件：`/plugin uninstall cosyvoice-tts@legdonkey`（Codex：`codex plugin remove cosyvoice-tts@legdonkey`）；
-2. 更新市场后安装 `bailian-tts@legdonkey`；
-3. 按下方「运行环境」新建 `~/.bailian-tts-venv`，确认无误后可删除旧的 `~/.cosyvoice-tts-venv`；
-4. CosyVoice 音色（如 `longanhuan`）和为 CosyVoice 创建的复刻音色不能沿用，改选 `_v3.1` 系统音色或重新复刻。
 
 ## 运行环境
 
@@ -97,7 +88,7 @@ API key 读取顺序是环境变量 `DASHSCOPE_API_KEY`，然后是 `~/.dashscop
 
 - `qwen-audio-3.1-tts-next`（多人对话、配乐、音效一体生成）——能力与调用方式不同，需单独设计；
 - 声音设计（按文字描述生成音色）——官方目前只对 `qwen-audio-3.0-tts-*` 开放；
-- 百炼上标注“即将下线”的 Qwen3-TTS、Qwen-TTS、CosyVoice 系列。
+- 百炼上的其它语音合成模型。
 
 ## 插件结构
 
