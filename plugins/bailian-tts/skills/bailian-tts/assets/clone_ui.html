@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>声音复刻 · 朗读录音</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    accent-color: var(--exam);
+    --exam: #1f3a5f;          /* 考务蓝:考位条、主按钮 */
+    --exam-ink: #ffffff;
+    --exam-soft: #c6d3e6;     /* 考位条上的次要文字 */
+    --ground: #eef1f5;        /* 卡座灰 */
+    --card: #ffffff;
+    --rule: #c9d3e0;          /* 1px 细线 */
+    --ink: #17212e;
+    --muted: #4f5d70;
+    --pass: #1f7a4d;
+    --pass-bg: #e3f2ea;
+    --warn: #8a5a00;
+    --warn-bg: #fbf0d9;
+    --fail: #b3261e;
+    --fail-bg: #fbe4e2;
+    --band: #4f9a72;          /* 计时刻度的建议区间 */
+    --band-soft: #d6e8dd;     /* 电平条的合格区间(下方叠加电平填充) */
+    --fill: #1f3a5f;          /* 计时进度 */
+    --exam-btn: #1f3a5f;
+    --focus: #3b7dd8;
+    --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --exam: #3d6699; --exam-btn: #3d6699; --exam-ink: #ffffff; --exam-soft: #dbe6f4;
+      --ground: #10161f; --card: #182230; --rule: #2e3b4e;
+      --ink: #e8edf4; --muted: #a3b0c2;
+      --pass: #6fcf9b; --pass-bg: #173326; --warn: #e8b55a; --warn-bg: #3a2c12;
+      --fail: #f08a80; --fail-bg: #3d1c1a; --band: #3d8a5f; --band-soft: #1f3b2c; --fill: #dbe7fb; --focus: #7aa9ec;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--ground); }
+  body { margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink); font: 16px/1.7 var(--font); }
+  ::selection { background: var(--exam); color: var(--exam-ink); }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
+  /* ---- 考位条 ---- */
+  .bar {
+    position: sticky; top: 0; z-index: 2; height: 56px; padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    background: var(--exam); color: var(--exam-ink);
+  }
+  .bar h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: .02em; }
+  .bar h1 span { color: var(--exam-soft); font-weight: 400; }
+  .bar .progress { font-size: 14px; color: var(--exam-soft); font-variant-numeric: tabular-nums; }
+  .bar .progress b { color: var(--exam-ink); font-weight: 600; }
+  .bar .live { display: none; align-items: center; gap: 10px; font-weight: 600; }
+  .bar .live i { width: 10px; height: 10px; border-radius: 50%; background: #ff5a4f; }
+  .bar .live .t { font-variant-numeric: tabular-nums; font-weight: 400; color: var(--exam-soft); }
+
+  main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
+  .view { display: none; }
+  .view.on { display: block; animation: enter .35s cubic-bezier(.16,1,.3,1); }
+  @keyframes enter { from { opacity: 0; transform: translateY(6px); } }
+
+  /* ---- 朗读:须知 + 朗读卡 ---- */
+  .read { display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: 32px; align-items: start; }
+  .notice h2 { font-size: 19px; margin: 0 0 12px; color: var(--ink); font-weight: 600; display: inline; }
+  .notice summary { list-style: none; cursor: default; margin-bottom: 12px; }
+  .notice summary::-webkit-details-marker { display: none; }
+  @media (max-width: 760px) {
+    .notice summary { cursor: pointer; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); margin: 0; }
+    .notice summary::after { content: "（3 条，点开查看）"; color: var(--muted); font-size: 14px; }
+    .notice details[open] summary::after { content: "（点击收起）"; }
+    .notice details[open] ol { margin-top: 14px; }
+  }
+  .notice ol { margin: 0; padding: 0; list-style: none; counter-reset: n; }
+  .notice li { counter-increment: n; position: relative; padding: 0 0 16px 32px; font-size: 15px; }
+  .notice li::before {
+    content: counter(n); position: absolute; left: 0; top: 2px; width: 22px; height: 22px; border-radius: 50%;
+    border: 1px solid var(--exam); color: var(--exam); font-size: 12px; line-height: 20px; text-align: center;
+  }
+  @media (prefers-color-scheme: dark) { .notice li::before { border-color: var(--exam-soft); color: var(--exam-soft); } }
+  .notice li b { display: block; }
+  .notice li span { color: var(--muted); }
+  .field { display: block; margin: 8px 0 0; }
+  .field > span { display: block; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+  select, input[type=text], textarea {
+    font: inherit; font-size: 15px; width: 100%; padding: 9px 12px; border-radius: 6px;
+    border: 1px solid var(--rule); background: var(--card); color: var(--ink);
+  }
+  textarea { min-height: 76px; resize: vertical; line-height: 1.6; }
+  .hint { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+
+  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
+  .card-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    padding: 14px 24px; border-bottom: 1px solid var(--rule); font-size: 14px; color: var(--muted);
+  }
+  .card-head b { color: var(--ink); font-size: 19px; font-weight: 600; }
+  .passage { margin: 0; padding: 28px 24px 24px; font-size: 22px; line-height: 2; letter-spacing: .02em; }
+  .card-foot { padding: 0 24px 24px; }
+
+  /* 计时刻度:0–30 秒,10–20 秒为建议区间 */
+  .scale { position: relative; margin: 4px 0 18px; }
+  .scale { height: 46px; }
+  .scale .track { position: absolute; left: 0; right: 0; top: 20px; height: 8px; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .scale .ok { position: absolute; top: 0; bottom: 0; left: 33.33%; width: 33.33%; background: var(--band); }
+  .scale .fill { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; background: var(--fill); transform: scaleX(0); transform-origin: left; }
+  .scale .edge { position: absolute; top: 14px; width: 1px; height: 20px; background: var(--band); }
+  .scale .tag { position: absolute; top: 0; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--pass); white-space: nowrap; }
+  .scale .ticks { position: absolute; left: 0; right: 0; top: 30px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .scale .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .scale .ticks span:first-child { transform: none; }
+  .scale .ticks span:last-child { transform: translateX(-100%); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  button {
+    font: inherit; font-size: 15px; display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 6px; cursor: pointer; border: 1px solid var(--rule);
+    background: var(--card); color: var(--ink); transition: background .15s, border-color .15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--exam); }
+  button.primary { background: var(--exam-btn); border-color: var(--exam-btn); color: var(--exam-ink); font-weight: 600; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.12); }
+  button.danger { color: var(--fail); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button svg { width: 18px; height: 18px; flex: none; }
+  .linkish { background: none; border: 0; padding: 0; color: var(--exam); text-decoration: underline; text-underline-offset: 3px; font-size: 14px; }
+  @media (prefers-color-scheme: dark) { .linkish { color: var(--exam-soft); } }
+
+  /* ---- 录音中:整屏念稿 ---- */
+  body.recording .bar h1, body.recording .bar .progress { display: none; }
+  body.recording .bar .live { display: flex; }
+  body.recording .notice { display: none; }
+  body.recording .read { grid-template-columns: 1fr; }
+  body.recording main { max-width: 960px; padding-top: 6vh; }
+  body.recording .card { border-color: transparent; background: transparent; }
+  body.recording .card-head { display: none; }
+  body.recording .passage { font-size: clamp(28px, 3.4vw, 42px); line-height: 1.9; padding: 0 0 4vh; }
+  body.recording .card-foot { padding: 0; }
+  body.recording #readHint { display: none; }
+  .meter { display: none; margin: 0 0 20px; }
+  body.recording .meter { display: block; }
+  .meter .track { position: relative; height: 10px; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .meter .ok { position: absolute; top: 0; bottom: 0; left: 60%; width: 26.7%; background: var(--band-soft); }
+  .meter .lv { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; background: var(--pass); transform: scaleX(0); transform-origin: left; transition: transform .08s linear; }
+  .meter .lv.low { background: var(--warn); }
+  .meter .lv.hot { background: var(--fail); }
+  .meter .legend { position: relative; height: 20px; font-size: 14px; color: var(--muted); margin-top: 6px; }
+  .meter .legend span { position: absolute; white-space: nowrap; }
+  .meter .legend .l { left: 0; } .meter .legend .m { left: 73.3%; transform: translateX(-50%); } .meter .legend .r { right: 0; }
+  .meter .legend span.on { font-weight: 700; }
+  .meter[data-state="low"] .legend .l { color: var(--warn); } .meter[data-state="ok"] .legend .m { color: var(--pass); } .meter[data-state="hot"] .legend .r { color: var(--fail); }
+  .meter .say { font-size: 15px; margin: 10px 0 0; min-height: 1.5em; }
+  .meter[data-state="low"] .say { color: var(--warn); } .meter[data-state="ok"] .say { color: var(--pass); } .meter[data-state="hot"] .say { color: var(--fail); }
+
+  /* ---- 评定表 ---- */
+  .sheet { max-width: 760px; margin: 0 auto; }
+  .sheet table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .sheet th, .sheet td { text-align: left; padding: 14px 24px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  .sheet th { width: 22%; font-weight: 600; color: var(--muted); }
+  .sheet td.val { width: 26%; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sheet tr.row { animation: rowin .4s cubic-bezier(.16,1,.3,1) both; }
+  .sheet tr.row:nth-child(2) { animation-delay: .08s; } .sheet tr.row:nth-child(3) { animation-delay: .16s; }
+  @keyframes rowin { from { opacity: 0; transform: translateX(-6px); } }
+  .mark { display: inline-block; padding: 2px 10px 2px 11px; border-radius: 2px; font-size: 14px; font-weight: 700; letter-spacing: .1em; border: 1.5px solid currentColor; background: transparent; }
+  .mark.pass { color: var(--pass); }
+  .mark.warn { color: var(--warn); }
+  .mark.fail { color: var(--fail); }
+  .mark.na { color: var(--muted); }
+  .verdict { padding: 20px 24px; display: flex; gap: 16px; align-items: baseline; border-bottom: 1px solid var(--rule); }
+  .verdict b { font-size: 20px; white-space: nowrap; }
+  .verdict.pass b { color: var(--pass); } .verdict.fail b { color: var(--fail); } .verdict.warn b { color: var(--warn); }
+  .block { padding: 20px 24px; border-bottom: 1px solid var(--rule); }
+  .block:last-child { border-bottom: 0; }
+  .block h3 { font-size: 19px; margin: 0 0 12px; font-weight: 600; }
+  audio { width: 100%; height: 40px; border-radius: 20px; background: var(--ground); }
+  audio::-webkit-media-controls-panel { background: var(--ground); }
+  .check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--muted); margin-top: 12px; }
+  .check input { margin-top: 4px; }
+
+  /* ---- 试听 ---- */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-bottom: 1px solid var(--rule); }
+  .compare > div { padding: 20px 24px; }
+  .compare > div + div { border-left: 1px solid var(--rule); }
+  .compare h3 { font-size: 19px; margin: 0 0 12px; font-weight: 600; }
+
+  .msg { font-size: 14px; margin: 12px 0 0; min-height: 1.4em; }
+  .msg.ok { color: var(--pass); } .msg.warn { color: var(--warn); } .msg.err { color: var(--fail); }
+  .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rule); border-top-color: var(--exam); animation: rot .8s linear infinite; display: inline-block; vertical-align: -3px; margin-right: 8px; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  .done { max-width: 640px; margin: 6vh auto 0; }
+  .done .card-head { align-items: center; }
+  .done p { margin: 0 0 12px; }
+  .idrow { margin: 4px 0 0; }
+  .idrow > span { display: block; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+  .idrow code {
+    display: block; overflow-x: auto; white-space: nowrap; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 6px;
+    background: var(--ground); color: var(--ink); font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; user-select: all;
+  }
+
+  @media (max-width: 760px) {
+    .bar { padding: 0 16px; }
+    .bar h1 span { display: none; }
+    main { padding: 20px 16px 48px; }
+    .read { grid-template-columns: 1fr; gap: 20px; }
+    .passage { font-size: 19px; padding: 20px 16px; }
+    .card-head, .card-foot, .block, .verdict, .compare > div { padding-left: 16px; padding-right: 16px; }
+    .sheet th, .sheet td { padding: 12px 16px; }
+    .sheet th { width: auto; white-space: nowrap; }
+    .verdict { flex-direction: column; gap: 4px; }
+    .sheet td.val { width: auto; }
+    .compare { grid-template-columns: 1fr; }
+    .idrow code { white-space: normal; overflow-x: visible; }  /* 窄屏按编号里的 - 换行,不裁切 */
+    .compare > div + div { border-left: 0; border-top: 1px solid var(--rule); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<header class="bar">
+  <h1>声音复刻 <span>· <span id="stepName">朗读录音</span></span></h1>
+  <div class="progress" id="progress">第 <b>1</b> 项 / 共 4 项</div>
+  <div class="live" role="status" aria-live="polite"><i></i>录音中 <span class="t" id="liveTimer">0.0 秒</span></div>
+</header>
+
+<main>
+  <!-- 1 朗读 -->
+  <section class="view on" id="v-read" aria-label="朗读录音">
+    <div class="read">
+      <aside class="notice">
+        <details id="tips" open>
+        <summary><h2>朗读须知</h2></summary>
+        <ol>
+          <li><b>选个安静、软装多的房间</b><span>窗帘、沙发、衣柜前最好；空房间、浴室、大面积玻璃和白墙会带来回响。关掉空调、风扇和音乐。</span></li>
+          <li><b>麦克风越近越好</b><span>领夹麦夹在领口，嘴下方 15～20 厘米；桌面麦离嘴 10～15 厘米。电脑自带麦克风效果最差。</span></li>
+          <li><b>用你最常用的语气读</b><span>录音里的语调和节奏会一起被学进去。只录你本人的声音。</span></li>
+        </ol>
+        </details>
+        <label class="field"><span>麦克风</span>
+          <select id="mic"><option value="">系统默认输入设备</option></select></label>
+        <p class="hint" id="micHint">第一次开始朗读并允许麦克风后，这里会显示设备名称。用外接麦克风时请确认选中的是它。</p>
+      </aside>
+
+      <article class="card" aria-labelledby="passageTitle">
+        <div class="card-head"><b id="passageTitle">朗读作品</b><span>建议用时 10～20 秒 · 先停一秒再开口</span></div>
+        <p class="passage" id="passage">大家好，今天我们来聊一聊人工智能。其实它的核心原理并不复杂，就是根据已有的信息，去预测接下来最可能出现的内容。理解了这一点，很多看起来神奇的能力，也就不难解释了。</p>
+        <div class="card-foot">
+          <div class="meter" id="meter" data-state="">
+            <div class="track" aria-hidden="true"><div class="ok"></div><div class="lv" id="lv"></div></div>
+            <div class="legend" aria-hidden="true"><span class="l">太小</span><span class="m">合适</span><span class="r">太大</span></div>
+            <p class="say" id="lvSay" role="status" aria-live="polite"></p>
+          </div>
+          <div class="scale" aria-hidden="true">
+            <span class="tag">建议 10～20 秒</span>
+            <div class="track"><div class="ok"></div><div class="fill" id="fill"></div></div>
+            <span class="edge" style="left:33.33%"></span><span class="edge" style="left:66.67%"></span>
+            <div class="ticks"><span style="left:0">0 秒</span><span style="left:33.33%">10</span><span style="left:66.67%">20</span><span style="left:100%">30 秒</span></div>
+          </div>
+          <div class="actions">
+            <button class="primary" id="recBtn"><svg><use href="#i-mic"/></svg><span>开始朗读</span></button>
+            <span class="hint" id="readHint">已有录音文件？<label class="linkish" style="cursor:pointer">选择文件<input type="file" id="file" accept="audio/*" hidden></label></span>
+          </div>
+          <p class="msg" id="recMsg" role="status" aria-live="polite"></p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- 2 评定 -->
+  <section class="view" id="v-grade" aria-label="录音评定">
+    <div class="sheet card">
+      <div class="card-head"><b>录音评定</b><span id="gradeSource">本次朗读</span></div>
+      <table>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="verdict" id="verdict"><b id="verdictWord"></b><span id="verdictText"></span></div>
+      <div class="block">
+        <h3>先回放听一遍</h3>
+        <audio id="mine" controls></audio>
+        <p class="hint">留意有没有回响、杂音或别人的声音。</p>
+      </div>
+      <div class="block">
+        <h3>给这个声音起个名字</h3>
+        <label class="field"><span>英文字母或数字，1～10 位，会出现在音色编号里（例如 ygd）</span>
+          <input type="text" id="prefix" maxlength="10" autocomplete="off" spellcheck="false"></label>
+        <label class="check"><input type="checkbox" id="denoise"> 录音里有底噪时勾选：先降噪、增强再复刻。房间安静就别勾，会损失一点音色细节。</label>
+        <div class="actions" style="margin-top:16px">
+          <button class="primary" id="cloneBtn"><svg><use href="#i-send"/></svg><span>提交复刻</span></button>
+          <button id="rereadBtn"><svg><use href="#i-redo"/></svg><span>重新朗读</span></button>
+        </div>
+        <p class="msg" id="cloneMsg" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 试听 -->
+  <section class="view" id="v-listen" aria-label="试听对比">
+    <div class="sheet card">
+      <div class="card-head"><b>听听像不像</b><span>先听原声，再听复刻</span></div>
+      <div class="compare">
+        <div><h3>你的原声</h3><audio id="origin" controls></audio></div>
+        <div><h3>复刻出来的声音</h3><audio id="cloned" controls></audio></div>
+      </div>
+      <div class="block">
+        <h3>再试一句</h3>
+        <label class="field"><span>可以写 [laughing]（笑声）、[serious]（严肃）这类标签</span>
+          <textarea id="sayText">我们今天要讲的内容，[serious]非常重要，请大家认真听。</textarea></label>
+        <div class="actions" style="margin-top:12px"><button id="sayBtn">用这个声音读出来</button></div>
+        <p class="msg" id="tryMsg" role="status" aria-live="polite"></p>
+      </div>
+      <div class="block">
+        <h3>这个声音怎么处理</h3>
+        <div class="actions">
+          <button class="primary" data-fav="default">满意，设为默认音色</button>
+          <button data-fav="add">加入收藏</button>
+          <button id="skipFav">先不收藏</button>
+          <button class="danger" id="redo">不满意，删除后重录</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 完成 -->
+  <section class="view" id="v-done" aria-label="完成">
+    <div class="done card">
+      <div class="card-head"><b>复刻结果</b><span class="mark pass" id="doneMark">已设为默认</span></div>
+      <div class="block">
+        <p id="doneText"></p>
+        <p>回到对话里说「用我的声音读这段」就能用。</p>
+        <p class="idrow"><span>音色编号（写脚本时用）</span><code id="doneVid"></code></p>
+      </div>
+      <div class="block">
+        <div class="actions"><button class="primary" id="finish">关闭向导，回到对话</button></div>
+        <p class="msg" id="doneMsg" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const token = new URLSearchParams(location.search).get("t");
+const $ = (id) => document.getElementById(id);
+const api = (path, opts = {}) => fetch(`${path}?t=${token}${opts.query || ""}`, { method: "POST", ...opts }).then((r) => r.json());
+const VIEWS = { read: ["朗读录音", 1], grade: ["录音评定", 2], listen: ["试听对比", 3], done: ["完成", 4] };
+let blob = null, voiceId = null;
+
+function go(view) {
+  document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === `v-${view}`));
+  const [name, n] = VIEWS[view];
+  $("stepName").textContent = name;
+  $("progress").innerHTML = `第 <b>${n}</b> 项 / 共 4 项`;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function msg(el, text, kind = "") { el.textContent = text; el.className = `msg ${kind}`; }
+function busy(el, text) { el.innerHTML = `<span class="spin"></span>${text}`; el.className = "msg"; }
+
+// ---- 评定 ----
+// 帧电平 p90 低于 -24 dBFS 视为偏小(近距离人声通常在 -18～-10),采样峰值 ≥0.98 视为削波
+let frames = [], peakSample = 0;
+const MARK = { pass: "合格", warn: "可用", fail: "需重录", na: "未检测" };
+function row(name, value, kind, note) {
+  return `<tr class="row"><th>${name}</th><td class="val">${value}</td><td><span class="mark ${kind}">${MARK[kind]}</span>${note ? `<div class="hint">${note}</div>` : ""}</td></tr>`;
+}
+function grade(secs, fromFile) {
+  const out = [];
+  const durKind = secs < 5 || secs > 60 ? "fail" : secs < 10 || secs > 20 ? "warn" : "pass";
+  out.push({ kind: durKind, html: row("时长", `${secs.toFixed(1)} 秒`, durKind,
+    durKind === "fail" ? (secs < 5 ? "至少需要 5 秒。" : "超过 60 秒上限，请读短一点。") : durKind === "warn" ? "可以用，10～20 秒效果最好。" : "") });
+  if (fromFile || !frames.length) {
+    out.push({ kind: "na", html: row("音量", "—", "na", "选择的是已有文件，提交后由服务端检查。") });
+    out.push({ kind: "na", html: row("破音", "—", "na", "") });
+  } else {
+    const sorted = [...frames].sort((a, b) => a - b), p90 = sorted[Math.floor(sorted.length * 0.9)];
+    const volKind = p90 < -24 ? "fail" : "pass";
+    out.push({ kind: volKind, html: row("音量", volKind === "pass" ? "合适" : "偏小", volKind,
+      volKind === "fail" ? "麦克风离嘴偏远时，房间的回响会被一起复刻。靠近麦克风或调高增益后重读。" : "") });
+    const clipKind = peakSample >= 0.98 ? "fail" : "pass";
+    out.push({ kind: clipKind, html: row("破音", clipKind === "pass" ? "没有" : "有", clipKind,
+      clipKind === "fail" ? "声音过大被削平了，把麦克风增益调低一点再读。" : "") });
+  }
+  $("rows").innerHTML = out.map((o) => o.html).join("");
+  const kinds = out.map((o) => o.kind);
+  const v = $("verdict");
+  if (durKind === "fail") { v.className = "verdict fail"; $("verdictWord").textContent = "需要重读"; $("verdictText").textContent = "时长不在 5～60 秒之间，无法提交。"; }
+  else if (kinds.includes("fail")) { v.className = "verdict fail"; $("verdictWord").textContent = "建议重读"; $("verdictText").textContent = "带着这些问题复刻，声音会不干净。仍可以提交，但不推荐。"; }
+  else if (kinds.includes("warn")) { v.className = "verdict warn"; $("verdictWord").textContent = "可以提交"; $("verdictText").textContent = "回放确认没有杂音和回响就提交。"; }
+  else { v.className = "verdict pass"; $("verdictWord").textContent = "可以提交"; $("verdictText").textContent = "各项都合格。回放听一遍，没问题就起名提交。"; }
+  $("cloneBtn").disabled = durKind === "fail";
+  // 结论是重读时,「重新朗读」才是主操作
+  const reread = durKind === "fail" || kinds.includes("fail");
+  $("rereadBtn").classList.toggle("primary", reread);
+  $("cloneBtn").classList.toggle("primary", !reread);
+  $("gradeSource").textContent = fromFile ? `文件：${fromFile}` : "本次朗读";
+}
+function setRecording(b, secs, fromFile) {
+  blob = b;
+  $("mine").src = $("origin").src = URL.createObjectURL(b);
+  grade(secs, fromFile);
+  msg($("cloneMsg"), "");
+  go("grade");
+}
+
+// ---- 麦克风 ----
+async function listMics() {
+  const sel = $("mic"), keep = sel.value;
+  const mics = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "audioinput" && d.deviceId !== "default");
+  sel.replaceChildren(new Option("系统默认输入设备", ""),
+    ...mics.map((d, i) => new Option(d.label || `麦克风 ${i + 1}`, d.deviceId)));
+  if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+  if (mics.some((d) => d.label)) $("micHint").textContent = "用外接麦克风时，请确认这里选中的是它。";
+}
+navigator.mediaDevices?.addEventListener?.("devicechange", listMics);
+// 宽屏常开;窄屏默认收起,让朗读卡留在首屏
+const wide = matchMedia("(min-width: 761px)");
+const syncTips = () => { $("tips").open = wide.matches; };
+syncTips(); wide.addEventListener("change", syncTips);
+$("tips").addEventListener("toggle", (e) => { if (wide.matches && !e.target.open) e.target.open = true; });
+listMics().catch(() => {});
+
+// ---- 录音 ----
+let recorder = null, stream = null, ctx = null, raf = 0, t0 = 0, live = false, stopSecs = 0;
+function setRecBtn(recording) {
+  $("recBtn").innerHTML = recording ? '<svg><use href="#i-stop"/></svg><span>停止</span>' : '<svg><use href="#i-mic"/></svg><span>开始朗读</span>';
+}
+function stopMeter() {
+  live = false; cancelAnimationFrame(raf);
+  if (ctx) { ctx.close().catch(() => {}); ctx = null; }
+  document.body.classList.remove("recording");
+  $("lv").style.transform = "scaleX(0)";
+}
+$("recBtn").addEventListener("click", async () => {
+  if (recorder) {
+    // 点击即停表并定格时长,不依赖 MediaRecorder 的 stop 事件何时到达
+    stopSecs = (performance.now() - t0) / 1000;
+    stopMeter();
+    $("recBtn").disabled = true; setRecBtn(false); msg($("recMsg"), "正在保存录音…");
+    if (recorder.state !== "inactive") recorder.stop();
+    return;
+  }
+  try {
+    // 关闭浏览器自带的降噪/回声消除/自动增益,尽量保留原始音色
+    const audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
+    if ($("mic").value) audio.deviceId = { exact: $("mic").value };
+    stream = await navigator.mediaDevices.getUserMedia({ audio });
+    listMics().catch(() => {});  // 授权后才拿得到设备名称
+  } catch (e) {
+    msg($("recMsg"), "用不了麦克风：请在浏览器地址栏左侧允许麦克风权限后再试。", "err");
+    return;
+  }
+  const chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  recorder.onstop = () => {
+    stream.getTracks().forEach((t) => t.stop());
+    const b = new Blob(chunks, { type: recorder.mimeType });
+    recorder = null; $("recBtn").disabled = false; msg($("recMsg"), "");
+    setRecording(b, stopSecs, null);
+  };
+  recorder.onerror = (e) => {
+    stopMeter(); stream.getTracks().forEach((t) => t.stop());
+    recorder = null; $("recBtn").disabled = false; setRecBtn(false);
+    msg($("recMsg"), `录音出错：${e.error?.message || e.error || "未知错误"}。可以改用「选择文件」上传录音。`, "err");
+  };
+  ctx = new AudioContext();
+  const analyser = ctx.createAnalyser();
+  ctx.createMediaStreamSource(stream).connect(analyser);
+  const buf = new Float32Array(analyser.fftSize);
+  frames = []; peakSample = 0;
+  const recent = [];
+  $("meter").dataset.state = ""; $("lvSay").textContent = "先停一秒再开口。";
+  document.querySelectorAll("#meter .legend span").forEach((el) => el.classList.remove("on"));
+  const tick = () => {
+    if (!live) return;
+    analyser.getFloatTimeDomainData(buf);
+    let peak = 0, sum = 0;
+    for (const v of buf) { peak = Math.max(peak, Math.abs(v)); sum += v * v; }
+    peakSample = Math.max(peakSample, peak);
+    const db = 10 * Math.log10(sum / buf.length + 1e-12);
+    frames.push(db);
+    // 电平条:-60～0 dBFS 映射到整条,合格区 -24～-8 dBFS
+    const secs = (performance.now() - t0) / 1000;
+    const pos = Math.min(1, Math.max(0, (db + 60) / 60));
+    const lv = $("lv");
+    lv.style.transform = `scaleX(${pos})`;
+    lv.className = `lv ${peak >= 0.98 ? "hot" : db < -30 ? "low" : ""}`;
+    // 文字状态用最近约半秒的平均电平,避免逐帧闪动;只在档位变化时改写
+    recent.push(db); if (recent.length > 30) recent.shift();
+    const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+    const state = peak >= 0.98 ? "hot" : avg < -30 ? "low" : "ok";
+    if (secs > 0.8 && state !== $("meter").dataset.state) {
+      $("meter").dataset.state = state;
+      document.querySelectorAll("#meter .legend span").forEach((el) => el.classList.toggle("on", el.classList.contains({ low: "l", ok: "m", hot: "r" }[state])));
+      $("lvSay").textContent = { low: "声音偏小：靠近麦克风一点，或调高增益。", ok: "音量合适，保持这个距离。", hot: "声音太大，出现破音：调低增益或离远一点。" }[state];
+    }
+    $("liveTimer").textContent = `${secs.toFixed(1)} 秒`;
+    $("fill").style.transform = `scaleX(${Math.min(1, secs / 30)})`;
+    raf = requestAnimationFrame(tick);
+  };
+  t0 = performance.now(); live = true; recorder.start();
+  document.body.classList.add("recording");
+  setRecBtn(true); msg($("recMsg"), "");
+  window.scrollTo({ top: 0 });
+  tick();
+});
+
+$("file").addEventListener("change", (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  frames = []; peakSample = 0;
+  const probe = new Audio(URL.createObjectURL(f));
+  probe.onloadedmetadata = () => setRecording(f, isFinite(probe.duration) ? probe.duration : 15, f.name);
+  probe.onerror = () => setRecording(f, 15, f.name);
+  e.target.value = "";
+});
+$("rereadBtn").addEventListener("click", () => { $("fill").style.transform = "scaleX(0)"; go("read"); });
+
+// ---- 复刻 ----
+$("cloneBtn").addEventListener("click", async () => {
+  const prefix = $("prefix").value.trim();
+  if (!/^[A-Za-z0-9]{1,10}$/.test(prefix)) { msg($("cloneMsg"), "名字只能用英文字母和数字，1～10 位。", "err"); $("prefix").focus(); return; }
+  $("cloneBtn").disabled = $("rereadBtn").disabled = true;
+  busy($("cloneMsg"), "正在上传录音并复刻，通常要 10～30 秒，请不要关闭页面…");
+  const r = await api("/clone", {
+    query: `&prefix=${encodeURIComponent(prefix)}&denoise=${$("denoise").checked ? 1 : 0}`,
+    headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob,
+  }).catch((e) => ({ error: String(e) }));
+  $("cloneBtn").disabled = $("rereadBtn").disabled = false;
+  if (!r.voice_id) { msg($("cloneMsg"), r.error || "复刻失败，请稍后再试。", "err"); return; }
+  voiceId = r.voice_id; $("doneVid").textContent = voiceId;
+  msg($("cloneMsg"), ""); msg($("tryMsg"), "");
+  if (r.audio) $("cloned").src = r.audio; else msg($("tryMsg"), r.error, "warn");
+  go("listen"); $("cloned").play().catch(() => {});
+});
+
+$("sayBtn").addEventListener("click", async () => {
+  const text = $("sayText").value.trim(); if (!text) return;
+  $("sayBtn").disabled = true; busy($("tryMsg"), "正在合成…");
+  const r = await api("/say", { body: JSON.stringify({ voice: voiceId, text }) }).catch((e) => ({ error: String(e) }));
+  $("sayBtn").disabled = false;
+  if (r.audio) { msg($("tryMsg"), ""); $("cloned").src = r.audio; $("cloned").play().catch(() => {}); }
+  else msg($("tryMsg"), r.error || "合成失败，请稍后再试。", "err");
+});
+
+// ---- 收尾 ----
+document.querySelectorAll("[data-fav]").forEach((b) => b.addEventListener("click", async () => {
+  const isDefault = b.dataset.fav === "default";
+  const r = await api("/fav", { body: JSON.stringify({ voice: voiceId, default: isDefault }) }).catch((e) => ({ error: String(e) }));
+  if (r.error) { msg($("tryMsg"), r.error, "err"); return; }
+  $("doneText").textContent = isDefault
+    ? "已设为默认音色：以后不指定音色时，就用你的声音合成。"
+    : `已加入收藏（第 ${r.favorites.indexOf(voiceId) + 1} 位）。默认音色仍是收藏里的第 1 个。`;
+  $("doneMark").textContent = isDefault ? "已设为默认" : "已收藏";
+  $("doneMark").className = "mark pass";
+  go("done");
+}));
+$("skipFav").addEventListener("click", () => {
+  $("doneText").textContent = "音色已经建好，没有加入收藏。以后在对话里说「收藏我的音色」即可。";
+  $("doneMark").textContent = "未收藏";
+  $("doneMark").className = "mark na";
+  go("done");
+});
+$("redo").addEventListener("click", async () => {
+  if (!confirm("删除这个复刻音色并重新朗读？删除后不能恢复。")) return;
+  const r = await api("/delete", { body: JSON.stringify({ voice: voiceId }) }).catch((e) => ({ error: String(e) }));
+  if (r.error) { msg($("tryMsg"), r.error, "err"); return; }
+  voiceId = null; blob = null; $("fill").style.transform = "scaleX(0)";
+  msg($("recMsg"), "上一个音色已删除。换个更安静的地方、离麦克风近一点，再读一遍。", "warn");
+  go("read");
+});
+$("finish").addEventListener("click", async () => {
+  await api("/done").catch(() => {});
+  $("finish").disabled = true;
+  msg($("doneMsg"), "向导已关闭，可以关掉这个页面，回到对话继续。", "ok");
+});
+</script>
+</body>
+</html>

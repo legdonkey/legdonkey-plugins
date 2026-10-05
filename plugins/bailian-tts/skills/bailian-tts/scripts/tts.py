@@ -300,7 +300,7 @@ def cmd_clone(a):
 def cmd_clone_ui(a):
     """本地向导:浏览器里录音 → 复刻 → 试听 → 收藏。只监听 127.0.0.1,请求须带随机 token。"""
     import http.server, secrets, threading, types, urllib.parse, webbrowser
-    page = open(os.path.join(os.path.dirname(__file__), "clone_ui.html"), "rb").read()
+    page = open(os.path.join(os.path.dirname(__file__), "..", "assets", "clone_ui.html"), "rb").read()
     token = secrets.token_urlsafe(16)
     audio, created, workdir = {}, [], tempfile.mkdtemp(prefix="bailian_clone_ui_")
     synth_opts = types.SimpleNamespace(rate=1.0, pitch=1.0, volume=50)

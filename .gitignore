@@ -1,3 +1,10 @@
 .DS_Store
 __pycache__/
 .claude/launch.json
+# impeccable 运行产物（只保留 surfaces/ 方向说明与 design.json）
+**/.impeccable/review/
+**/.impeccable/questions/
+**/.impeccable/hook.cache.json
+**/.impeccable/*.txt
+**/.impeccable/brief-body.md
+**/.impeccable/direction-round.json
