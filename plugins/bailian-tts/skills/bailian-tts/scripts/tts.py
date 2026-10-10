@@ -10,6 +10,7 @@
 - fav:     管理收藏音色;未指定 -v 时默认用收藏的第 1 个
 - clone-ui: 打开本地复刻向导页面,在浏览器里完成录音、复刻、试听与收藏
 - pick-ui: 打开本地选音色页面,用同一句话逐个试听音色,收藏或设为默认
+- say:     朗读选中文本(macOS):配合鼠标按键或快捷键,分段边合成边播放,再次触发即打断
 
 指令(instruction):任意自然语言,≤100 字符(汉字计 2),系统音色与复刻音色都支持。
 文本内可直接嵌入 [excited]、[laughing] 等情感/富语言标签。
@@ -576,6 +577,178 @@ def cmd_script(a):
     print(f"✅ {len(segs)} 段,总长 {t - a.gap:.2f}s → {a.out_dir}/(all.wav、subtitles.srt、manifest.json)")
 
 
+# ---------- say:朗读选中文本(macOS) ----------
+# 鼠标按键 / 快捷键触发:清理 Markdown → 截断 → 按句分段,播放当前段的同时合成下一段。
+# 每次朗读自成进程组,组 ID 记在 SAY_PID;再次触发时整组结束(含正在合成与播放的段落)。
+
+SAY_DIR = os.path.expanduser("~/Library/Caches/bailian-tts/say")
+SAY_PID = os.path.join(SAY_DIR, "reader.pid")
+SAY_CLIP = os.path.join(SAY_DIR, "clipboard.txt")
+SAY_LOG = os.path.expanduser("~/Library/Logs/bailian-tts-say.log")
+SAY_WRAPPER = os.path.expanduser("~/.local/bin/bailian-say")
+SAY_FIRST, SAY_SIZE = 80, 180  # 首段短一些,尽快开口;后续每段约 180 字
+
+
+def clean_markdown(text):
+    """去掉代码块与 Markdown 符号,只留要念的文字。"""
+    text = re.sub(r"```.*?```", " ", text, flags=re.S)                    # 代码块不念
+    text = re.sub(r"`([^`]*)`", r"\1", text)                              # 行内代码只留内容
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)                      # 图片
+    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)                  # 链接只念文字
+    text = re.sub(r"^\s*(#{1,6}|>+|[-*+]|\d+[.)])\s+", "", text, flags=re.M)  # 标题、引用、列表符号
+    text = re.sub(r"^\s*\|?[\s:|-]+\|[\s:|-]*$", "", text, flags=re.M)    # 表格分隔行
+    text = re.sub(r"[*_~|#>]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def truncate_text(text, limit):
+    """超过 limit 字时在最后一个句末截断;句末太靠前就硬切并加省略号。"""
+    if len(text) <= limit:
+        return text
+    head = text[:limit]
+    cut = max(head.rfind(c) for c in "。！？!?；;.")
+    return head[:cut + 1] if cut >= limit // 2 else head + "……"
+
+
+def split_segments(text, first=SAY_FIRST, size=SAY_SIZE):
+    """按句切段:首段不超过 first 字,其余不超过 size 字;超长的句子再按逗号切,找不到就硬切。"""
+    pieces = []
+    for sent in re.findall(r"[^。！？!?；;…\n]+[。！？!?；;…]*", text):
+        while len(sent) > size:
+            cut = max(sent.rfind(c, 0, size) for c in "，,、：: ")
+            cut = cut + 1 if cut > size // 3 else size
+            pieces.append(sent[:cut]); sent = sent[cut:]
+        pieces.append(sent)
+    parts, cur = [], ""
+    for piece in pieces:
+        if cur and len(cur) + len(piece) > (first if not parts else size):
+            parts.append(cur); cur = ""
+        cur += piece
+    if cur.strip():
+        parts.append(cur)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def notify(text):
+    subprocess.run(["osascript", "-e", f'display notification "{text}" with title "bailian-tts 朗读"'], check=False)
+
+
+def pb_paste():
+    return subprocess.run(["pbpaste"], capture_output=True, text=True).stdout
+
+
+def pb_copy(text):
+    subprocess.run(["pbcopy"], input=text, text=True)
+
+
+def stop_previous_say():
+    """结束上一次朗读的整个进程组;先确认那个进程确实是 say,避免误杀复用的进程号。"""
+    import signal
+    try:
+        pid = int(open(SAY_PID).read())
+        cmd = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True).stdout
+        if "tts.py" in cmd and " say" in cmd:
+            os.killpg(pid, signal.SIGTERM)
+    except (OSError, ValueError):
+        pass
+
+
+def speak_segments(parts, voice, instr, a):
+    """播放第 i 段的同时合成第 i+1 段。返回是否全部念完。"""
+    import shutil, signal
+    from concurrent.futures import ThreadPoolExecutor
+    os.setpgrp()  # 自成进程组,方便下次触发时整组结束
+    open(SAY_PID, "w").write(str(os.getpid()))
+    tmp = tempfile.mkdtemp(prefix="bailian_say_")
+
+    def interrupted(*_):  # 被打断:清掉临时音频后直接退出,不等合成线程
+        shutil.rmtree(tmp, ignore_errors=True)
+        os._exit(0)
+    signal.signal(signal.SIGTERM, interrupted)
+
+    def job(i):
+        raw = synth(voice, parts[i], instr, a.rate, a.pitch, a.volume)
+        if not raw:
+            return None
+        path = os.path.join(tmp, f"{i}.wav")
+        normalize(raw, path)
+        return path
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            fut = pool.submit(job, 0)
+            for i in range(len(parts)):
+                path = fut.result()
+                if not path:
+                    notify(f"第 {i + 1} 段合成失败,详情见 {SAY_LOG}")
+                    return False
+                if i + 1 < len(parts):
+                    fut = pool.submit(job, i + 1)
+                subprocess.run(["afplay", path])
+        return True
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def install_say():
+    """生成 ~/.local/bin/bailian-say:把参数转给当前这份 tts.py 的 say;路径失效时找插件缓存里最新的一份。"""
+    tts = os.path.abspath(__file__)
+    os.makedirs(os.path.dirname(SAY_WRAPPER), exist_ok=True)
+    with open(SAY_WRAPPER, "w", encoding="utf-8") as f:
+        f.write(f'''#!/bin/sh
+# 由 bailian-tts 的 `tts.py say --install` 生成:把参数转给 tts.py say。
+# 插件移动或升级后,原路径失效时自动改用 Claude Code 插件缓存里最新的 bailian-tts。
+TTS="{tts}"
+[ -f "$TTS" ] || TTS=$(ls -dt "$HOME"/.claude/plugins/cache/*/bailian-tts/*/skills/bailian-tts/scripts/tts.py 2>/dev/null | head -1)
+exec "{sys.executable}" "$TTS" say "$@"
+''')
+    os.chmod(SAY_WRAPPER, 0o755)
+    print(f"✅ 已生成 {SAY_WRAPPER}(指向 {tts})\n")
+    print("任选一种触发方式:\n")
+    print("① 鼠标按键(OpenLogi,~/.config/openlogi/config.toml 设备的 bindings 段,改后重开 OpenLogi):")
+    print('MiddleClick = { Workflow = [ { RunShellCommand = "$HOME/.local/bin/bailian-say --save" }, '
+          '{ Delay = { millis = 120 } }, { PressKey = "Cmd+C" }, { Delay = { millis = 200 } }, '
+          '{ RunShellCommand = "$HOME/.local/bin/bailian-say --clipboard >/dev/null 2>&1 &" } ] }\n')
+    print("② 键盘快捷键(「快捷指令」):设置 → 高级 → 允许运行脚本;新建快捷指令,勾选「用作快速操作」,接收「文本」;")
+    print("   添加「运行 Shell 脚本」,传递输入选「作为 stdin」,内容为:$HOME/.local/bin/bailian-say")
+    print("   再到 系统设置 → 键盘 → 键盘快捷键 → 服务 里给它设快捷键。")
+
+
+def cmd_say(a):
+    if sys.platform != "darwin":
+        sys.exit("say 只支持 macOS(依赖 pbpaste / pbcopy / afplay)")
+    # 按键工作流和快捷指令里的 PATH 很短,合成要用 Homebrew 的 ffmpeg
+    os.environ["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", "/usr/bin:/bin")
+    if a.install:
+        return install_say()
+    os.makedirs(SAY_DIR, exist_ok=True)
+    # 按键工作流:--save 存下剪贴板文字并清空 → 按键发 Cmd+C 复制选中内容 → --clipboard 读出并还原剪贴板。
+    # 只还原纯文字,图片等其它剪贴板内容不保留。
+    if a.save:
+        stop_previous_say()
+        open(SAY_CLIP, "w", encoding="utf-8").write(pb_paste())
+        return pb_copy("")
+    if a.clipboard:
+        raw = pb_paste()
+        pb_copy(open(SAY_CLIP, encoding="utf-8").read() if os.path.exists(SAY_CLIP) else "")
+        if not raw.strip():
+            return notify("没有选中文字")
+    else:
+        raw = a.text if a.text is not None else sys.stdin.read()
+        stop_previous_say()  # 没有 --save 这一步,在这里结束上一次
+    text = truncate_text(clean_markdown(raw), a.max)
+    if not text:
+        return notify("没有可朗读的文字")
+    check_voice(a.voice)
+    instr = resolve_instruction(a.instruct, a.emotion)
+    parts = split_segments(text)
+    with open(SAY_LOG, "a", encoding="utf-8") as log:
+        sys.stdout = sys.stderr = log  # 后台运行时输出写进日志
+        print(f"\n--- {time.strftime('%F %T')} {describe(a.voice)} {len(text)} 字,分 {len(parts)} 段 "
+              f"{[len(p) for p in parts]}:{text[:40]}", flush=True)
+        speak_segments(parts, a.voice, instr, a)
+
+
 # ---------- CLI ----------
 
 def add_synth_opts(sp):
@@ -634,6 +807,16 @@ def main():
     sp.add_argument("--no-open", action="store_true", dest="no_open", help="不自动打开浏览器")
     sp.set_defaults(func=cmd_pick_ui)
 
+    sp = sub.add_parser("say", help="朗读选中文本(macOS,配合鼠标按键或快捷键;分段边合成边播放)")
+    add_synth_opts(sp)
+    sp.add_argument("--text", help="要朗读的文本(默认从 stdin 读)")
+    sp.add_argument("--max", type=int, default=1500, help="最多朗读的字数(默认 1500,超出在句末截断)")
+    mode = sp.add_mutually_exclusive_group()
+    mode.add_argument("--save", action="store_true", help="按键工作流第 1 步:结束上一次朗读,存下剪贴板文字并清空")
+    mode.add_argument("--clipboard", action="store_true", help="按键工作流最后一步:朗读刚复制的文字并还原剪贴板")
+    mode.add_argument("--install", action="store_true", help="生成 ~/.local/bin/bailian-say 并打印按键 / 快捷键配置")
+    sp.set_defaults(func=cmd_say)
+
     sp = sub.add_parser("fav", help="管理收藏音色(第 1 个为默认音色)")
     sp.add_argument("action", nargs="?", choices=["list", "add", "rm"], default="list")
     sp.add_argument("voices", nargs="*", help="音色(add / rm 时必填,可多个)")
@@ -642,7 +825,7 @@ def main():
     a = p.parse_args()
     if a.cmd == "fav" and a.action != "list" and not a.voices:
         p.error(f"fav {a.action} 需要至少一个音色")
-    if getattr(a, "voice", "") is None:
+    if getattr(a, "voice", "") is None and not (getattr(a, "save", False) or getattr(a, "install", False)):
         a.voice, source = default_voice()
         print(f"未指定音色,使用{source}:{a.voice}", file=sys.stderr)
     a.func(a)
