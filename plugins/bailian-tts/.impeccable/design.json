@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-05T14:00:00+08:00",
-  "title": "Design System: bailian-tts 复刻向导",
+  "generatedAt": "2026-10-10T12:00:00+08:00",
+  "title": "Design System: bailian-tts 录音棚（复刻向导 · 选音色页）",
   "extensions": {
     "colorMeta": {
       "room": {
@@ -50,6 +50,22 @@
           "#adafb8",
           "#d1d2d7",
           "#f1f2f3"
+        ]
+      },
+      "row-hover": {
+        "role": "neutral",
+        "displayName": "清单悬停",
+        "canonical": "#18191c",
+        "cssVar": "--row-hover",
+        "tonalRamp": [
+          "#18191c",
+          "#34363c",
+          "#50535c",
+          "#6d707b",
+          "#8b8e98",
+          "#aaacb5",
+          "#cdced4",
+          "#f0f1f3"
         ]
       },
       "groove": {
@@ -276,7 +292,7 @@
       },
       "verdict-narrow": {
         "displayName": "质检结论（窄屏）",
-        "purpose": "760px 以下的结论句。"
+        "purpose": "760px 以下的结论句；也是选音色页试听台的音色名。"
       },
       "script-stage": {
         "displayName": "全屏念稿",
@@ -284,11 +300,11 @@
       },
       "script": {
         "displayName": "录音稿",
-        "purpose": "录音稿面板正文。"
+        "purpose": "录音稿面板正文；试听台「要试的那句话」输入框。"
       },
       "script-narrow": {
         "displayName": "录音稿（窄屏）",
-        "purpose": "760px 以下的录音稿。"
+        "purpose": "760px 以下的录音稿与试听句子框。"
       },
       "title": {
         "displayName": "标题",
@@ -300,11 +316,11 @@
       },
       "bar-title": {
         "displayName": "顶栏标题",
-        "purpose": "「声音复刻 · 步骤名」。"
+        "purpose": "「声音复刻 · 步骤名」「选音色 · 试听台」。"
       },
       "control": {
         "displayName": "控件",
-        "purpose": "按钮、输入框、表格、状态句。"
+        "purpose": "按钮、输入框、表格、状态句、分组标签、清单行尾 take 时长。"
       },
       "label": {
         "displayName": "说明",
@@ -312,7 +328,7 @@
       },
       "counter": {
         "displayName": "计数",
-        "purpose": "顶栏「0N / 04」。"
+        "purpose": "顶栏「0N / 04」「已收藏 N」；清单分组标题。"
       },
       "mark": {
         "displayName": "结论标记",
@@ -320,7 +336,7 @@
       },
       "scale": {
         "displayName": "刻度",
-        "purpose": "刻度数字、区间标注、序号。"
+        "purpose": "刻度数字、区间标注、准备事项与收藏序号、分组计数、键帽。"
       },
       "mono": {
         "displayName": "等宽",
@@ -338,6 +354,16 @@
         "name": "control-transition",
         "value": ".2s",
         "purpose": "按钮背景、描边、文字色过渡。"
+      },
+      {
+        "name": "row-state",
+        "value": ".15s",
+        "purpose": "音色清单行悬停 / 选中的背景过渡。"
+      },
+      {
+        "name": "row-progress",
+        "value": "opacity .2s；进度按 scaleX 跟随播放",
+        "purpose": "播放中清单行的底部发丝线变为象牙白进度。"
       },
       {
         "name": "clock-state",
@@ -359,6 +385,11 @@
       {
         "name": "narrow",
         "value": "760px"
+      },
+      {
+        "name": "short",
+        "value": "(min-width: 761px) and (max-height: 800px)",
+        "purpose": "矮屏：收紧试听台区块，让主操作一屏可见。"
       }
     ],
     "interaction": [
@@ -457,18 +488,36 @@
       "description": "200 字重计时 + 状态句；带刻度、暗香槟合格区的电平表与状态行。",
       "html": "<div class=\"ds-rec\"><div class=\"ds-stage\"><span class=\"ds-clock\">00:13.3</span><span class=\"ds-due\">可以停了</span></div><div class=\"ds-mtrack\"><div class=\"ds-mok\"></div><div class=\"ds-lv\"></div></div><div class=\"ds-ticks\"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class=\"ds-legend\"><span class=\"l\">太小</span><span class=\"m\">合适</span><span class=\"r\">太大</span></div><p class=\"ds-say\">音量合适，保持这个距离。</p></div>",
       "css": ".ds-rec { background: var(--room, #111113); color: var(--ivory, #ece8e1); font: 16px/1.7 -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; padding: 8px 0; } .ds-stage { display: flex; align-items: baseline; gap: 20px; margin-bottom: 20px; } .ds-clock { font: 200 64px/1 -apple-system, BlinkMacSystemFont, \"SF Pro Display\", \"Segoe UI\", \"Helvetica Neue\", sans-serif; font-variant-numeric: tabular-nums; letter-spacing: .02em; color: var(--ok, #8fcfa6); } .ds-due { font-size: 15px; letter-spacing: .06em; color: var(--ok, #8fcfa6); } .ds-mtrack { position: relative; height: 8px; background: var(--groove, #2f3137); border-radius: 4px; overflow: hidden; } .ds-mok { position: absolute; top: 0; bottom: 0; left: 60%; width: 26.7%; background: var(--champagne-soft, #3a3324); box-shadow: inset 1px 0 0 var(--champagne, #c9b27c), inset -1px 0 0 var(--champagne, #c9b27c); } .ds-lv { position: absolute; inset: 0; background: var(--ok, #8fcfa6); transform: scaleX(.75); transform-origin: left; transition: transform .08s linear; } .ds-ticks { display: flex; justify-content: space-between; height: 6px; margin-top: 4px; } .ds-ticks i { width: 1px; background: var(--edge, #6b6e76); } .ds-legend { position: relative; height: 20px; font-size: 14px; color: var(--ash, #a8a196); margin-top: 6px; } .ds-legend span { position: absolute; white-space: nowrap; letter-spacing: .06em; } .ds-legend .l { left: 0; } .ds-legend .m { left: 73.3%; transform: translateX(-50%); color: var(--ok, #8fcfa6); font-weight: 700; } .ds-legend .r { right: 0; } .ds-say { font-size: 15px; margin: 12px 0 0; color: var(--ok, #8fcfa6); }"
+    },
+    {
+      "name": "音色清单（分组标签 + 场记单行）",
+      "kind": "custom",
+      "refersTo": "voice-row",
+      "description": "选音色页左栏：发丝线上的文字分组标签，场记单式清单行；行尾记 take 时长与收藏序号，播放中行的底线即进度。",
+      "html": "<div class=\"ds-tabs\"><button class=\"ds-tab\" aria-pressed=\"true\">全部<b>68</b></button><button class=\"ds-tab\" aria-pressed=\"false\">多语种<b>12</b></button></div><ul class=\"ds-list\"><li class=\"ds-row ds-sel\"><span class=\"ds-who\"><span class=\"ds-name\">龙安欢</span><span class=\"ds-dim\">女</span></span><span class=\"ds-side\"><span class=\"ds-take\">3.4 秒</span><span class=\"ds-ord\">1</span></span></li><li class=\"ds-row ds-playing\" style=\"--p:.45\"><span class=\"ds-who\"><span class=\"ds-name\">龙安灵心</span><span class=\"ds-dim\">女</span></span><span class=\"ds-side\"><span class=\"ds-take\">2.9 秒</span><span class=\"ds-ord ds-blank\"></span></span></li><li class=\"ds-row\"><span class=\"ds-who\"><span class=\"ds-name\">龙安风悦</span><span class=\"ds-dim\">女</span></span><span class=\"ds-side\"><span class=\"ds-take\"></span><span class=\"ds-ord ds-blank\"></span></span></li></ul>",
+      "css": ".ds-tabs { display: flex; gap: 4px 22px; border-bottom: 1px solid var(--line, #2c2e33); margin-bottom: 8px; font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-tab { font: inherit; font-size: 15px; letter-spacing: .04em; background: none; border: 0; border-bottom: 1px solid transparent; margin-bottom: -1px; padding: 0 0 12px; color: var(--ash, #a8a196); cursor: pointer; transition: color .2s, border-color .2s; } .ds-tab b { font-weight: 400; font-size: 12px; margin-left: 6px; font-variant-numeric: tabular-nums; } .ds-tab[aria-pressed=\"true\"] { color: var(--ivory, #ece8e1); border-bottom-color: var(--ivory, #ece8e1); } .ds-tab:hover { color: var(--ivory, #ece8e1); } .ds-tab:focus-visible { outline: 2px solid var(--champagne, #c9b27c); outline-offset: 3px; border-radius: 6px; } .ds-list { list-style: none; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; color: var(--ivory, #ece8e1); } .ds-row { position: relative; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 16px; align-items: center; padding: 12px; border-bottom: 1px solid var(--line, #2c2e33); cursor: pointer; transition: background .15s; } .ds-row:hover:not(.ds-sel) { background: var(--row-hover, #18191c); } .ds-row.ds-sel { background: var(--inset, #222327); } .ds-who { display: flex; align-items: baseline; gap: 10px; min-width: 0; } .ds-name { font-size: 16px; white-space: nowrap; } .ds-dim { font-size: 14px; color: var(--ash, #a8a196); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-side { display: flex; align-items: center; gap: 14px; font-variant-numeric: tabular-nums; } .ds-take { min-width: 3.2em; text-align: right; font-size: 15px; color: var(--ivory, #ece8e1); } .ds-ord { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--champagne, #c9b27c); color: var(--champagne, #c9b27c); font-size: 12px; line-height: 20px; text-align: center; box-sizing: border-box; } .ds-ord.ds-blank { border-color: transparent; } .ds-row::after { content: \"\"; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--ivory, #ece8e1); transform: scaleX(var(--p, 0)); transform-origin: left; opacity: 0; transition: opacity .2s; } .ds-row.ds-playing::after { opacity: 1; }"
+    },
+    {
+      "name": "试听台",
+      "kind": "card",
+      "refersTo": "audition-desk",
+      "description": "选音色页唯一的面板：句子框、音色名与特质、播放器与主按钮「试听」并排、收藏操作与音色编号。",
+      "html": "<aside class=\"ds-desk\"><div class=\"ds-head\"><b>试听台</b><span>同一句只合成一次</span></div><div class=\"ds-blk\"><span class=\"ds-lbl\">要试的那句话</span><div class=\"ds-script\">今天的会议改到下午三点。</div></div><div class=\"ds-blk\"><h2 class=\"ds-vname\">龙安欢<span>女声</span></h2><p class=\"ds-facts\">多语种与方言</p><div class=\"ds-deck\"><div class=\"ds-player\"><span class=\"ds-play\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M8 5.5v13l11-6.5z\"/></svg></span><span class=\"ds-groove\"><i></i></span><span class=\"ds-time\">0:01 / 0:03</span></div><button class=\"ds-primary\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 14v-2a8 8 0 0 1 16 0v2\"/><rect x=\"3\" y=\"14\" width=\"4\" height=\"6\" rx=\"1.5\"/><rect x=\"17\" y=\"14\" width=\"4\" height=\"6\" rx=\"1.5\"/></svg>试听</button></div></div><div class=\"ds-blk ds-favs\"><button class=\"ds-compact\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"><path d=\"M12 3.8l2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8z\"/></svg>取消收藏</button><button class=\"ds-compact\">设为默认</button><code class=\"ds-vid\">longanhuan_v3.1</code></div></aside>",
+      "css": ".ds-desk { max-width: 520px; background: var(--panel, #1a1b1e); border: 1px solid var(--line, #2c2e33); border-radius: 12px; color: var(--ivory, #ece8e1); font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 18px 28px; border-bottom: 1px solid var(--line, #2c2e33); font-size: 14px; color: var(--ash, #a8a196); } .ds-head b { color: var(--ivory, #ece8e1); font-size: 19px; font-weight: 300; letter-spacing: .12em; } .ds-blk { padding: 20px 28px; border-bottom: 1px solid var(--line, #2c2e33); } .ds-blk:last-child { border-bottom: 0; } .ds-lbl { display: block; font-size: 14px; color: var(--ash, #a8a196); letter-spacing: .04em; margin-bottom: 8px; } .ds-script { background: var(--inset, #222327); border: 1px solid var(--edge, #6b6e76); border-radius: 8px; padding: 4px 14px; font-size: 22px; line-height: 2; letter-spacing: .03em; } .ds-vname { margin: 0; font-size: 34px; font-weight: 200; letter-spacing: .08em; line-height: 1.2; } .ds-vname span { font-size: 15px; color: var(--ash, #a8a196); letter-spacing: .06em; margin-left: 12px; } .ds-facts { margin: 4px 0 16px; font-size: 15px; color: var(--ash, #a8a196); letter-spacing: .04em; } .ds-deck { display: flex; gap: 12px; align-items: stretch; } .ds-player { flex: 1; min-width: 0; display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: var(--inset, #222327); border-radius: 8px; } .ds-play { width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--champagne, #c9b27c); border-radius: 50%; color: var(--champagne, #c9b27c); } .ds-play svg { width: 16px; height: 16px; } .ds-groove { position: relative; flex: 1; height: 6px; background: var(--groove, #2f3137); border-radius: 4px; overflow: hidden; } .ds-groove i { position: absolute; inset: 0; background: var(--ivory, #ece8e1); transform: scaleX(.35); transform-origin: left; } .ds-time { font-size: 14px; color: var(--ash, #a8a196); font-variant-numeric: tabular-nums; white-space: nowrap; } .ds-primary, .ds-compact { font: inherit; display: inline-flex; align-items: center; gap: 10px; border-radius: 8px; cursor: pointer; letter-spacing: .04em; transition: background .2s, border-color .2s; } .ds-primary { font-size: 15px; padding: 11px 22px; background: var(--champagne, #c9b27c); border: 1px solid var(--champagne, #c9b27c); color: var(--champagne-ink, #1a1712); font-weight: 600; } .ds-primary:hover { background: var(--champagne-hover, #d8c393); border-color: var(--champagne-hover, #d8c393); } .ds-primary svg { width: 18px; height: 18px; } .ds-favs { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; } .ds-compact { font-size: 14px; padding: 8px 16px; background: transparent; border: 1px solid var(--edge, #6b6e76); color: var(--ivory, #ece8e1); } .ds-compact:hover { border-color: var(--ivory, #ece8e1); } .ds-compact svg { width: 16px; height: 16px; } .ds-primary:focus-visible, .ds-compact:focus-visible { outline: 2px solid var(--champagne, #c9b27c); outline-offset: 3px; } .ds-vid { flex: 1 1 200px; min-width: 0; padding: 9px 14px; border: 1px solid var(--line, #2c2e33); border-radius: 8px; background: var(--inset, #222327); font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }"
     }
   ],
   "narrative": {
     "northStar": "压暗的录音棚",
-    "overview": "复刻声音就是进一间很贵的录音棚录一条：灯光压暗，石墨黑的房间里只亮着念稿、表头和一点香槟金。界面不画调音台、推子这类道具，录音棚感只来自三件事：深而不纯黑的石墨底、细字重加宽字距的标题、所有数字等宽的仪表读数。分隔只有 1px 发丝线，没有渐变、没有投影、没有光晕。\n\n只做暗色，没有亮色主题。录音页是唯一保留面板的视图：左侧录音前准备，右侧一块圆角面板放录音稿与计时刻度。开录后面板外框退场，顶栏收起为红点「REC 录音中」，念稿放大占满屏幕，上方一枚 200 字重的大号计时，下方是带刻度、香槟金合格区的电平表与一行文字状态。质检、试听、完成三个视图不再用卡片，而是直接摆在房间里的单列：标题、发丝线分行、面板色只作为播放器和输入框的嵌入底。\n\n明确拒绝「顶部步骤条 + 居中卡片 + 蓝色按钮」的开通向导，也拒绝把调音设备画到页面上的道具感。",
+    "overview": "复刻声音就是进一间很贵的录音棚录一条：灯光压暗，石墨黑的房间里只亮着念稿、表头和一点香槟金。界面不画调音台、推子这类道具，录音棚感只来自三件事：深而不纯黑的石墨底、细字重加宽字距的标题、所有数字等宽的仪表读数。分隔只有 1px 发丝线，没有渐变、没有投影、没有光晕。\n\n只做暗色，没有亮色主题。同一间录音棚管两个本地页面：复刻向导与选音色页，每页最多一块面板。复刻向导里，录音页是唯一保留面板的视图：左侧录音前准备，右侧一块圆角面板放录音稿与计时刻度。开录后面板外框退场，顶栏收起为红点「REC 录音中」，念稿放大占满屏幕，上方一枚 200 字重的大号计时，下方是带刻度、香槟金合格区的电平表与一行文字状态。质检、试听、完成三个视图不再用卡片，而是直接摆在房间里的单列：标题、发丝线分行、面板色只作为播放器和输入框的嵌入底。\n\n选音色页是录音棚里的一轮试音：左边是发丝线分行的音色清单，像一张场记单，试听过的音色在行尾记下这条 take 的等宽时长，正在播放的那一行底部发丝线就是播放进度；右边是贴顶的试听台，页面里唯一的面板，放要试的那句话、音色名与特质、自绘播放器和香槟金「试听」。\n\n明确拒绝「顶部步骤条 + 居中卡片 + 蓝色按钮」的开通向导，也拒绝把调音设备画到页面上的道具感。",
     "keyCharacteristics": [
-      "石墨黑房间底色，透明 64px 顶栏只靠一条发丝线与内容分开，右侧等宽「0N / 04」计数。",
+      "石墨黑房间底色，透明 64px 顶栏只靠一条发丝线与内容分开，右侧等宽计数（复刻向导「0N / 04」，选音色页「已收藏 N」）。",
       "香槟金是唯一的强调色，只给主操作、10～20 秒建议区间、序号和播放键。",
       "标题 300 字重、宽字距；计时与质检结论 200 字重的大号细字。",
       "唯一的分隔方式是 1px 发丝线；质检 / 试听 / 完成是无卡片的房间单列。",
       "结论标记是「状态圆点 + 文字」，颜色只在结论、电平和计时状态上出现。",
-      "播放器是自绘的：香槟金描边圆形播放键 + 刻度槽或波形。"
+      "播放器是自绘的：香槟金描边圆形播放键 + 刻度槽或波形。",
+      "每页最多一块面板（录音稿面板 / 试听台），其余内容直接摆在房间里。",
+      "音色清单是场记单：发丝线分行、行尾等宽 take 时长、播放中的行线即进度。"
     ],
     "rules": [
       {
@@ -498,8 +547,13 @@
       },
       {
         "name": "The 发丝线即结构 Rule",
-        "body": "所有分隔都是 1px `line`：顶栏底线、面板外框、面板头底线、质检行线、区块线、试听对比竖线。要再分一层就加一条线或降一级嵌入色，不加阴影。",
+        "body": "所有分隔都是 1px `line`：顶栏底线、面板外框、面板头底线、质检行线、区块线、试听对比竖线、分组标签底线、音色清单行线。要再分一层就加一条线或降一级嵌入色，不加阴影。",
         "section": "elevation"
+      },
+      {
+        "name": "The 场记单 Rule",
+        "body": "试听过的音色在行尾记下这句话的 take 时长；句子或指令一改，时长换成新句子的（没合成过的留空）。正在播放的那一行，底部发丝线就是播放进度：一条 1px 象牙白线从左按 `scaleX` 增长，淡入 .2s。不要另加进度条、波形或播放图标到清单行里。",
+        "section": "components"
       }
     ],
     "dos": [
@@ -509,7 +563,9 @@
       "**Do** 把建议范围直接画在刻度上（计时 10～20 秒香槟金区间、电平合格区）。",
       "**Do** 标题用 300 字重加宽字距，大号读数用 200 字重，所有数字等宽。",
       "**Do** 悬停样式只写在 `@media (hover: hover)` 里。",
-      "**Do** 每组只保留一个主按钮，并让它指向质检推荐的下一步。"
+      "**Do** 每组只保留一个主按钮，并让它指向质检推荐的下一步。",
+      "**Do** 每页最多一块面板（录音稿面板、试听台），其余内容直接摆在房间里，用发丝线分行。",
+      "**Do** 列表的悬停与选中只用色阶表达：悬停清单悬停色，选中嵌入色。"
     ],
     "donts": [
       "**Don't** 加投影、渐变或光晕；本系统完全扁平。",
