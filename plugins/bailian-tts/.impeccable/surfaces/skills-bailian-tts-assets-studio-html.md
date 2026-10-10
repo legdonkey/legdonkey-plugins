@@ -7,7 +7,7 @@ related_targets: []
 
 ## Scope
 
-配音工作台 `skills/bailian-tts/assets/studio.html`，visitor mode：Operate。由 `tts.py ui` 在 127.0.0.1 提供，顶栏三栏：开始（首次引导：功能介绍、运行环境、创建并保存 API Key）、选音色、声音复刻；用户要求三者是同一个页面，以后管理音色、复刻都打开它。首次引导由助手配合：在默认浏览器打开百炼控制台 API Key 页并把操作交给用户，用户复制 key 后读剪贴板保存。三栏共用 DESIGN.md 的压暗录音棚世界，不另起视觉方向；以下是选音色与声音复刻两栏各自的方向约定。
+配音工作台 `skills/bailian-tts/assets/studio.html`，visitor mode：Operate。由 `tts.py ui` 在 127.0.0.1 提供，顶栏四栏：开始（首次引导：功能介绍、运行环境、创建并保存 API Key）、选音色、声音复刻、选中朗读（仅 macOS：安装入口、OpenLogi 按键确认后自动写入、快捷指令步骤、试读与日志）；用户要求三者是同一个页面，以后管理音色、复刻都打开它。首次引导由助手配合：在默认浏览器打开百炼控制台 API Key 页并把操作交给用户，用户复制 key 后读剪贴板保存。三栏共用 DESIGN.md 的压暗录音棚世界，不另起视觉方向；以下是选音色与声音复刻两栏各自的方向约定。
 
 ## 声音复刻栏
 

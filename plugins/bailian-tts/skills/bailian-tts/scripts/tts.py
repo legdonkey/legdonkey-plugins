@@ -76,6 +76,12 @@ def get_key():
     return k
 
 
+def tilde(path):
+    """页面与输出里的路径用 ~ 代替家目录。"""
+    home = os.path.expanduser("~")
+    return "~" + path[len(home):] if path.startswith(home + os.sep) else path
+
+
 def mask_key(k):
     return f"{k[:3]}…{k[-4:]}" if len(k) > 10 else "…"
 
@@ -84,7 +90,7 @@ def key_status():
     """页面与 status 用的 key 状态;只给掩码,不回传完整 key。"""
     k, source = read_key()
     st = {"configured": bool(k), "source": source, "masked": mask_key(k) if k else "",
-          "path": KEY_PATH.replace(os.path.expanduser("~"), "~", 1)}
+          "path": tilde(KEY_PATH)}
     if source == "file":
         st["loose"] = bool(os.stat(KEY_PATH).st_mode & 0o077)  # 组或其他用户可读
     return st
@@ -520,10 +526,10 @@ def cmd_key(a):
 
 
 def cmd_ui(a):
-    """本地配音工作台:「开始」(配置 API key、功能介绍)、「选音色」、「声音复刻」三栏在同一个页面。
+    """本地配音工作台:「开始」(配置 API key、功能介绍)、「选音色」、「声音复刻」、「选中朗读」(仅 macOS)四栏在同一个页面。
     还没配置 key 时总是先打开「开始」页。"""
     ui = LocalUI("studio.html")
-    created, takes, log = [], {}, {"key_saved": False}  # takes:(音色, 句子, 指令) → (音频地址, 时长),本次会话内不重复合成
+    created, takes, log = [], {}, {"key_saved": False, "say_installed": False, "openlogi": ""}  # takes:(音色, 句子, 指令) → (音频地址, 时长),本次会话内不重复合成
     page = a.page if key_status()["configured"] else "home"
 
     def state(q, body, ctype):
@@ -593,7 +599,46 @@ def cmd_ui(a):
         save_favorites([v for v in load_favorites() if v != d["voice"]])
         return {"deleted": d["voice"]}
 
-    ui.serve("配音工作台", {("GET", "/state"): state, ("POST", "/key"): key, ("GET", "/key"): key_get,
+    def say_state(q, body, ctype):
+        return {"wrapper": say_wrapper_status(), "openlogi": openlogi_status(), "workflow": OPENLOGI_WORKFLOW,
+                "script": SHORTCUT_SCRIPT, "voice": default_voice()[0], "log": say_log_tail(), "log_path": tilde(SAY_LOG)}
+
+    def say_install(q, body, ctype):
+        write_say_wrapper()
+        log["say_installed"] = True
+        return say_state(q, body, ctype)
+
+    def say_bind(q, body, ctype):
+        d = json.loads(body)
+        backup = openlogi_bind(d["device"], d["button"])
+        log["openlogi"] = f"{d['button']}(备份 {backup})"
+        return dict(say_state(q, body, ctype), backup=tilde(backup))
+
+    def say_try(q, body, ctype):
+        text = json.loads(body).get("text", "").strip()
+        if not text:
+            return {"error": "先写一句要朗读的话。"}
+        if not os.path.exists(SAY_WRAPPER):
+            return {"error": "先安装朗读入口。"}
+        err = os.path.join(ui.workdir, "say_try.err")
+        with open(err, "w") as ef:
+            p = subprocess.Popen([SAY_WRAPPER], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                                 stderr=ef, start_new_session=True, text=True)
+        p.stdin.write(text[:1500]); p.stdin.close()  # type: ignore[union-attr]
+        try:  # 正常时会一直播放;1.5 秒内就退出且返回码非 0 说明没启动起来
+            if p.wait(timeout=1.5):
+                return {"error": "朗读没启动起来:" + open(err).read().strip()[-300:]}
+        except subprocess.TimeoutExpired:
+            pass
+        return {"ok": True}
+
+    def say_stop(q, body, ctype):
+        stop_previous_say()
+        return {"ok": True}
+
+    ui.serve("配音工作台", {("GET", "/say-state"): say_state, ("POST", "/say-install"): say_install,
+                          ("POST", "/say-bind"): say_bind, ("POST", "/say-try"): say_try, ("POST", "/say-stop"): say_stop,
+                          ("GET", "/state"): state, ("POST", "/key"): key, ("GET", "/key"): key_get,
                           ("GET", "/mine"): mine,
                           ("POST", "/say"): say, ("POST", "/fav"): fav, ("POST", "/clone"): clone,
                           ("POST", "/delete"): delete}, a, page)
@@ -601,6 +646,9 @@ def cmd_ui(a):
     print("API key:" + (f"已配置 {st['masked']}" + (",本次新保存" if log["key_saved"] else "") if st["configured"] else "未配置"))
     print("本次创建的音色:" + (" ".join(created) if created else "无"))
     print(f"本次试听 {len({k[0] for k in takes})} 个音色,合成 {len(takes)} 次")
+    if log["say_installed"] or log["openlogi"]:
+        print("选中朗读:" + ("已安装 ~/.local/bin/bailian-say" if log["say_installed"] else "")
+              + (f";OpenLogi 已绑定 {log['openlogi']},重开 OpenLogi 后生效" if log["openlogi"] else ""))
     print_favorites_summary()
 
 
@@ -815,7 +863,15 @@ def speak_segments(parts, voice, instr, a):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def install_say():
+OPENLOGI_CONFIG = os.path.expanduser("~/.config/openlogi/config.toml")
+# OpenLogi 鼠标按键工作流:存下剪贴板并清空 → 复制选中内容 → 朗读并还原剪贴板
+OPENLOGI_WORKFLOW = ('{ Workflow = [ { RunShellCommand = "$HOME/.local/bin/bailian-say --save" }, '
+                     '{ Delay = { millis = 120 } }, { PressKey = "Cmd+C" }, { Delay = { millis = 200 } }, '
+                     '{ RunShellCommand = "$HOME/.local/bin/bailian-say --clipboard >/dev/null 2>&1 &" } ] }')
+SHORTCUT_SCRIPT = "$HOME/.local/bin/bailian-say"
+
+
+def write_say_wrapper():
     """生成 ~/.local/bin/bailian-say:把参数转给当前这份 tts.py 的 say;路径失效时找插件缓存里最新的一份。"""
     tts = os.path.abspath(__file__)
     os.makedirs(os.path.dirname(SAY_WRAPPER), exist_ok=True)
@@ -828,14 +884,117 @@ TTS="{tts}"
 exec "{sys.executable}" "$TTS" say "$@"
 ''')
     os.chmod(SAY_WRAPPER, 0o755)
+    return tts
+
+
+def say_wrapper_status():
+    """入口是否装好、指向哪份 tts.py、那份是否还在、是否就是当前这份。"""
+    if not os.path.exists(SAY_WRAPPER):
+        return {"installed": False, "path": tilde(SAY_WRAPPER)}
+    m = re.search(r'^TTS="(.*)"$', open(SAY_WRAPPER, encoding="utf-8").read(), re.M)
+    target = m.group(1) if m else ""
+    return {"installed": True, "path": tilde(SAY_WRAPPER), "target": tilde(target), "exists": os.path.isfile(target),
+            "current": os.path.abspath(target) == os.path.abspath(__file__) if target else False}
+
+
+def openlogi_status():
+    """读 OpenLogi 配置:鼠标设备、各按键当前绑定(原文),以及哪些按键已经绑了 bailian-say。"""
+    if not os.path.isfile(OPENLOGI_CONFIG):
+        return {"found": False, "path": OPENLOGI_CONFIG}
+    try:
+        import tomllib
+        cfg = tomllib.loads(open(OPENLOGI_CONFIG, encoding="utf-8").read())
+    except ImportError:
+        return {"found": True, "path": OPENLOGI_CONFIG, "error": "读取 OpenLogi 配置需要 Python 3.11 以上"}
+    except Exception as e:
+        return {"found": True, "path": OPENLOGI_CONFIG, "error": f"OpenLogi 配置解析失败:{str(e)[:200]}"}
+    devices = []
+    for dev_id, dev in (cfg.get("devices") or {}).items():
+        ident = dev.get("identity") or {}
+        if ident.get("kind", "mouse") != "mouse":
+            continue
+        raw = _openlogi_section_lines(dev_id)
+        devices.append({"id": dev_id, "name": ident.get("display_name") or dev_id,
+                        "bindings": {k: raw.get(k, "(多行配置)") for k in (dev.get("bindings") or {})}})
+    return {"found": True, "path": OPENLOGI_CONFIG, "devices": devices}
+
+
+def _openlogi_section_lines(dev_id):
+    """设备 bindings 段里每个按键那一行的原文值(只用于展示)。"""
+    lines, inside, out = open(OPENLOGI_CONFIG, encoding="utf-8").read().split("\n"), False, {}
+    for line in lines:
+        if line.startswith("["):
+            inside = line.strip() == f'[devices."{dev_id}".bindings]'
+            continue
+        m = inside and re.match(r'\s*"?([A-Za-z0-9_]+)"?\s*=\s*(.+)$', line)
+        if m:
+            out[m.group(1)] = m.group(2).strip()
+    return out
+
+
+def openlogi_bind(dev_id, button):
+    """把设备的某个按键改为朗读工作流:先整份备份,再只改 bindings 段里这一行(没有就追加),
+    改完用 TOML 解析器复核「只有这一项变了」,不满足就不写入。返回备份路径。"""
+    import shutil, tomllib
+    if not re.fullmatch(r"[A-Za-z0-9_]+", button):
+        sys.exit("按键名只能是字母、数字和下划线")
+    text = open(OPENLOGI_CONFIG, encoding="utf-8").read()
+    before = tomllib.loads(text)
+    if dev_id not in (before.get("devices") or {}):
+        sys.exit("OpenLogi 配置里没有这个设备,刷新页面后再试")
+    header, new_line = f'[devices."{dev_id}".bindings]', f"{button} = {OPENLOGI_WORKFLOW}"
+    lines = text.split("\n")
+    if header in (l.strip() for l in lines):
+        i = [l.strip() for l in lines].index(header)
+        j = next((k for k in range(i + 1, len(lines)) if lines[k].startswith("[")), len(lines))
+        hit = next((k for k in range(i + 1, j) if re.match(rf'\s*"?{button}"?\s*=', lines[k])), None)
+        if hit is not None:
+            lines[hit] = new_line
+        else:
+            pos = j
+            while pos > i + 1 and not lines[pos - 1].strip():
+                pos -= 1
+            lines.insert(pos, new_line)
+    else:
+        lines += ["", header, new_line]
+    new = "\n".join(lines)
+    try:
+        after = tomllib.loads(new)
+    except Exception:
+        sys.exit("原配置里这个按键是多行写法,自动修改不安全,未做任何改动。请复制配置片段手动替换。")
+    expect = tomllib.loads(f"x = {OPENLOGI_WORKFLOW}")["x"]
+    got = after["devices"][dev_id].get("bindings", {}).pop(button, None)
+    before["devices"][dev_id].setdefault("bindings", {}).pop(button, None)
+    if got != expect or after != before:
+        sys.exit("自动修改的结果和预期不一致,未做任何改动。请复制配置片段手动替换。")
+    mode = os.stat(OPENLOGI_CONFIG).st_mode & 0o777
+    backup = stamp = f"{OPENLOGI_CONFIG}.before-bailian-say-{time.strftime('%Y%m%d-%H%M%S')}"
+    n = 1
+    while os.path.exists(backup):  # 同一秒内多次修改也不覆盖上一份备份
+        backup, n = f"{stamp}-{n}", n + 1
+    shutil.copy2(OPENLOGI_CONFIG, backup)
+    tmp = OPENLOGI_CONFIG + ".bailian-tmp"
+    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode), "w", encoding="utf-8") as f:
+        f.write(new)
+    os.replace(tmp, OPENLOGI_CONFIG)
+    return backup
+
+
+def say_log_tail(n=12):
+    try:
+        return open(SAY_LOG, encoding="utf-8").read().strip().split("\n")[-n:]
+    except FileNotFoundError:
+        return []
+
+
+def install_say():
+    tts = write_say_wrapper()
     print(f"✅ 已生成 {SAY_WRAPPER}(指向 {tts})\n")
-    print("任选一种触发方式:\n")
+    print("任选一种触发方式(也可以在工作台的「选中朗读」页面里配置,鼠标按键可确认后自动写入):\n")
     print("① 鼠标按键(OpenLogi,~/.config/openlogi/config.toml 设备的 bindings 段,改后重开 OpenLogi):")
-    print('MiddleClick = { Workflow = [ { RunShellCommand = "$HOME/.local/bin/bailian-say --save" }, '
-          '{ Delay = { millis = 120 } }, { PressKey = "Cmd+C" }, { Delay = { millis = 200 } }, '
-          '{ RunShellCommand = "$HOME/.local/bin/bailian-say --clipboard >/dev/null 2>&1 &" } ] }\n')
+    print(f"MiddleClick = {OPENLOGI_WORKFLOW}\n")
     print("② 键盘快捷键(「快捷指令」):设置 → 高级 → 允许运行脚本;新建快捷指令,勾选「用作快速操作」,接收「文本」;")
-    print("   添加「运行 Shell 脚本」,传递输入选「作为 stdin」,内容为:$HOME/.local/bin/bailian-say")
+    print(f"   添加「运行 Shell 脚本」,传递输入选「作为 stdin」,内容为:{SHORTCUT_SCRIPT}")
     print("   再到 系统设置 → 键盘 → 键盘快捷键 → 服务 里给它设快捷键。")
 
 
@@ -867,6 +1026,7 @@ def cmd_say(a):
     check_voice(a.voice)
     instr = resolve_instruction(a.instruct, a.emotion)
     parts = split_segments(text)
+    os.makedirs(os.path.dirname(SAY_LOG), exist_ok=True)
     with open(SAY_LOG, "a", encoding="utf-8") as log:
         sys.stdout = sys.stderr = log  # 后台运行时输出写进日志
         print(f"\n--- {time.strftime('%F %T')} {describe(a.voice)} {len(text)} 字,分 {len(parts)} 段 "
@@ -932,11 +1092,11 @@ def main():
     src.add_argument("--stdin", action="store_true", help="从标准输入读取 key")
     sp.set_defaults(func=cmd_key)
 
-    for name, page, desc in [("ui", "home", "打开本地配音工作台(开始 / 选音色 / 声音复刻;未配置 key 时先到「开始」)"),
+    for name, page, desc in [("ui", "home", "打开本地配音工作台(开始 / 选音色 / 声音复刻 / 选中朗读;未配置 key 时先到「开始」)"),
                              ("pick-ui", "voices", "打开工作台的「选音色」(ui --page voices 的别名)"),
                              ("clone-ui", "clone", "打开工作台的「声音复刻」(ui --page clone 的别名)")]:
         sp = sub.add_parser(name, help=desc)
-        sp.add_argument("--page", choices=["home", "voices", "clone"], default=page, help=f"打开哪一栏(默认 {page})")
+        sp.add_argument("--page", choices=["home", "voices", "clone", "say"], default=page, help=f"打开哪一栏(默认 {page})")
         sp.add_argument("--port", type=int, default=0, help="监听端口(默认随机)")
         sp.add_argument("--no-open", action="store_true", dest="no_open", help="不自动打开浏览器")
         sp.set_defaults(func=cmd_ui)

@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-本地单文件 HTML：原生 HTML / CSS / JS，不引用 CDN 或任何外部资源。一个页面 `studio.html`（配音工作台：开始 / 选音色 / 声音复刻三栏，`#home` / `#voices` / `#clone` 切换）由 `tts.py ui`（别名 `pick-ui`、`clone-ui` 直接打开对应栏）用 Python 标准库 `http.server` 在 `127.0.0.1` 上提供，接口与页面同源，请求带一次性 token。
+本地单文件 HTML：原生 HTML / CSS / JS，不引用 CDN 或任何外部资源。一个页面 `studio.html`（配音工作台：开始 / 选音色 / 声音复刻 / 选中朗读四栏，`#home` / `#voices` / `#clone` / `#say` 切换；选中朗读只在 macOS 显示）由 `tts.py ui`（别名 `pick-ui`、`clone-ui` 直接打开对应栏）用 Python 标准库 `http.server` 在 `127.0.0.1` 上提供，接口与页面同源，请求带一次性 token。
 
 ## Users
 
@@ -43,7 +43,8 @@ bailian-tts 用阿里百炼 `qwen-audio-3.1-tts-flash` 把文案合成为配音�
 - 收尾：设为默认音色 / 加入收藏 / 不收藏 / 删除并重录（删除不可恢复，需确认）；点「完成」关闭服务。
 - 选音色：清单按分组（精品中文 / 多语种与方言 / 精品英文 / 其他系统 / 我的复刻 / 已收藏）、性别、关键词筛选；试听句子与指令（≤100 字符，汉字计 2）对所有音色通用；键盘 ↑↓ 换音色、回车试听；收藏 / 取消收藏 / 设为默认直接写 `favorites.txt`；复刻音色可删除（需确认）；没有官方样音，全部现场合成。
 - API Key：先向百炼校验（免费的列出复刻音色接口），再原子写入 `~/.dashscope_key`（权限 600）；从剪贴板读取后清空剪贴板；页面与命令输出只显示掩码。未配置时「开始」每 2.5 秒查一次状态，助手在命令行保存后页面自动更新；选音色与声音复刻只显示「去配置 API Key」。
-- 接口：`GET /state`、`GET /key`、`POST /key`（`{key}` 或 `{clipboard: true}`）、`GET /mine`、`POST /say`、`POST /fav`（`action` 为 `add` / `rm` / `default`）、`POST /clone`（请求体为音频，query 带 `prefix`、`denoise`）、`POST /delete`、`POST /done`、`GET /audio`，全部带 `?t=<token>`。
+- 选中朗读：安装 `~/.local/bin/bailian-say`（显示是否指向当前插件）；OpenLogi 鼠标按键在用户确认后写入——先整份备份为 `config.toml.before-bailian-say-<时间>`，只改目标设备 bindings 段里那一个键（单行替换或追加），再用 TOML 解析复核「只有这一项变化」，不满足就不写；多行写法的按键不自动改，改给复制片段。快捷指令只给步骤与可复制脚本（系统不支持由外部创建快捷指令）。试读走真实的 `bailian-say` 路径；显示 `~/Library/Logs/bailian-tts-say.log` 最后几行。
+- 接口：`GET /say-state`、`POST /say-install`、`POST /say-bind`（`{device, button}`）、`POST /say-try`、`POST /say-stop`；以及 `GET /state`、`GET /key`、`POST /key`（`{key}` 或 `{clipboard: true}`）、`GET /mine`、`POST /say`、`POST /fav`（`action` 为 `add` / `rm` / `default`）、`POST /clone`（请求体为音频，query 带 `prefix`、`denoise`）、`POST /delete`、`POST /done`、`GET /audio`，全部带 `?t=<token>`。
 - 界面语言为简体中文。
 
 ## Brand Commitments
@@ -60,7 +61,7 @@ bailian-tts 用阿里百炼 `qwen-audio-3.1-tts-flash` 把文案合成为配音�
 1. 录音质量先于流程速度：宁可在提交前多拦一次，也不要让用户拿到一个带回响的音色。
 2. 给不懂技术的人写：每一步都说清楚该做什么、为什么，技术数值只作为辅助信息。
 3. 每个结果都可撤回：不满意可以删除重录，删除前必须确认。
-4. 每一栏只做一件事：「开始」只管引导与配置，「选音色」只管挑选和管理音色，「声音复刻」不引入与复刻无关的功能；三栏共用一个服务和一份收藏，切换不丢进度。
+4. 每一栏只做一件事：「开始」只管引导与配置，「选音色」只管挑选和管理音色，「声音复刻」不引入与复刻无关的功能，「选中朗读」只管配置与试读朗读入口；四栏共用一个服务和一份收藏，切换不丢进度。
 5. 密钥不过对话：key 只经剪贴板或页面输入框进入本机文件，助手不读取、不打印完整 key。
 
 ## Accessibility & Inclusion
