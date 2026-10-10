@@ -8,14 +8,15 @@
 - clone:   用本地录音(自动转码、上传百炼临时存储)或公网 URL 复刻音色
 - delete:  删除一个复刻音色
 - fav:     管理收藏音色;未指定 -v 时默认用收藏的第 1 个
-- clone-ui: 打开本地复刻向导页面,在浏览器里完成录音、复刻、试听与收藏
-- pick-ui: 打开本地选音色页面,用同一句话逐个试听音色,收藏或设为默认
+- status:  检查运行环境与 API key(不联网);未配置 key 时提示打开引导页
+- ui:      打开本地配音工作台:开始(配置 API key、功能介绍)、选音色、声音复刻在同一个页面
+           clone-ui / pick-ui 是它的别名,分别直接打开声音复刻 / 选音色
 - say:     朗读选中文本(macOS):配合鼠标按键或快捷键,分段边合成边播放,再次触发即打断
 
 指令(instruction):任意自然语言,≤100 字符(汉字计 2),系统音色与复刻音色都支持。
 文本内可直接嵌入 [excited]、[laughing] 等情感/富语言标签。
 
-API key:环境变量 DASHSCOPE_API_KEY → 文件 ~/.dashscope_key。
+API key:环境变量 DASHSCOPE_API_KEY → 文件 ~/.dashscope_key(权限 600,可在工作台「开始」页校验后保存)。
 依赖:dashscope、ffmpeg、afplay(macOS 播放)。
 """
 import argparse, json, os, re, subprocess, sys, tempfile, time, wave
@@ -31,6 +32,8 @@ TAG = re.compile(r"\[[^\[\]]*\]")
 
 _CATALOG_PATH = os.path.join(os.path.dirname(__file__), "..", "references", "voices.json")
 FAV_PATH = os.path.expanduser("~/.config/bailian-tts/favorites.txt")
+KEY_PATH = os.path.expanduser("~/.dashscope_key")
+KEY_CONSOLE = "https://bailian.console.aliyun.com/cn-beijing/model/settings/api-key"
 
 
 def load_catalog():
@@ -56,15 +59,106 @@ def check_voice(voice):
           "若是官方新增音色可继续;报 411 即音色不属于本模型。", file=sys.stderr)
 
 
-def get_key():
+def read_key():
+    """返回 (key, 来源);来源为 "env" / "file",没有 key 时为 ("", None)。"""
     k = os.environ.get("DASHSCOPE_API_KEY", "").strip()
+    if k:
+        return k, "env"
+    if os.path.exists(KEY_PATH):
+        k = open(KEY_PATH).read().strip()
+    return (k, "file") if k else ("", None)
+
+
+def get_key():
+    k = read_key()[0]
     if not k:
-        p = os.path.expanduser("~/.dashscope_key")
-        if os.path.exists(p):
-            k = open(p).read().strip()
-    if not k:
-        sys.exit("找不到 API key:请设置 DASHSCOPE_API_KEY,或把 key 存到 ~/.dashscope_key")
+        sys.exit("找不到 API key:运行 tts.py ui 在「开始」页配置,或设置 DASHSCOPE_API_KEY / 写入 ~/.dashscope_key")
     return k
+
+
+def tilde(path):
+    """页面与输出里的路径用 ~ 代替家目录。"""
+    home = os.path.expanduser("~")
+    return "~" + path[len(home):] if path.startswith(home + os.sep) else path
+
+
+def mask_key(k):
+    return f"{k[:3]}…{k[-4:]}" if len(k) > 10 else "…"
+
+
+def key_status():
+    """页面与 status 用的 key 状态;只给掩码,不回传完整 key。"""
+    k, source = read_key()
+    st = {"configured": bool(k), "source": source, "masked": mask_key(k) if k else "",
+          "path": tilde(KEY_PATH)}
+    if source == "file":
+        st["loose"] = bool(os.stat(KEY_PATH).st_mode & 0o077)  # 组或其他用户可读
+    return st
+
+
+def verify_key(k):
+    """用免费的「列出复刻音色」接口校验 key:能通过说明 key 有效且属于北京地域。失败时 sys.exit 给出原因。"""
+    from dashscope.audio.tts_v2 import VoiceEnrollmentService
+    try:
+        VoiceEnrollmentService(api_key=k).list_voices(page_size=1)
+    except Exception as e:
+        err = str(e)
+        if "InvalidApiKey" in err or "401" in err:
+            sys.exit("这个 API Key 无效:确认复制完整,且是在「华北2(北京)」地域创建的。")
+        sys.exit(f"暂时无法校验(网络或服务异常):{err[-200:]}")
+
+
+def save_key(k):
+    """校验后写入 ~/.dashscope_key:先写同目录临时文件(权限 600)再原子替换,不会留下半截或可被他人读取的文件。"""
+    k = k.strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{16,200}", k):
+        sys.exit("格式不对:API Key 一般以 sk- 开头,只含字母、数字和连字符,中间不能有空格。")
+    verify_key(k)
+    tmp = KEY_PATH + ".tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(k + "\n")
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, KEY_PATH)
+    if os.environ.get("DASHSCOPE_API_KEY", "").strip() not in ("", k):
+        os.environ["DASHSCOPE_API_KEY"] = k  # 本进程立即改用新 key;环境变量仍优先,需用户自己移除
+        return dict(key_status(), source="env", env_conflict=True)
+    return key_status()
+
+
+def clipboard(text=None):
+    """读(text 为 None)或写系统剪贴板;macOS 用 pbpaste / pbcopy,Linux 用 wl-paste 或 xclip。没有可用工具时返回 None。"""
+    import shutil
+    tools = ([["pbpaste"], ["pbcopy"]] if sys.platform == "darwin" else
+             [["wl-paste", "-n"], ["wl-copy"]] if shutil.which("wl-paste") else
+             [["xclip", "-o", "-selection", "clipboard"], ["xclip", "-selection", "clipboard"]] if shutil.which("xclip") else None)
+    if not tools:
+        return None
+    if text is None:
+        return subprocess.run(tools[0], capture_output=True, text=True).stdout
+    subprocess.run(tools[1], input=text, text=True)
+    return text
+
+
+def save_key_from_clipboard():
+    """读剪贴板里刚复制的 key,校验并保存;保存成功后清空剪贴板,不让 key 留在里面。"""
+    raw = clipboard()
+    if raw is None:
+        sys.exit("这台电脑读不了剪贴板,请把 key 粘贴到页面输入框,或用 key --stdin。")
+    if not raw.strip():
+        sys.exit("剪贴板是空的:在百炼控制台点 API Key 旁的复制图标后再试。")
+    if not re.fullmatch(r"sk-[A-Za-z0-9._-]{8,}", raw.strip()):  # 不回显内容,剪贴板里可能是别的隐私
+        sys.exit(f"剪贴板里不是 API Key(读到 {len(raw.strip())} 个字符,不是 sk- 开头):"
+                 "可能复制没成功,或被别的程序覆盖了。回到百炼控制台点 Key 旁的复制图标后再试。")
+    st = save_key(raw)
+    clipboard("")
+    return st
+
+
+def deps_status():
+    import importlib.util, shutil
+    return {"dashscope": importlib.util.find_spec("dashscope") is not None,
+            "ffmpeg": shutil.which("ffmpeg") is not None}
 
 
 def init_dashscope():
@@ -306,7 +400,7 @@ def cmd_clone(a):
 
 
 class LocalUI:
-    """本地页面服务(clone-ui / pick-ui 共用):只监听 127.0.0.1,每个请求须带一次性随机 token。
+    """本地页面服务:只监听 127.0.0.1,每个请求须带一次性随机 token。
     routes 把 (方法, 路径) 映射到处理函数 fn(query, body, content_type),返回 dict(按 JSON 回复)。
     GET / 返回页面,GET /audio 取本次合成的音频,POST /done 关闭服务。"""
 
@@ -326,7 +420,7 @@ class LocalUI:
         self.audio[key] = open(path, "rb").read()
         return f"/audio?t={self.token}&k={key}", round(secs, 2)
 
-    def serve(self, title, routes, a):
+    def serve(self, title, routes, a, page=""):
         import http.server, threading, urllib.parse, webbrowser
         ui = self
 
@@ -372,7 +466,7 @@ class LocalUI:
                 self.handle_request("POST")
 
         server = http.server.ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
-        url = f"http://127.0.0.1:{server.server_address[1]}/?t={self.token}"
+        url = f"http://127.0.0.1:{server.server_address[1]}/?t={self.token}" + (f"#{page}" if page else "")
         print(f"{title}已启动:{url}\n在页面上点「完成」后自动退出(或按 Ctrl-C)。", flush=True)
         if not a.no_open:
             webbrowser.open(url)
@@ -390,57 +484,67 @@ def print_favorites_summary():
     print("当前收藏:" + (" ".join(favs) if favs else "无") + (f"(默认 {favs[0]})" if favs else ""))
 
 
-def cmd_clone_ui(a):
-    """本地向导:浏览器里录音 → 复刻 → 试听 → 收藏。"""
-    ui, created = LocalUI("clone_ui.html"), []
+def cmd_status(a):
+    """不联网的快速自查:依赖、ffmpeg、API key。未配置 key 时最后一行提示打开引导页。"""
+    deps, key = deps_status(), key_status()
+    yes = lambda ok: "✓" if ok else "✗"
+    print(f"{yes(deps['dashscope'])} Python 依赖 dashscope" + ("" if deps["dashscope"] else
+          "(缺失:python3 -m venv ~/.bailian-tts-venv && ~/.bailian-tts-venv/bin/pip install "
+          "-i https://mirrors.aliyun.com/pypi/simple/ dashscope)"))
+    print(f"{yes(deps['ffmpeg'])} ffmpeg" + ("" if deps["ffmpeg"] else "(缺失:macOS 用 brew install ffmpeg)"))
+    if key["configured"]:
+        where = "环境变量 DASHSCOPE_API_KEY" if key["source"] == "env" else KEY_PATH
+        print(f"✓ API key {key['masked']}(来自 {where})" + (",⚠ 文件权限过宽,建议 chmod 600" if key.get("loose") else ""))
+    else:
+        print("✗ API key 未配置")
+    favs = load_favorites()
+    print(f"收藏音色:{len(favs)} 个" + (f",默认 {favs[0]}" if favs else ""))
+    print("onboarding: " + ("不需要" if key["configured"] else "需要,运行 ui 打开「开始」页配置 API key"))
 
-    def clone(q, body, ctype):
-        ext = {"audio/webm": ".webm", "audio/mp4": ".m4a", "audio/ogg": ".ogg", "audio/wav": ".wav",
-               "audio/mpeg": ".mp3", "audio/x-m4a": ".m4a"}.get(ctype, ".bin")
-        src = os.path.join(ui.workdir, f"recording_{len(created)}{ext}")
-        open(src, "wb").write(body)
-        voice_id, ready = clone_voice(src, q.get("prefix", ""), denoise=q.get("denoise") == "1")
-        created.append(voice_id)
-        if not ready:
-            return {"voice_id": voice_id, "error": "音色仍在处理中,请稍后再试听"}
-        return {"voice_id": voice_id,
-                "audio": ui.say(voice_id, "大家好，这是用我自己的声音复刻出来的音色，听起来像不像我本人？")[0]}
 
-    def say(q, body, ctype):
+def cmd_key(a):
+    """配置 API key:--console 在默认浏览器打开百炼控制台的 API Key 页;--clipboard 读剪贴板
+    (用户在控制台复制后执行);--stdin 读标准输入。只打印掩码,完整 key 不进输出。"""
+    if a.console:
+        import webbrowser
+        webbrowser.open(KEY_CONSOLE)
+        print(f"已在默认浏览器打开百炼控制台的 API Key 页:{KEY_CONSOLE}")
+        return
+    if a.clipboard:
+        st = save_key_from_clipboard()
+        print(f"✅ 已校验并保存 API key {st['masked']} → {KEY_PATH}(权限 600),剪贴板已清空")
+    elif a.stdin:
+        st = save_key(sys.stdin.read())
+        print(f"✅ 已校验并保存 API key {st['masked']} → {KEY_PATH}(权限 600)")
+    else:
+        st = key_status()
+        print(f"API key {st['masked']}(来自 {'环境变量' if st['source'] == 'env' else KEY_PATH})" if st["configured"]
+              else f"API key 未配置。在百炼控制台创建:{KEY_CONSOLE}")
+        return
+    if st.get("env_conflict"):
+        print("⚠ 环境变量 DASHSCOPE_API_KEY 里是另一个 key,它优先于文件;请从 shell 配置里删掉它。")
+
+
+def cmd_ui(a):
+    """本地配音工作台:「开始」(配置 API key、功能介绍)、「选音色」、「声音复刻」、「选中朗读」(仅 macOS)四栏在同一个页面。
+    还没配置 key 时总是先打开「开始」页。"""
+    ui = LocalUI("studio.html")
+    created, takes, log = [], {}, {"key_saved": False, "say_installed": False, "openlogi": ""}  # takes:(音色, 句子, 指令) → (音频地址, 时长),本次会话内不重复合成
+    page = a.page if key_status()["configured"] else "home"
+
+    def state(q, body, ctype):
+        return {"model": MODEL, "key": key_status(), "deps": deps_status(), "console": KEY_CONSOLE,
+                "catalog": load_catalog(), "favorites": load_favorites(), "sample": DEFAULT_SAMPLE,
+                "platform": sys.platform}
+
+    def key(q, body, ctype):
         d = json.loads(body)
-        return {"audio": ui.say(d["voice"], d["text"][:200])[0]}
+        st = save_key_from_clipboard() if d.get("clipboard") else save_key(d.get("key", ""))
+        log["key_saved"] = True
+        return {"key": st}
 
-    def fav(q, body, ctype):
-        d = json.loads(body)
-        favs = [v for v in load_favorites() if v != d["voice"]]
-        if d.get("default"):
-            favs.insert(0, d["voice"])
-        else:
-            favs.append(d["voice"])
-        save_favorites(favs)
-        return {"favorites": favs}
-
-    def delete(q, body, ctype):
-        from dashscope.audio.tts_v2 import VoiceEnrollmentService
-        d = json.loads(body)
-        init_dashscope(); VoiceEnrollmentService().delete_voice(d["voice"])
-        if d["voice"] in created:
-            created.remove(d["voice"])
-        save_favorites([v for v in load_favorites() if v != d["voice"]])
-        return {"deleted": d["voice"]}
-
-    ui.serve("复刻向导", {("POST", "/clone"): clone, ("POST", "/say"): say,
-                         ("POST", "/fav"): fav, ("POST", "/delete"): delete}, a)
-    print("本次创建的音色:" + (" ".join(created) if created else "无"))
-    print_favorites_summary()
-
-
-def cmd_pick_ui(a):
-    """本地选音色页:用同一句话逐个试听系统音色与本模型的复刻音色,收藏或设为默认。"""
-    ui, takes = LocalUI("pick_ui.html"), {}  # takes:(音色, 句子, 指令) → (音频地址, 时长),本次会话内不重复合成
-
-    def voices(q, body, ctype):
-        return {"model": MODEL, "catalog": load_catalog(), "favorites": load_favorites(), "sample": DEFAULT_SAMPLE}
+    def key_get(q, body, ctype):
+        return {"key": key_status()}
 
     def mine(q, body, ctype):
         rows = [r for r in fetch_custom_voices() if r.get("target_model") == MODEL]
@@ -454,28 +558,97 @@ def cmd_pick_ui(a):
             return {"error": "请先写一句要试听的话。"}
         check_voice(voice)
         instr = resolve_instruction((d.get("instruct") or "").strip() or None, None)
-        key = (voice, text, instr)
-        cached = key in takes
+        k = (voice, text, instr)
+        cached = k in takes
         if not cached:
-            takes[key] = ui.say(voice, text, instr)
-        url, secs = takes[key]
+            takes[k] = ui.say(voice, text, instr)
+        url, secs = takes[k]
         return {"audio": url, "duration": secs, "cached": cached}
 
     def fav(q, body, ctype):
         d = json.loads(body)
         voice, action = d["voice"], d["action"]
-        favs = [v for v in load_favorites() if v != voice]
+        old = load_favorites()
         if action == "default":
-            favs.insert(0, voice)
+            favs = [voice] + [v for v in old if v != voice]
         elif action == "add":
-            old = load_favorites()
             favs = old if voice in old else old + [voice]
+        else:
+            favs = [v for v in old if v != voice]
         save_favorites(favs)
         return {"favorites": favs}
 
-    ui.serve("选音色页", {("GET", "/voices"): voices, ("GET", "/mine"): mine,
-                         ("POST", "/say"): say, ("POST", "/fav"): fav}, a)
+    def clone(q, body, ctype):
+        ext = {"audio/webm": ".webm", "audio/mp4": ".m4a", "audio/ogg": ".ogg", "audio/wav": ".wav",
+               "audio/mpeg": ".mp3", "audio/x-m4a": ".m4a"}.get(ctype, ".bin")
+        src = os.path.join(ui.workdir, f"recording_{len(created)}{ext}")
+        open(src, "wb").write(body)
+        voice_id, ready = clone_voice(src, q.get("prefix", ""), denoise=q.get("denoise") == "1")
+        created.append(voice_id)
+        if not ready:
+            return {"voice_id": voice_id, "error": "音色仍在处理中,请稍后再试听"}
+        return {"voice_id": voice_id,
+                "audio": ui.say(voice_id, "大家好，这是用我自己的声音复刻出来的音色，听起来像不像我本人？")[0]}
+
+    def delete(q, body, ctype):
+        from dashscope.audio.tts_v2 import VoiceEnrollmentService
+        d = json.loads(body)
+        init_dashscope(); VoiceEnrollmentService().delete_voice(d["voice"])
+        if d["voice"] in created:
+            created.remove(d["voice"])
+        save_favorites([v for v in load_favorites() if v != d["voice"]])
+        return {"deleted": d["voice"]}
+
+    def say_state(q, body, ctype):
+        return {"wrapper": say_wrapper_status(), "openlogi": openlogi_status(), "workflow": OPENLOGI_WORKFLOW,
+                "script": SHORTCUT_SCRIPT, "voice": default_voice()[0], "log": say_log_tail(), "log_path": tilde(SAY_LOG)}
+
+    def say_install(q, body, ctype):
+        write_say_wrapper()
+        log["say_installed"] = True
+        return say_state(q, body, ctype)
+
+    def say_bind(q, body, ctype):
+        d = json.loads(body)
+        backup = openlogi_bind(d["device"], d["button"])
+        log["openlogi"] = f"{d['button']}(备份 {backup})"
+        return dict(say_state(q, body, ctype), backup=tilde(backup))
+
+    def say_try(q, body, ctype):
+        text = json.loads(body).get("text", "").strip()
+        if not text:
+            return {"error": "先写一句要朗读的话。"}
+        if not os.path.exists(SAY_WRAPPER):
+            return {"error": "先安装朗读入口。"}
+        err = os.path.join(ui.workdir, "say_try.err")
+        with open(err, "w") as ef:
+            p = subprocess.Popen([SAY_WRAPPER], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                                 stderr=ef, start_new_session=True, text=True)
+        p.stdin.write(text[:1500]); p.stdin.close()  # type: ignore[union-attr]
+        try:  # 正常时会一直播放;1.5 秒内就退出且返回码非 0 说明没启动起来
+            if p.wait(timeout=1.5):
+                return {"error": "朗读没启动起来:" + open(err).read().strip()[-300:]}
+        except subprocess.TimeoutExpired:
+            pass
+        return {"ok": True}
+
+    def say_stop(q, body, ctype):
+        stop_previous_say()
+        return {"ok": True}
+
+    ui.serve("配音工作台", {("GET", "/say-state"): say_state, ("POST", "/say-install"): say_install,
+                          ("POST", "/say-bind"): say_bind, ("POST", "/say-try"): say_try, ("POST", "/say-stop"): say_stop,
+                          ("GET", "/state"): state, ("POST", "/key"): key, ("GET", "/key"): key_get,
+                          ("GET", "/mine"): mine,
+                          ("POST", "/say"): say, ("POST", "/fav"): fav, ("POST", "/clone"): clone,
+                          ("POST", "/delete"): delete}, a, page)
+    st = key_status()
+    print("API key:" + (f"已配置 {st['masked']}" + (",本次新保存" if log["key_saved"] else "") if st["configured"] else "未配置"))
+    print("本次创建的音色:" + (" ".join(created) if created else "无"))
     print(f"本次试听 {len({k[0] for k in takes})} 个音色,合成 {len(takes)} 次")
+    if log["say_installed"] or log["openlogi"]:
+        print("选中朗读:" + ("已安装 ~/.local/bin/bailian-say" if log["say_installed"] else "")
+              + (f";OpenLogi 已绑定 {log['openlogi']},重开 OpenLogi 后生效" if log["openlogi"] else ""))
     print_favorites_summary()
 
 
@@ -690,7 +863,15 @@ def speak_segments(parts, voice, instr, a):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def install_say():
+OPENLOGI_CONFIG = os.path.expanduser("~/.config/openlogi/config.toml")
+# OpenLogi 鼠标按键工作流:存下剪贴板并清空 → 复制选中内容 → 朗读并还原剪贴板
+OPENLOGI_WORKFLOW = ('{ Workflow = [ { RunShellCommand = "$HOME/.local/bin/bailian-say --save" }, '
+                     '{ Delay = { millis = 120 } }, { PressKey = "Cmd+C" }, { Delay = { millis = 200 } }, '
+                     '{ RunShellCommand = "$HOME/.local/bin/bailian-say --clipboard >/dev/null 2>&1 &" } ] }')
+SHORTCUT_SCRIPT = "$HOME/.local/bin/bailian-say"
+
+
+def write_say_wrapper():
     """生成 ~/.local/bin/bailian-say:把参数转给当前这份 tts.py 的 say;路径失效时找插件缓存里最新的一份。"""
     tts = os.path.abspath(__file__)
     os.makedirs(os.path.dirname(SAY_WRAPPER), exist_ok=True)
@@ -703,14 +884,117 @@ TTS="{tts}"
 exec "{sys.executable}" "$TTS" say "$@"
 ''')
     os.chmod(SAY_WRAPPER, 0o755)
+    return tts
+
+
+def say_wrapper_status():
+    """入口是否装好、指向哪份 tts.py、那份是否还在、是否就是当前这份。"""
+    if not os.path.exists(SAY_WRAPPER):
+        return {"installed": False, "path": tilde(SAY_WRAPPER)}
+    m = re.search(r'^TTS="(.*)"$', open(SAY_WRAPPER, encoding="utf-8").read(), re.M)
+    target = m.group(1) if m else ""
+    return {"installed": True, "path": tilde(SAY_WRAPPER), "target": tilde(target), "exists": os.path.isfile(target),
+            "current": os.path.abspath(target) == os.path.abspath(__file__) if target else False}
+
+
+def openlogi_status():
+    """读 OpenLogi 配置:鼠标设备、各按键当前绑定(原文),以及哪些按键已经绑了 bailian-say。"""
+    if not os.path.isfile(OPENLOGI_CONFIG):
+        return {"found": False, "path": OPENLOGI_CONFIG}
+    try:
+        import tomllib
+        cfg = tomllib.loads(open(OPENLOGI_CONFIG, encoding="utf-8").read())
+    except ImportError:
+        return {"found": True, "path": OPENLOGI_CONFIG, "error": "读取 OpenLogi 配置需要 Python 3.11 以上"}
+    except Exception as e:
+        return {"found": True, "path": OPENLOGI_CONFIG, "error": f"OpenLogi 配置解析失败:{str(e)[:200]}"}
+    devices = []
+    for dev_id, dev in (cfg.get("devices") or {}).items():
+        ident = dev.get("identity") or {}
+        if ident.get("kind", "mouse") != "mouse":
+            continue
+        raw = _openlogi_section_lines(dev_id)
+        devices.append({"id": dev_id, "name": ident.get("display_name") or dev_id,
+                        "bindings": {k: raw.get(k, "(多行配置)") for k in (dev.get("bindings") or {})}})
+    return {"found": True, "path": OPENLOGI_CONFIG, "devices": devices}
+
+
+def _openlogi_section_lines(dev_id):
+    """设备 bindings 段里每个按键那一行的原文值(只用于展示)。"""
+    lines, inside, out = open(OPENLOGI_CONFIG, encoding="utf-8").read().split("\n"), False, {}
+    for line in lines:
+        if line.startswith("["):
+            inside = line.strip() == f'[devices."{dev_id}".bindings]'
+            continue
+        m = inside and re.match(r'\s*"?([A-Za-z0-9_]+)"?\s*=\s*(.+)$', line)
+        if m:
+            out[m.group(1)] = m.group(2).strip()
+    return out
+
+
+def openlogi_bind(dev_id, button):
+    """把设备的某个按键改为朗读工作流:先整份备份,再只改 bindings 段里这一行(没有就追加),
+    改完用 TOML 解析器复核「只有这一项变了」,不满足就不写入。返回备份路径。"""
+    import shutil, tomllib
+    if not re.fullmatch(r"[A-Za-z0-9_]+", button):
+        sys.exit("按键名只能是字母、数字和下划线")
+    text = open(OPENLOGI_CONFIG, encoding="utf-8").read()
+    before = tomllib.loads(text)
+    if dev_id not in (before.get("devices") or {}):
+        sys.exit("OpenLogi 配置里没有这个设备,刷新页面后再试")
+    header, new_line = f'[devices."{dev_id}".bindings]', f"{button} = {OPENLOGI_WORKFLOW}"
+    lines = text.split("\n")
+    if header in (l.strip() for l in lines):
+        i = [l.strip() for l in lines].index(header)
+        j = next((k for k in range(i + 1, len(lines)) if lines[k].startswith("[")), len(lines))
+        hit = next((k for k in range(i + 1, j) if re.match(rf'\s*"?{button}"?\s*=', lines[k])), None)
+        if hit is not None:
+            lines[hit] = new_line
+        else:
+            pos = j
+            while pos > i + 1 and not lines[pos - 1].strip():
+                pos -= 1
+            lines.insert(pos, new_line)
+    else:
+        lines += ["", header, new_line]
+    new = "\n".join(lines)
+    try:
+        after = tomllib.loads(new)
+    except Exception:
+        sys.exit("原配置里这个按键是多行写法,自动修改不安全,未做任何改动。请复制配置片段手动替换。")
+    expect = tomllib.loads(f"x = {OPENLOGI_WORKFLOW}")["x"]
+    got = after["devices"][dev_id].get("bindings", {}).pop(button, None)
+    before["devices"][dev_id].setdefault("bindings", {}).pop(button, None)
+    if got != expect or after != before:
+        sys.exit("自动修改的结果和预期不一致,未做任何改动。请复制配置片段手动替换。")
+    mode = os.stat(OPENLOGI_CONFIG).st_mode & 0o777
+    backup = stamp = f"{OPENLOGI_CONFIG}.before-bailian-say-{time.strftime('%Y%m%d-%H%M%S')}"
+    n = 1
+    while os.path.exists(backup):  # 同一秒内多次修改也不覆盖上一份备份
+        backup, n = f"{stamp}-{n}", n + 1
+    shutil.copy2(OPENLOGI_CONFIG, backup)
+    tmp = OPENLOGI_CONFIG + ".bailian-tmp"
+    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode), "w", encoding="utf-8") as f:
+        f.write(new)
+    os.replace(tmp, OPENLOGI_CONFIG)
+    return backup
+
+
+def say_log_tail(n=12):
+    try:
+        return open(SAY_LOG, encoding="utf-8").read().strip().split("\n")[-n:]
+    except FileNotFoundError:
+        return []
+
+
+def install_say():
+    tts = write_say_wrapper()
     print(f"✅ 已生成 {SAY_WRAPPER}(指向 {tts})\n")
-    print("任选一种触发方式:\n")
+    print("任选一种触发方式(也可以在工作台的「选中朗读」页面里配置,鼠标按键可确认后自动写入):\n")
     print("① 鼠标按键(OpenLogi,~/.config/openlogi/config.toml 设备的 bindings 段,改后重开 OpenLogi):")
-    print('MiddleClick = { Workflow = [ { RunShellCommand = "$HOME/.local/bin/bailian-say --save" }, '
-          '{ Delay = { millis = 120 } }, { PressKey = "Cmd+C" }, { Delay = { millis = 200 } }, '
-          '{ RunShellCommand = "$HOME/.local/bin/bailian-say --clipboard >/dev/null 2>&1 &" } ] }\n')
+    print(f"MiddleClick = {OPENLOGI_WORKFLOW}\n")
     print("② 键盘快捷键(「快捷指令」):设置 → 高级 → 允许运行脚本;新建快捷指令,勾选「用作快速操作」,接收「文本」;")
-    print("   添加「运行 Shell 脚本」,传递输入选「作为 stdin」,内容为:$HOME/.local/bin/bailian-say")
+    print(f"   添加「运行 Shell 脚本」,传递输入选「作为 stdin」,内容为:{SHORTCUT_SCRIPT}")
     print("   再到 系统设置 → 键盘 → 键盘快捷键 → 服务 里给它设快捷键。")
 
 
@@ -742,6 +1026,7 @@ def cmd_say(a):
     check_voice(a.voice)
     instr = resolve_instruction(a.instruct, a.emotion)
     parts = split_segments(text)
+    os.makedirs(os.path.dirname(SAY_LOG), exist_ok=True)
     with open(SAY_LOG, "a", encoding="utf-8") as log:
         sys.stdout = sys.stderr = log  # 后台运行时输出写进日志
         print(f"\n--- {time.strftime('%F %T')} {describe(a.voice)} {len(text)} 字,分 {len(parts)} 段 "
@@ -797,15 +1082,24 @@ def main():
     sp.add_argument("voice_id")
     sp.set_defaults(func=cmd_delete)
 
-    sp = sub.add_parser("clone-ui", help="打开本地复刻向导(浏览器录音 → 复刻 → 试听 → 收藏)")
-    sp.add_argument("--port", type=int, default=0, help="监听端口(默认随机)")
-    sp.add_argument("--no-open", action="store_true", dest="no_open", help="不自动打开浏览器")
-    sp.set_defaults(func=cmd_clone_ui)
+    sp = sub.add_parser("status", help="检查运行环境与 API key(不联网)")
+    sp.set_defaults(func=cmd_status)
 
-    sp = sub.add_parser("pick-ui", help="打开本地选音色页(同一句话逐个试听 → 收藏 / 设为默认)")
-    sp.add_argument("--port", type=int, default=0, help="监听端口(默认随机)")
-    sp.add_argument("--no-open", action="store_true", dest="no_open", help="不自动打开浏览器")
-    sp.set_defaults(func=cmd_pick_ui)
+    sp = sub.add_parser("key", help="查看或保存 API key(校验后写入 ~/.dashscope_key,权限 600)")
+    src = sp.add_mutually_exclusive_group()
+    src.add_argument("--console", action="store_true", help="在默认浏览器打开百炼控制台的 API Key 页")
+    src.add_argument("--clipboard", action="store_true", help="读取剪贴板里刚复制的 key,保存后清空剪贴板")
+    src.add_argument("--stdin", action="store_true", help="从标准输入读取 key")
+    sp.set_defaults(func=cmd_key)
+
+    for name, page, desc in [("ui", "home", "打开本地配音工作台(开始 / 选音色 / 声音复刻 / 选中朗读;未配置 key 时先到「开始」)"),
+                             ("pick-ui", "voices", "打开工作台的「选音色」(ui --page voices 的别名)"),
+                             ("clone-ui", "clone", "打开工作台的「声音复刻」(ui --page clone 的别名)")]:
+        sp = sub.add_parser(name, help=desc)
+        sp.add_argument("--page", choices=["home", "voices", "clone", "say"], default=page, help=f"打开哪一栏(默认 {page})")
+        sp.add_argument("--port", type=int, default=0, help="监听端口(默认随机)")
+        sp.add_argument("--no-open", action="store_true", dest="no_open", help="不自动打开浏览器")
+        sp.set_defaults(func=cmd_ui)
 
     sp = sub.add_parser("say", help="朗读选中文本(macOS,配合鼠标按键或快捷键;分段边合成边播放)")
     add_synth_opts(sp)
