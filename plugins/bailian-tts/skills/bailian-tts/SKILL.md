@@ -105,7 +105,7 @@ disable-model-invocation: true
 echo "要读的文字" | ~/.local/bin/bailian-say
 ```
 - **帮用户配置时默认后台运行 `ui --page say`**,打开工作台的「选中朗读」栏:一键安装 `bailian-say` 入口;鼠标按键选好 OpenLogi 设备和按键后,页面弹出确认(写明原来的动作),确认后先整份备份 `~/.config/openlogi/config.toml` 再只改那一个键,用户在菜单栏重开 OpenLogi 即生效;快捷指令给出分步说明与可复制的脚本;还能现场试读、看最近的朗读日志。页面里的确认就是用户同意,无需再问。
-- 不方便用页面时运行 `say --install`,把它打印的配置转述给用户:**鼠标按键**(如 OpenLogi 的 `Workflow`:`bailian-say --save` → 按 `Cmd+C` → `bailian-say --clipboard`,会临时借用剪贴板,只还原纯文字)或**快捷指令**快速操作(文字作为 stdin 传给 `bailian-say`,再在系统设置里绑快捷键)。改第三方软件的配置前先备份并征得用户同意。
+- 不方便用页面时运行 `say --install`,把它打印的配置转述给用户:**鼠标按键**(如 OpenLogi 的 `Workflow`:`bailian-say --save` → 按 `Cmd+C` → `bailian-say --clipboard`,会临时借用剪贴板,只还原纯文字;在 Ghostty、Orca 里 `Cmd+C` 复制不到时(如 Pi 全屏模式接管了鼠标),改读选中时已自动复制的文字)或**快捷指令**快速操作(文字作为 stdin 传给 `bailian-say`,再在系统设置里绑快捷键)。改第三方软件的配置前先备份并征得用户同意。
 - `~/.local/bin/bailian-say` 记着当前 `tts.py` 的路径;插件移动或升级后原路径失效时,自动改用 Claude Code 插件缓存里最新的一份,也可以重跑 `say --install`。
 
 **clone** —— 命令行复刻,适合用户已经有录音文件、或不方便用浏览器时。直接给**本地录音路径**(m4a/mp3/wav 等,如 macOS 语音备忘录导出的文件):脚本用 ffmpeg 转成 24kHz 单声道 wav、检查时长(5~60 秒,推荐 10~20 秒),上传到百炼免费临时存储,再提交复刻并等待音色可用。用户不需要自己的 OSS。已有公网 URL 时也可直接传 URL。录音要求:单人、无背景音乐和噪音、至少 5 秒连续清晰朗读:

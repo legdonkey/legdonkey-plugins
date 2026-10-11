@@ -814,6 +814,18 @@ def pb_copy(text):
     subprocess.run(["pbcopy"], input=text, text=True)
 
 
+# 选中即复制的终端:里面的程序接管鼠标时(如 Pi 全屏模式),选区由程序自己复制进剪贴板,
+# 终端没有原生选区,按 Cmd+C 复制不到;这时 --save 存下的剪贴板就是刚选中的文字。
+COPY_ON_SELECT_TERMINALS = {"com.mitchellh.ghostty", "com.stablyai.orca"}
+
+
+def front_bundle_id():
+    asn = subprocess.run(["lsappinfo", "front"], capture_output=True, text=True).stdout.strip()
+    info = subprocess.run(["lsappinfo", "info", "-only", "bundleid", asn], capture_output=True, text=True).stdout
+    m = re.search(r'bundleID="([^"]+)"', info)
+    return m.group(1) if m else ""
+
+
 def stop_previous_say():
     """结束上一次朗读的整个进程组;先确认那个进程确实是 say,避免误杀复用的进程号。"""
     import signal
@@ -1007,14 +1019,18 @@ def cmd_say(a):
         return install_say()
     os.makedirs(SAY_DIR, exist_ok=True)
     # 按键工作流:--save 存下剪贴板文字并清空 → 按键发 Cmd+C 复制选中内容 → --clipboard 读出并还原剪贴板。
-    # 只还原纯文字,图片等其它剪贴板内容不保留。
+    # 只还原纯文字,图片等其它剪贴板内容不保留。Cmd+C 没复制到内容且前台是选中即复制的终端时,
+    # 改读 --save 存下的文字。
     if a.save:
         stop_previous_say()
         open(SAY_CLIP, "w", encoding="utf-8").write(pb_paste())
         return pb_copy("")
     if a.clipboard:
         raw = pb_paste()
-        pb_copy(open(SAY_CLIP, encoding="utf-8").read() if os.path.exists(SAY_CLIP) else "")
+        saved = open(SAY_CLIP, encoding="utf-8").read() if os.path.exists(SAY_CLIP) else ""
+        pb_copy(saved)
+        if not raw.strip() and front_bundle_id() in COPY_ON_SELECT_TERMINALS:
+            raw = saved
         if not raw.strip():
             return notify("没有选中文字")
     else:
