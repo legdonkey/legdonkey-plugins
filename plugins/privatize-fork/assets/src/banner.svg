@@ -29,7 +29,7 @@
 
   <!-- top meta bar -->
   <text x="44" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#c43c30">维护规范 · MAINTENANCE-SPEC</text>
-  <text x="1236" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#6f685a" text-anchor="end">CLAUDE CODE / CODEX</text>
+  <text x="1236" y="50" class="mono" font-size="13" letter-spacing="1.5" fill="#6f685a" text-anchor="end">CLAUDE CODE / CODEX / PI</text>
   <line x1="44" y1="62" x2="1236" y2="62" stroke="#211e18" stroke-opacity="0.25" stroke-width="0.8"/>
 
   <!-- vertical divider -->
@@ -63,7 +63,7 @@
 
   <!-- ===== right: title + spec cells ===== -->
   <text x="412" y="120" class="disp" font-size="50" font-weight="600" fill="#211e18" letter-spacing="-0.5">privatize-fork</text>
-  <text x="414" y="152" class="body" font-size="16.5" fill="#5f584b">开源 fork 私有化 · 立一套可长期维护的规范 · Claude Code + Codex</text>
+  <text x="414" y="152" class="body" font-size="16.5" fill="#5f584b">开源 fork 私有化 · 立一套可长期维护的规范 · Claude Code + Codex + Pi</text>
 
   <!-- 6 spec cells: 2 rows x 3 cols -->
   <g>
@@ -85,7 +85,7 @@
     <g transform="translate(412,250)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>
       <text x="14" y="24" class="mono" font-size="12.5" letter-spacing="1" fill="#c43c30">04</text>
-      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">跨 CC / Codex</text>
+      <text x="14" y="45" class="body" font-size="16" font-weight="600" fill="#26221b">跨 CC / Codex / Pi</text>
     </g>
     <g transform="translate(692,250)">
       <rect width="268" height="58" fill="#ece4d3" stroke="#211e18" stroke-width="0.9"/>

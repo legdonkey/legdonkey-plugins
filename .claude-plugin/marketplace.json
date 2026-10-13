@@ -6,8 +6,8 @@
     {
       "name": "privatize-fork",
       "source": "./plugins/privatize-fork",
-      "description": "把 clone 下来的开源 fork 一次性私有化的脚手架：upstream 只读跟踪+禁推、private/ 隔离与维护规范。跨 Claude Code 与 Codex。",
-      "version": "1.5.0"
+      "description": "把 clone 下来的开源 fork 一次性私有化的脚手架：upstream 只读跟踪+禁推、private/ 隔离与维护规范。跨 Claude Code、Codex 与 Pi。",
+      "version": "1.6.0"
     },
     {
       "name": "bailian-tts",

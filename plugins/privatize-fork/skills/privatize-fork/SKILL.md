@@ -1,6 +1,6 @@
 ---
 name: privatize-fork
-description: 把一个 clone 下来的开源项目 fork 私有化的脚手架工作流——配置 upstream 只读跟踪+禁推、建立 private/ 目录与维护规范、内联完成 upstream 初始化与文档翻译、写 CLAUDE.md/AGENTS.md 指针。跨 Claude Code 与 Codex（SKILL.md 开放标准）。内置实战提炼的方法论：先勘察（.gitignore/版本号/本地状态文件）→ 私有隔离 → 本地定型 → 最后一次性发布。
+description: 把一个 clone 下来的开源项目 fork 私有化的脚手架工作流——配置 upstream 只读跟踪+禁推、建立 private/ 目录与维护规范、内联完成 upstream 初始化与文档翻译、写 CLAUDE.md/AGENTS.md 指针。跨 Claude Code、Codex 与 Pi（SKILL.md 开放标准）。内置实战提炼的方法论：先勘察（.gitignore/版本号/本地状态文件）→ 私有隔离 → 本地定型 → 最后一次性发布。
 disable-model-invocation: true
 ---
 
@@ -10,9 +10,10 @@ disable-model-invocation: true
 
 模板文件都在本 skill 的 `references/` 下，按需读取并做占位符替换。
 
-> **跨平台**：本 skill 用 `SKILL.md` 开放标准，CC（`~/.claude/skills/`）与 Codex（`~/.codex/skills/`）通用。正文提到的交互/并发工具按 agent 取等价物，逻辑不变：
-> - **结构化选项弹窗**：CC = `AskUserQuestion`；Codex = `request_user_input`（分页问卷弹窗，交互式会话即可弹出、无需 `/plan`；仅 `codex exec` 非交互模式不支持）；都没有则退化为普通问答。
-> - **并行子任务**：CC = `Agent` 工具（子代理），Codex = 其 subagent 能力——用当前 agent 自己的并发原语把多篇翻译并行派出。**只有确实没有并行能力的 agent 才退化为顺序**（别因为「工具名不同」就自判为不支持——CC 与 Codex 都能并行）。
+> **跨平台**：本 skill 用 `SKILL.md` 开放标准，CC、Codex 与 Pi 通用。正文提到的交互/并发工具按 agent 取等价物，逻辑不变：
+> - **结构化选项弹窗**：CC = `AskUserQuestion`；Codex = `request_user_input`（分页问卷弹窗，交互式会话即可弹出、无需 `/plan`；仅 `codex exec` 非交互模式不支持）；Pi 核心不内置，**以当前会话实际可用的工具为准**——装了提供 `ask_user_question` 等提问工具的扩展就用它，没有就退化为普通问答。
+> - **并行子任务**：CC = `Agent` 工具（子代理），Codex = 其 subagent 能力，Pi 核心不内置子代理、由扩展提供——用当前 agent 自己的并发原语把多篇翻译并行派出。**只有确实没有并行能力的 agent 才退化为顺序**（别因为「工具名不同」就自判为不支持）。
+> - **指令文件**：CC 读 `CLAUDE.md`；Codex 与 Pi 读 `AGENTS.md`。
 
 ## 三条铁律（贯穿全程，先记住）
 
@@ -63,7 +64,7 @@ bash "$SKILL_DIR/scripts/recon.sh"
 
 ## 阶段 2 · 引导问答（一次性问清，之后自动跑）
 
-一次性问清以下决策（CC 用 `AskUserQuestion`、Codex 用 `request_user_input`（交互式会话即可弹窗）、其它退化为普通问答；能从勘察推断的给默认值）：
+一次性问清以下决策（CC 用 `AskUserQuestion`、Codex 用 `request_user_input`（交互式会话即可弹窗）、Pi 有提问工具（如 `ask_user_question`）就用、其它退化为普通问答；能从勘察推断的给默认值）：
 
 1. **upstream 仓库地址**（原作者仓库；勘察没找到才问）。
 2. **私有 tag 格式**：默认 `v<官方版本>-private.<N>`，确认或自定义。
@@ -73,14 +74,14 @@ bash "$SKILL_DIR/scripts/recon.sh"
      - *建议翻译（白名单）*：面向用户的文档，如 `README*`、`CONTRIBUTING*`、`docs/` 下的指南类、顶层介绍类 `*.md`。
      - *建议排除（黑名单）*：变更/历史记录（`CHANGELOG*`/`HISTORY*`/含 `audit` 的）、正文本就是中文的文档（抽样含大量中日韩字符）、`private/` 下的、纯模板（如 `.github/` issue 模板）。
      - *AI 指令文件*（`CLAUDE.md`/`AGENTS.md`/`GEMINI.md`）**默认归白名单（建议翻译）**——译文为 `.zh.md` 放 `private/translations/`，在子目录、改了名，不会被 AI 当指令加载，故纳入翻译是安全的；不想翻的可在弹窗里勾出。
-   - 把预分类结果（建议翻译 N 篇 / 建议排除 M 篇，各列文件名）连同四个选项弹给用户（CC=`AskUserQuestion` 单选、Codex=`request_user_input` 交互式即可、其它退化为普通问答）：
+   - 把预分类结果（建议翻译 N 篇 / 建议排除 M 篇，各列文件名）连同四个选项弹给用户（CC=`AskUserQuestion` 单选、Codex=`request_user_input` 交互式即可、Pi 有提问工具就用、其它退化为普通问答）：
      1. **采用建议清单**（默认）。
      2. **逐个调整**：把两组清单完整列出，用普通问答让用户报「加哪个、删哪个」，得到最终白名单。
      3. **全部文档都翻**：白名单 = 扫到的全部文档。
      4. **这些都不翻**：等同关闭翻译模块（回到「不装」）。
    - 最终确认的**白名单 + 显式排除清单**记下来，阶段5写进 `private/translations/CONVENTIONS.md`，作为以后增量刷新的依据（不再要用户手改模板）。
    - **增量模式（重跑）**：若 `CONVENTIONS.md` 已存在，**沿用其中既有白名单、不重新弹窗**；仅当扫到「既不在白、也不在黑名单」的新文档时，才提示用户是否纳入。
-5. **团队用哪个 agent**：CC / Codex / 两者（默认两者）。决定阶段 6 的指针段写进 `CLAUDE.md`（CC）还是 `AGENTS.md`（Codex）还是都写。
+5. **团队用哪些 agent**（可多选）：CC / Codex / Pi（默认 CC + Codex）。决定阶段 6 的指针段写进哪个文件：选了 CC 写 `CLAUDE.md`；选了 Codex 或 Pi 写 `AGENTS.md`；都有则两个都写。
 6. **确认高冲突文件清单**：默认 `README/CHANGELOG` + 勘察到的版本号文件 + `CLAUDE.md`/`AGENTS.md`（若存在），让用户增删。
 
 ## 阶段 3 · 配置 git 远端（调脚本，自动）
@@ -116,18 +117,18 @@ upstream 初始化已在阶段 3 完成；本阶段只在启用翻译模块时�
 - **未启用翻译模块** → 跳过本阶段。
 - **启用了翻译模块**：
   1. 写 `private/translations/CONVENTIONS.md` ← `references/translations-conventions.template.md`（替换 `{{BASE_VERSION}}`，并把阶段2确认的白名单填入 `{{WHITELIST}}`、显式排除填入 `{{BLACKLIST}}`；`test -f`，已存在不覆盖——重跑时沿用既有清单）。
-  2. 读 `references/translate-docs.md`，**按其流程内联执行翻译**：其中**「判断待翻清单」一步改调脚本**（这步要读每篇译文 frontmatter 再跑 git diff 比对，模型最易偷懒）——从 `CONVENTIONS.md` 白名单读出源文件后 `bash "$SKILL_DIR/scripts/translate-plan.sh" <白名单文件...>`，据其输出的 `TRANSLATE`/`RETRANSLATE` 再翻译（CC 用 `Agent`、Codex 用其 subagent 等各自的并发原语并行派发，仅在确无并行能力时才顺序做）。**增量更新**——脚本标 `SKIP` 的译文跳过。
+  2. 读 `references/translate-docs.md`，**按其流程内联执行翻译**：其中**「判断待翻清单」一步改调脚本**（这步要读每篇译文 frontmatter 再跑 git diff 比对，模型最易偷懒）——从 `CONVENTIONS.md` 白名单读出源文件后 `bash "$SKILL_DIR/scripts/translate-plan.sh" <白名单文件...>`，据其输出的 `TRANSLATE`/`RETRANSLATE` 再翻译（CC 用 `Agent`、Codex 用其 subagent、Pi 用扩展提供的子代理等各自的并发原语并行派发，仅在确无并行能力时才顺序做）。**增量更新**——脚本标 `SKIP` 的译文跳过。
   3. 提示用户：翻译白名单需按目标项目实际文档调整（见 `references/translate-docs.md` 第 2 步），以后**重跑本 skill 即做增量刷新**。
 
-## 阶段 6 · 指针段（自动，跨 CC / Codex）
+## 阶段 6 · 指针段（自动，跨 CC / Codex / Pi）
 
 让 AI 维护本项目时自动遵循私有规范，需要在指令文件里加一段「私有维护规范」指针（指向 `private/README.md` + 三条红线 + 登记台账提示）。按阶段 2 选定的 agent 写入对应文件，**先 `grep -q "私有维护规范" <文件>` 去重，已有则跳过不重复追加**：
 
-- **团队用 CC** → 目标 `CLAUDE.md`。
-- **团队用 Codex** → 目标 `AGENTS.md`。
-- **两者** → 两个文件都写（同一段指针内容）。
+- **选了 CC** → 目标含 `CLAUDE.md`。
+- **选了 Codex 和/或 Pi** → 目标含 `AGENTS.md`（两者共用同一个文件，只写一次）。
+- **两类都有** → 两个文件都写（同一段指针内容）。
 
-目标文件不存在时：可按需创建（只放指针段），或提示用户「不建该文件则规范不会被 AI 自动遵循」。两个文件都没有、团队也不确定用哪个 → 默认建 `AGENTS.md`（开放标准，CC 与 Codex 都逐渐支持读取），并说明原因。
+目标文件不存在时：可按需创建（只放指针段），或提示用户「不建该文件则规范不会被 AI 自动遵循」。两个文件都没有、团队也不确定用哪个 → 默认建 `AGENTS.md`（开放标准，Codex 与 Pi 直接读取，CC 也逐渐支持），并说明原因。
 
 ## 阶段 7 · 本地状态文件（按勘察 + 用户确认）
 

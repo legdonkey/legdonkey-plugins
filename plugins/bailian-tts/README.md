@@ -43,7 +43,7 @@
 codex plugin marketplace add legdonkey/legdonkey-plugins --ref main
 codex plugin add bailian-tts@legdonkey
 
-# Pi（整个仓库作为 Pi 包安装，只暴露 bailian-tts 这一个技能）
+# Pi（整个仓库作为 Pi 包安装，暴露 bailian-tts 与 privatize-fork）
 pi install git:github.com/legdonkey/legdonkey-plugins
 ```
 

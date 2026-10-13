@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 这是什么
 
-这是一个跨 Claude Code 与 Codex 的插件市场仓库，含**两个独立插件、各 1 个技能**（互不依赖）；其中 bailian-tts 还作为 Pi 包发布。没有包管理 / CI / 构建系统——内容是 Markdown + bash + python。文档与提交信息用简体中文。
+这是一个跨 Claude Code 与 Codex 的插件市场仓库，含**两个独立插件、各 1 个技能**（互不依赖）；整个仓库还作为 Pi 包发布，两个技能都暴露给 Pi。没有包管理 / CI / 构建系统——内容是 Markdown + bash + python。文档与提交信息用简体中文。
 
 - `plugins/privatize-fork/` — 开源 fork 一次性私有化脚手架。
 - `plugins/bailian-tts/` — 阿里百炼 Qwen-Audio 配音脚手架（固定 `qwen-audio-3.1-tts-flash` 与其音色 catalog；含脚本批量配音、SRT 字幕与声音复刻）。
@@ -29,8 +29,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 标准子目录布局，任意 Codex 版本可装（不再用「仓库根即插件」那种需 ≥0.142.0 的写法）。**加新插件** = 在 `plugins/` 下建目录（两个 plugin.json + `skills/<name>/`，再在两个 marketplace.json 各加一条）。
 
-### Pi 包入口只暴露 bailian-tts
-根 `package.json` 是 Pi 包清单（`pi install git:github.com/legdonkey/legdonkey-plugins`），`pi.skills` 只列 `./plugins/bailian-tts/skills`，`extensions` / `prompts` / `themes` 显式置空以免约定目录被自动发现。它不是 npm 项目，不加依赖、不加 `version`（Pi 的 git 包按 ref 更新）。新插件只有在与宿主无关时才加进 `pi.skills`。Pi 读 `disable-model-invocation`，手动触发名为 `/skill:<name>`。
+### Pi 包入口
+根 `package.json` 是 Pi 包清单（`pi install git:github.com/legdonkey/legdonkey-plugins`），`pi.skills` 列出 `./plugins/privatize-fork/skills` 与 `./plugins/bailian-tts/skills`，`extensions` / `prompts` / `themes` 显式置空以免约定目录被自动发现。它不是 npm 项目，不加依赖、不加 `version`（Pi 的 git 包按 ref 更新）。新插件只有在与宿主无关时才加进 `pi.skills`。Pi 读 `disable-model-invocation`，手动触发名为 `/skill:<name>`；读 `AGENTS.md` 作指令文件。Pi 核心不内置提问弹窗和子代理（由扩展提供），技能里用到这类工具时要写明「有就用，没有就退化为普通问答 / 顺序执行」。
 
 ### assets SVG 是生成物
 每个插件的 `plugins/<plugin>/assets/*.svg` 由根 `assets/build-svg.sh` 从该插件的 `assets/src/*.svg` 生成（脚本遍历所有插件）。改图要改 src 再重跑脚本，别手改产物。安装截图 `assets/install-*.png` 是市场级共享、手动维护。每个插件还各有自己的 `README.md`（被根 README 引用）。
@@ -47,7 +47,7 @@ done
 
 Codex 插件端到端校验（本机装了 Codex 时）：`codex plugin marketplace add . && codex plugin list --json --marketplace legdonkey --available`（应列出 2 个插件），验证完用 `codex plugin marketplace remove legdonkey` 清理。
 
-Pi 包端到端校验（本机装了 Pi 时）：`pi install "$PWD"` 后在其它目录跑 `pi --no-session --no-tools -p "/skill:bailian-tts 只回答你是否收到了技能说明文档"`（应回答是；把技能名换成 privatize-fork 应回答否），验证完用 `pi remove "$PWD"` 清理。
+Pi 包端到端校验（本机装了 Pi 时）：`pi install "$PWD"` 后在其它目录跑 `pi --no-session --no-tools -p "/skill:bailian-tts 只回答你是否收到了技能说明文档"`（应回答是；换成 `/skill:privatize-fork` 也应回答是），验证完用 `pi remove "$PWD"` 清理。
 
 ## 提交与发布
 

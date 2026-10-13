@@ -4,7 +4,7 @@
 
 把 upstream 官方文档翻译成中文，产出到 `private/translations/`。
 **增量更新**：已最新的译文跳过，只翻缺失的和源文件有变动的。
-**执行方式**：先做「判断清单」（轻活），再翻全文。若当前 agent 有并行子任务能力（CC 的 `Agent`、Codex 的 subagent 等），用其原生原语把翻译重活并行派给子任务、不把原文/译文堆进主上下文；**只有确实没有并行能力时才顺序逐个翻译**（别因工具名不同就自判为不支持）——判断与增量逻辑完全一致。
+**执行方式**：先做「判断清单」（轻活），再翻全文。若当前 agent 有并行子任务能力（CC 的 `Agent`、Codex 的 subagent、Pi 扩展提供的子代理等），用其原生原语把翻译重活并行派给子任务、不把原文/译文堆进主上下文；**只有确实没有并行能力时才顺序逐个翻译**（别因工具名不同就自判为不支持）——判断与增量逻辑完全一致。
 
 ## 第 0 步：读约定
 
@@ -32,7 +32,8 @@ git describe --tags --abbrev=0 "$(git rev-parse --abbrev-ref upstream/HEAD)" 2>/
 这步要读每篇译文 frontmatter 的 `source_version` 再跑 `git diff` 跟基线比对——模型最易在此偷懒（凭印象说「没变」），故固化成脚本：
 
 ```bash
-SKILL_DIR=""; for d in ~/.claude/skills/privatize-fork ~/.codex/skills/privatize-fork; do [ -d "$d" ] && { SKILL_DIR="$d"; break; }; done
+# SKILL_DIR = SKILL.md 所在目录的绝对路径（插件缓存、skills 目录或 Pi 包目录都可能，用实际路径，别写死）
+SKILL_DIR="<当前 SKILL.md 所在目录的绝对路径>"
 # 入参为第2步白名单里的源文件；脚本对每个判出状态
 bash "$SKILL_DIR/scripts/translate-plan.sh" README.md CONTRIBUTING.md docs/setup.md
 ```
@@ -45,7 +46,7 @@ bash "$SKILL_DIR/scripts/translate-plan.sh" README.md CONTRIBUTING.md docs/setup
 
 ## 第 4 步：翻译（并行优先，否则顺序）
 
-对清单里每个文档执行翻译——**有并行子任务能力的 agent（CC 的 `Agent`、Codex 的 subagent 等）一次性并行派出；确无并行能力的才顺序逐个做**。每个翻译任务：
+对清单里每个文档执行翻译——**有并行子任务能力的 agent（CC 的 `Agent`、Codex 的 subagent、Pi 扩展提供的子代理等）一次性并行派出；确无并行能力的才顺序逐个做**。每个翻译任务：
 
 - 任务：把 `<src>` 译成简体中文，写到 `translate-plan.sh` 输出的「译文」列路径（命名见 CONVENTIONS：源相对路径 `/`→`-` 再加 `.zh.md`，平铺在 `private/translations/`）。先读源文件 → 翻译 → 写出。
 - frontmatter：`source: <src>` / `source_version: <基线>` / `translated_at: <今天日期>`。

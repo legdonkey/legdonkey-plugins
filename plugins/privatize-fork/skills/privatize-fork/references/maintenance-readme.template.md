@@ -8,7 +8,7 @@
 
 同事从 `origin`（私有 fork）克隆后，配置 upstream 只读远端 → 禁推（push 设为 `DISABLED`）→ `git fetch upstream --tags`。两种方式：
 
-- **装了 privatize-fork skill**（CC 或 Codex）：直接**重跑该 skill**（幂等，自动补齐 upstream 配置，并增量刷新翻译）。
+- **装了 privatize-fork skill**（CC、Codex 或 Pi）：直接**重跑该 skill**（幂等，自动补齐 upstream 配置，并增量刷新翻译）。
 - **没装 skill**：手动执行等价操作即可——
 
 ```bash
@@ -61,7 +61,7 @@ git fetch upstream --tags
 private/                 # 私有数据：本规范、台账、（可选）译文
 ```
 
-upstream 初始化与文档翻译由 privatize-fork skill 内联完成（重跑即可）。让 AI 自动遵循本规范的指针段写在 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex）。
+upstream 初始化与文档翻译由 privatize-fork skill 内联完成（重跑即可）。让 AI 自动遵循本规范的指针段写在 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex / Pi）。
 
 ## 升级流程
 
