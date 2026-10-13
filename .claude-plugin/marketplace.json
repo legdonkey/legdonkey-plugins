@@ -1,19 +1,13 @@
 {
   "name": "legdonkey",
   "owner": { "name": "legdonkey" },
-  "description": "legdonkey 的 Claude Code 工具集市，收录三个独立插件：privatize-fork（开源 fork 一次性私有化脚手架）、context-doctor（跨平台上下文审计）与 bailian-tts（阿里百炼 Qwen-Audio 配音）。",
+  "description": "legdonkey 的 Claude Code 工具集市，收录两个独立插件：privatize-fork（开源 fork 一次性私有化脚手架）与 bailian-tts（阿里百炼 Qwen-Audio 配音）。",
   "plugins": [
     {
       "name": "privatize-fork",
       "source": "./plugins/privatize-fork",
       "description": "把 clone 下来的开源 fork 一次性私有化的脚手架：upstream 只读跟踪+禁推、private/ 隔离与维护规范。跨 Claude Code 与 Codex。",
       "version": "1.5.0"
-    },
-    {
-      "name": "context-doctor",
-      "source": "./plugins/context-doctor",
-      "description": "跨平台上下文审计：用官方 CLI 治理入口盘点 Claude Code 与 Codex 的插件/MCP/市场源，技能走目录。只在手动点名时运行。",
-      "version": "3.0.3"
     },
     {
       "name": "bailian-tts",
