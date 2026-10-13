@@ -4,7 +4,7 @@
 
 # privatize-fork
 
-> 一个跨 **Claude Code** 与 **Codex** 的插件（基于开放标准 [skill](https://agentskills.io)）：把 clone 下来的开源项目 fork **一次性私有化**。
+> 一个跨 **Claude Code**、**Codex** 与 **Pi** 的插件（基于开放标准 [skill](https://agentskills.io)）：把 clone 下来的开源项目 fork **一次性私有化**。
 >
 > ← 返回[仓库总览](../../README.md) ｜ 姊妹插件：[bailian-tts](../bailian-tts/)
 
@@ -33,7 +33,7 @@
 ## 核心特性
 
 <p align="center">
-  <img src="assets/features.svg" alt="privatize-fork 核心特性：安全隔离 · 可维护可追溯 · 跨 Claude Code/Codex · 方法论内核" width="100%">
+  <img src="assets/features.svg" alt="privatize-fork 核心特性：安全隔离 · 可维护可追溯 · 跨 Claude Code/Codex/Pi · 方法论内核" width="100%">
 </p>
 
 | 特性 | 说明 |
@@ -45,8 +45,8 @@
 | **私有内容尽量隔离** | 新增定制集中进 `private/`，不往 upstream 目录塞新文件；确需直接改的上游文件登记入账、定好冲突策略，升级时有据可查。 |
 | **维护规范自动生成** | `private/README.md` 含升级流程、私有 tag 约定、版本号位置、验证命令。 |
 | **改动台账** | `private/CHANGES-REGISTRY.md` 登记每一处私有定制，可追溯、可审计。 |
-| **可选文档翻译（内联 + 增量更新）** | skill **自己内联翻译** upstream 官方文档到 `private/translations/`，无需装命令。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑 skill 时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；CC（`Agent` 子代理）与 Codex（subagent）等有并行子任务能力的 agent 并行翻译，仅在确无并行能力时才顺序进行。 |
-| **指针段跨平台** | 按团队 agent 把「私有维护规范」指针写进 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex），去重不重复追加。 |
+| **可选文档翻译（内联 + 增量更新）** | skill **自己内联翻译** upstream 官方文档到 `private/translations/`，无需装命令。亮点是**增量更新**——每份译文记着译自哪个 upstream 版本，重跑 skill 时只重译源文件真正变动过的、补翻缺失的，已是最新的直接跳过；CC（`Agent` 子代理）、Codex（subagent）、装了子代理扩展的 Pi 等有并行子任务能力的 agent 并行翻译，仅在确无并行能力时才顺序进行。 |
+| **指针段跨平台** | 按团队 agent 把「私有维护规范」指针写进 `CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex / Pi），去重不重复追加。 |
 | **本地状态文件 skip-worktree** | `.idea/`、`.vscode/`、`.obsidian/workspace.json` 等上游跟踪、每台机器不同的文件，逐个征得同意后让本机忽略其变化。 |
 | **幂等可重入** | 可重复执行，已存在的文件一律不覆盖、只补缺失；**重跑 skill = 重配 upstream + 增量刷新翻译**，这就是后续维护要做的全部。 |
 | **本地就绪，发布交给你** | skill 只做到「本地就绪」，不替你 push、不替你打 tag，确认无误后一次性发布。 |
@@ -63,33 +63,37 @@
 # Codex
 codex plugin marketplace add legdonkey/legdonkey-plugins --ref main
 codex plugin add privatize-fork@legdonkey
+
+# Pi（整个仓库作为 Pi 包安装，暴露 privatize-fork 与 bailian-tts）
+pi install git:github.com/legdonkey/legdonkey-plugins
 ```
 
-装完重启对应客户端。触发名：**Claude Code** 用 `/privatize-fork`（插件命名空间下 `/privatize-fork:privatize-fork`）；**Codex** 用 `$privatize-fork`。**不会自动调用**——CC 靠 frontmatter `disable-model-invocation: true`、Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动触发。
+装完重启对应客户端（Pi 会话内可用 `/reload`）。触发名：**Claude Code** 用 `/privatize-fork`（插件命名空间下 `/privatize-fork:privatize-fork`）；**Codex** 用 `$privatize-fork`；**Pi** 用 `/skill:privatize-fork`。**不会自动调用**——CC 与 Pi 都读 frontmatter 的 `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动触发。Pi 下用 `pi update` 跟进新版本。
 
 ## 开始使用
 
 1. clone 你的私有 fork 到本地（`origin` 指向你的 fork）；
-2. 在**该项目目录**里打开 CC 或 Codex，手动触发（Claude Code 用 `/`、Codex 用 `$`）：
+2. 在**该项目目录**里打开 CC、Codex 或 Pi，手动触发：
 
 ```
 /privatize-fork      # Claude Code
 $privatize-fork      # Codex
+/skill:privatize-fork   # Pi
 ```
 
 skill 会带你走完整个流程，最后把私有化基建留在**本地就绪**状态——**不替你 push、不替你打 tag**，发布留给你确认无误后手动做。后续维护（重配 upstream、刷新翻译）只需**重跑这个 skill**。
 
 ### 兼容性
 
-`SKILL.md` 是 [agentskills.io](https://agentskills.io) 开放标准，同一份文件 CC / Codex / Gemini CLI / Cursor 等 30+ 工具通用。两边差异都已抹平：
+`SKILL.md` 是 [agentskills.io](https://agentskills.io) 开放标准，同一份文件 CC / Codex / Pi / Gemini CLI / Cursor 等 30+ 工具通用。三个平台的差异都已抹平：
 
-| | Claude Code | Codex |
-|---|---|---|
-| 插件位置 | `~/.claude/plugins/` | `~/.codex/plugins/` |
-| 禁自动调用 | `disable-model-invocation: true`（frontmatter） | `agents/openai.yaml` → `allow_implicit_invocation: false` |
-| 选项弹窗 | `AskUserQuestion` | `request_user_input`（交互式会话即可，无需 `/plan`；仅 `codex exec` 非交互模式不支持） |
-| 并行子任务 | `Agent`（子代理） | subagent |
-| 指令文件（指针段） | `CLAUDE.md` | `AGENTS.md` |
+| | Claude Code | Codex | Pi |
+|---|---|---|---|
+| 安装形态 | 插件市场 | 插件市场 | Pi 包（git 仓库） |
+| 禁自动调用 | `disable-model-invocation: true`（frontmatter） | `agents/openai.yaml` → `allow_implicit_invocation: false` | `disable-model-invocation: true`（frontmatter） |
+| 选项弹窗 | `AskUserQuestion` | `request_user_input`（交互式会话即可，无需 `/plan`；仅 `codex exec` 非交互模式不支持） | 核心不内置；装了提问扩展（如 `ask_user_question`）就用，否则退化为普通问答 |
+| 并行子任务 | `Agent`（子代理） | subagent | 核心不内置；有子代理扩展就并行，否则顺序翻译 |
+| 指令文件（指针段） | `CLAUDE.md` | `AGENTS.md` | `AGENTS.md` |
 
 ## 实现方式与注意事项
 
@@ -99,11 +103,11 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 |------|------|
 | 0 | 前置检查 + 重入守卫（已初始化则进增量模式，只补缺失、绝不覆盖） |
 | 1 | 勘察（只读，跑 `recon.sh`）：远端协议、`.gitignore` 暗礁、版本号位置、本地状态文件、upstream tag |
-| 2 | 引导问答：upstream 地址、私有 tag 格式、协议、是否启用翻译、团队用哪个 agent、高冲突文件清单 |
+| 2 | 引导问答：upstream 地址、私有 tag 格式、协议、是否启用翻译、团队用哪些 agent、高冲突文件清单 |
 | 3 | 配 git 远端（即 init，跑 `setup-remote.sh`）：upstream 只读跟踪 + `push = DISABLED` + 自检 |
 | 4 | 建 `private/`：维护规范 `README.md` + 改动台账 `CHANGES-REGISTRY.md` |
 | 5 | 翻译（若启用）：`translate-plan.sh` 判增量清单 → skill 内联翻译变动文档 |
-| 6 | 写指针段：`CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex） |
+| 6 | 写指针段：`CLAUDE.md`（CC）和/或 `AGENTS.md`（Codex / Pi） |
 | 7 | 本地状态文件按需 `skip-worktree`（逐个征得同意） |
 | 8 | 收尾：汇总产物，给出发布命令但**不自动执行** |
 
@@ -120,7 +124,7 @@ skill 会带你走完整个流程，最后把私有化基建留在**本地就绪
 plugins/privatize-fork/
 ├── .claude-plugin/plugin.json      # CC 插件清单
 ├── .codex-plugin/plugin.json       # Codex 插件清单（skills 指向 ./skills/）
-└── skills/privatize-fork/          # 技能本体（CC/Codex 共用）
+└── skills/privatize-fork/          # 技能本体（CC/Codex/Pi 共用）
     ├── SKILL.md                    #   入口，唯一被识别的文件
     ├── agents/openai.yaml          #   Codex 专属元数据（禁自动调用；CC 忽略）
     ├── scripts/                    #   关键步骤固化的自检脚本（幂等/只读 + 自检）
