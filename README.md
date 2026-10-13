@@ -77,6 +77,40 @@ pi install git:github.com/legdonkey/legdonkey-plugins
 
 > **不会自动调用**：CC 与 Pi 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——都只能由你手动触发。
 
+### 本地开发安装（从 clone 下来的目录装）
+
+改插件时直接装本地目录，不用推送到 GitHub 就能在三个端试用。下面的 `<仓库路径>` 用绝对路径，例如 `~/Projects/legdonkey-plugins`。
+
+> 本地目录和 GitHub 上的市场同名（都叫 `legdonkey`），**同一个端只能留一个**：已经从 GitHub 装过的，先移除市场再换成本地目录，反之亦然。
+
+**Claude Code**
+
+```bash
+claude plugin marketplace add <仓库路径>
+claude plugin install privatize-fork@legdonkey
+claude plugin install bailian-tts@legdonkey
+```
+
+本地目录市场直接读源码目录（`claude plugin list` 里的 `Read from` 是仓库下的 `plugins/<插件名>`），改完重启 Claude Code 即生效。只想临时试某个插件、不写进配置：`claude --plugin-dir <仓库路径>/plugins/privatize-fork`，仅对本次会话有效。
+
+**Codex**
+
+```bash
+codex plugin marketplace add <仓库路径>
+codex plugin add privatize-fork@legdonkey
+codex plugin add bailian-tts@legdonkey
+```
+
+Codex 安装时会把插件复制到 `~/.codex/plugins/cache/legdonkey/<插件名>/<版本>/`，**改了源码不会自动同步**：用 `codex plugin remove <插件名>@legdonkey` 再 `codex plugin add` 重装，或升版本号后重装。用完换回 GitHub 市场：`codex plugin marketplace remove legdonkey`。
+
+**Pi**
+
+```bash
+pi install <仓库路径>
+```
+
+Pi 直接引用这个目录（`pi list` 显示本地路径），改完在会话里 `/reload` 即生效；`pi remove <仓库路径>` 卸载。不想写进配置、只试一次：`pi --skill <仓库路径>/plugins/privatize-fork/skills/privatize-fork`。
+
 ## 仓库结构
 
 ```text
