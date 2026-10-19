@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""阿里百炼语音合成(固定模型 qwen-audio-3.1-tts-flash)。
+"""语音合成工作台(Flash 配音；UI 试听与 say 可切换 Next、Eleven v4)。
 
 - voices:  列出系统音色(与官方对齐);--mine 列出账号下全部复刻音色,标出哪些本模型可用
 - preview: 合成一句并播放(试听)
@@ -11,7 +11,7 @@
 - status:  检查运行环境与 API key(不联网);未配置 key 时提示打开引导页
 - ui:      打开本地配音工作台:开始(配置 API key、功能介绍)、选音色、声音复刻在同一个页面
            clone-ui / pick-ui 是它的别名,分别直接打开声音复刻 / 选音色
-- say:     朗读选中文本(macOS):配合鼠标按键或快捷键,分段边合成边播放,再次触发即打断
+- say:     朗读选中文本(macOS):配合鼠标按键或快捷键,整段合成后播放,再次触发即打断
 
 指令(instruction):任意自然语言,≤100 字符(汉字计 2),系统音色与复刻音色都支持。
 文本内可直接嵌入 [excited]、[laughing] 等情感/富语言标签。
@@ -20,8 +20,13 @@ API key:环境变量 DASHSCOPE_API_KEY → 文件 ~/.dashscope_key(权限 600,�
 依赖:dashscope、ffmpeg、afplay(macOS 播放)。
 """
 import argparse, json, os, re, subprocess, sys, tempfile, time, wave
+import elevenlabs_api as eleven
 
 MODEL = "qwen-audio-3.1-tts-flash"
+NEXT_MODEL = "qwen-audio-3.1-tts-next"
+READ_LIMIT_CAPS = {MODEL: 20000, NEXT_MODEL: 2800, eleven.MODEL: 2000, eleven.TURBO_MODEL: 2000}
+DEFAULT_READ_LIMIT = 1500
+SETTINGS_PATH = os.path.expanduser("~/.config/bailian-tts/settings.json")
 DEFAULT_VOICE = "longanhuan_v3.1"
 DEFAULT_SAMPLE = "这次活动的效果，真是出乎我的意料。"
 EMOTION_ZH = {"neutral": "平静", "happy": "开心", "angry": "生气", "sad": "难过",
@@ -34,6 +39,92 @@ _CATALOG_PATH = os.path.join(os.path.dirname(__file__), "..", "references", "voi
 FAV_PATH = os.path.expanduser("~/.config/bailian-tts/favorites.txt")
 KEY_PATH = os.path.expanduser("~/.dashscope_key")
 KEY_CONSOLE = "https://bailian.console.aliyun.com/cn-beijing/model/settings/api-key"
+
+
+def load_settings():
+    settings = {"model": MODEL, "workspace_id": "", "description": "沉稳知性的女声，语速适中"}
+    if os.path.exists(SETTINGS_PATH):
+        with open(SETTINGS_PATH, encoding="utf-8") as f:
+            settings.update(json.load(f))
+    settings["read_limits"] = {**dict.fromkeys(READ_LIMIT_CAPS, DEFAULT_READ_LIMIT), **settings.get("read_limits", {})}
+    settings["workspace_id"] = os.environ.get("SFM_WORKSPACE_ID") or settings["workspace_id"]
+    return settings
+
+
+def save_settings(data):
+    settings = {k: str(data.get(k, "")).strip() for k in ("model", "workspace_id", "description")}
+    if settings["model"] not in (MODEL, NEXT_MODEL, *eleven.MODELS):
+        raise ValueError("不支持的模型")
+    if settings["workspace_id"] and not re.fullmatch(r"[A-Za-z0-9-]{1,100}", settings["workspace_id"]):
+        raise ValueError("业务空间 ID 只能包含字母、数字和连字符，不要填写完整 URL")
+    if len(settings["description"]) > 100:
+        raise ValueError("声音描述不能超过 100 字")
+    if settings["model"] == NEXT_MODEL and not (settings["workspace_id"] and settings["description"]):
+        raise ValueError("使用 Next 请先填写业务空间 ID 和声音描述")
+    updates = data.get("read_limits", {})
+    if not isinstance(updates, dict) or any(model not in READ_LIMIT_CAPS for model in updates):
+        raise ValueError("朗读字数配置必须按已支持的模型填写")
+    limits = {**load_settings()["read_limits"], **updates}
+    for model, limit in limits.items():
+        if type(limit) is not int or not 1 <= limit <= READ_LIMIT_CAPS[model]:
+            raise ValueError(f"{model} 朗读上限必须是 1～{READ_LIMIT_CAPS[model]} 的整数")
+    settings["read_limits"] = limits
+    os.makedirs(os.path.dirname(SETTINGS_PATH), exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(SETTINGS_PATH))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(settings, f, ensure_ascii=False)
+        os.replace(tmp, SETTINGS_PATH)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+    return load_settings()
+
+
+def synth_next(text, settings, rate=1.0, volume=50):
+    """Next 只使用文字描述声音，不传 Flash 音色 ID。"""
+    import urllib.request, urllib.error
+    workspace = settings["workspace_id"]
+    if not re.fullmatch(r"[A-Za-z0-9-]{1,100}", workspace):
+        raise ValueError("请在 UI 中配置 Next 的业务空间 ID")
+    prompt = f"{settings['description']}。只朗读以下文本，不加开场白、配乐或音效：\n{text}"
+    if len(prompt) > 3000:
+        raise ValueError("Next 的声音描述与正文合计不能超过 3000 字符")
+    endpoint = f"https://{workspace}.cn-beijing.maas.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer"
+    payload = {"model": NEXT_MODEL, "input": {"text_prompt": prompt, "format": "wav",
+               "sample_rate": 24000, "channels": 1, "rate": _clamp(rate, 0.5, 2.0),
+               "volume": int(_clamp(volume, 0, 100))}}
+    req = urllib.request.Request(endpoint, data=json.dumps(payload).encode(),
+                                 headers={"Authorization": f"Bearer {get_key()}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=300) as response:
+            result = json.load(response)
+    except urllib.error.HTTPError as e:
+        try:
+            with e:
+                error = json.loads(e.read(16384))
+            if not isinstance(error, dict):
+                error = {}
+        except (ValueError, UnicodeError):
+            error = {}
+        details = "；".join(str(error[k]) for k in ("code", "message", "request_id") if error.get(k))
+        # 服务端可能回显请求内容；错误提示不暴露 Key 或签名下载链接。
+        authorization = req.get_header("Authorization") or ""
+        if authorization.startswith("Bearer "):
+            details = details.replace(authorization[7:], "[已隐藏 Key]")
+        details = re.sub(r"https?://[^\s；]+", "[已隐藏 URL]", details)[:800]
+        raise ValueError(f"Next 请求失败（HTTP {e.code}）：{details or '服务端未提供错误详情'}") from None
+    audio = result.get("output", {}).get("audio", {})
+    if not audio.get("url"):
+        raise ValueError("Next 未返回音频下载地址，请稍后重试")
+    from urllib.parse import urlsplit
+    url = urlsplit(audio["url"])
+    if url.scheme not in ("http", "https") or not url.hostname or url.username or url.password:
+        raise ValueError("Next 返回了无效的音频地址，仅支持 HTTP/HTTPS 下载链接")
+    # 对象存储可能返回 HTTP 签名链接；保留主机、路径和签名，仅升级传输协议。
+    download_url = url._replace(scheme="https").geturl()
+    with urllib.request.urlopen(download_url, timeout=60) as response:
+        return response.read()
 
 
 def load_catalog():
@@ -411,12 +502,17 @@ class LocalUI:
         self.audio, self._ids = {}, itertools.count()  # 页面并发请求时编号也不冲突
         self.workdir = tempfile.mkdtemp(prefix="bailian_ui_")
 
-    def say(self, voice, text, instruction=None):
+    def say(self, voice, text, instruction=None, settings=None):
         """合成并暂存在内存,返回 (页面可用的音频地址, 时长秒)。"""
         import types
         key = str(next(self._ids))
         path = os.path.join(self.workdir, f"say_{key}.wav")
-        secs = synth_to_file(voice, text, instruction, types.SimpleNamespace(rate=1.0, pitch=1.0, volume=50), path)
+        if settings and settings["model"] in (NEXT_MODEL, *eleven.MODELS):
+            raw = eleven.synth(text, voice, settings["model"]) if settings["model"] in eleven.MODELS else synth_next(text, settings)
+            normalize(raw, path)
+            secs = duration(path)
+        else:
+            secs = synth_to_file(voice, text, instruction, types.SimpleNamespace(rate=1.0, pitch=1.0, volume=50), path)
         self.audio[key] = open(path, "rb").read()
         return f"/audio?t={self.token}&k={key}", round(secs, 2)
 
@@ -530,18 +626,33 @@ def cmd_ui(a):
     还没配置 key 时总是先打开「开始」页。"""
     ui = LocalUI("studio.html")
     created, takes, log = [], {}, {"key_saved": False, "say_installed": False, "openlogi": ""}  # takes:(音色, 句子, 指令) → (音频地址, 时长),本次会话内不重复合成
-    page = a.page if key_status()["configured"] else "home"
+    page = a.page if key_status()["configured"] or (load_settings()["model"] in eleven.MODELS and eleven.key_status()["configured"]) else "home"
 
     def state(q, body, ctype):
-        return {"model": MODEL, "key": key_status(), "deps": deps_status(), "console": KEY_CONSOLE,
+        return {"settings": load_settings(), "model": MODEL, "key": key_status(), "deps": deps_status(), "console": KEY_CONSOLE,
                 "catalog": load_catalog(), "favorites": load_favorites(), "sample": DEFAULT_SAMPLE,
-                "platform": sys.platform}
+                "platform": sys.platform, "eleven_key": eleven.key_status(), "eleven_favorites": eleven.favorites(), "read_limit_caps": READ_LIMIT_CAPS}
 
     def key(q, body, ctype):
         d = json.loads(body)
         st = save_key_from_clipboard() if d.get("clipboard") else save_key(d.get("key", ""))
         log["key_saved"] = True
         return {"key": st}
+
+    def settings_save(q, body, ctype):
+        return {"settings": save_settings(json.loads(body))}
+
+    def eleven_voices(q, body, ctype):
+        voices = eleven.list_voices()
+        return {"voices": voices, "favorites": eleven.seed_favorites(voices)}
+
+    def eleven_key(q, body, ctype):
+        voices = eleven.save_key(json.loads(body).get("key", ""))
+        return {"key": eleven.key_status(), "voices": voices, "favorites": eleven.seed_favorites(voices)}
+
+    def eleven_fav(q, body, ctype):
+        d = json.loads(body)
+        return {"favorites": eleven.update_favorite(d["voice"], d.get("name", ""), d["action"])}
 
     def key_get(q, body, ctype):
         return {"key": key_status()}
@@ -556,12 +667,17 @@ def cmd_ui(a):
         voice, text = d["voice"], d["text"].strip()[:200]
         if not text:
             return {"error": "请先写一句要试听的话。"}
-        check_voice(voice)
-        instr = resolve_instruction((d.get("instruct") or "").strip() or None, None)
-        k = (voice, text, instr)
+        settings = load_settings()
+        if d.get("model", settings["model"]) != settings["model"]:
+            return {"error": "默认模型已在其他工作台更改，请刷新页面后重试。"}
+        is_next = settings["model"] in (NEXT_MODEL, *eleven.MODELS)
+        if not is_next:
+            check_voice(voice)
+        instr = None if is_next else resolve_instruction((d.get("instruct") or "").strip() or None, None)
+        k = (voice, text, instr, json.dumps(settings, sort_keys=True))
         cached = k in takes
         if not cached:
-            takes[k] = ui.say(voice, text, instr)
+            takes[k] = ui.say(voice, text, instr, settings)
         url, secs = takes[k]
         return {"audio": url, "duration": secs, "cached": cached}
 
@@ -600,8 +716,16 @@ def cmd_ui(a):
         return {"deleted": d["voice"]}
 
     def say_state(q, body, ctype):
+        settings = load_settings()
+        if settings["model"] in eleven.MODELS:
+            favs = eleven.favorites()
+            voice = favs[0] if favs else {"voice": "", "name": "请先收藏 ElevenLabs 音色"}
+        else:
+            vid = default_voice()[0]
+            voice = {"voice": vid, "name": describe(vid)}
         return {"wrapper": say_wrapper_status(), "openlogi": openlogi_status(), "workflow": OPENLOGI_WORKFLOW,
-                "script": SHORTCUT_SCRIPT, "voice": default_voice()[0], "log": say_log_tail(), "log_path": tilde(SAY_LOG)}
+                "script": SHORTCUT_SCRIPT, "voice": voice["voice"], "voice_name": voice["name"],
+                "log": say_log_tail(), "log_path": tilde(SAY_LOG)}
 
     def say_install(q, body, ctype):
         write_say_wrapper()
@@ -624,7 +748,7 @@ def cmd_ui(a):
         with open(err, "w") as ef:
             p = subprocess.Popen([SAY_WRAPPER], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
                                  stderr=ef, start_new_session=True, text=True)
-        p.stdin.write(text[:1500]); p.stdin.close()  # type: ignore[union-attr]
+        p.stdin.write(text); p.stdin.close()  # type: ignore[union-attr]
         try:  # 正常时会一直播放;1.5 秒内就退出且返回码非 0 说明没启动起来
             if p.wait(timeout=1.5):
                 return {"error": "朗读没启动起来:" + open(err).read().strip()[-300:]}
@@ -638,8 +762,9 @@ def cmd_ui(a):
 
     ui.serve("配音工作台", {("GET", "/say-state"): say_state, ("POST", "/say-install"): say_install,
                           ("POST", "/say-bind"): say_bind, ("POST", "/say-try"): say_try, ("POST", "/say-stop"): say_stop,
-                          ("GET", "/state"): state, ("POST", "/key"): key, ("GET", "/key"): key_get,
-                          ("GET", "/mine"): mine,
+                          ("GET", "/state"): state, ("POST", "/settings"): settings_save, ("POST", "/key"): key, ("GET", "/key"): key_get,
+                          ("GET", "/mine"): mine, ("GET", "/eleven-voices"): eleven_voices,
+                          ("POST", "/eleven-key"): eleven_key, ("POST", "/eleven-fav"): eleven_fav,
                           ("POST", "/say"): say, ("POST", "/fav"): fav, ("POST", "/clone"): clone,
                           ("POST", "/delete"): delete}, a, page)
     st = key_status()
@@ -751,7 +876,7 @@ def cmd_script(a):
 
 
 # ---------- say:朗读选中文本(macOS) ----------
-# 鼠标按键 / 快捷键触发:清理 Markdown → 截断 → 按句分段,播放当前段的同时合成下一段。
+# 鼠标按键 / 快捷键触发:清理 Markdown → 截断 → 整段合成后播放。
 # 每次朗读自成进程组,组 ID 记在 SAY_PID;再次触发时整组结束(含正在合成与播放的段落)。
 
 SAY_DIR = os.path.expanduser("~/Library/Caches/bailian-tts/say")
@@ -772,6 +897,14 @@ def clean_markdown(text):
     text = re.sub(r"^\s*\|?[\s:|-]+\|[\s:|-]*$", "", text, flags=re.M)    # 表格分隔行
     text = re.sub(r"[*_~|#>]+", " ", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def read_limit(settings, override=None):
+    model = settings["model"]
+    limit = override if override is not None else settings.get("read_limits", {}).get(model, DEFAULT_READ_LIMIT)
+    if type(limit) is not int or not 1 <= limit <= READ_LIMIT_CAPS[model]:
+        raise ValueError(f"朗读上限须为 1～{READ_LIMIT_CAPS[model]} 的整数")
+    return limit
 
 
 def truncate_text(text, limit):
@@ -852,7 +985,15 @@ def speak_segments(parts, voice, instr, a):
     signal.signal(signal.SIGTERM, interrupted)
 
     def job(i):
-        raw = synth(voice, parts[i], instr, a.rate, a.pitch, a.volume)
+        if a.synth_settings["model"] in (NEXT_MODEL, *eleven.MODELS):
+            try:
+                raw = (eleven.synth(parts[i], voice, a.synth_settings["model"]) if a.synth_settings["model"] in eleven.MODELS
+                       else synth_next(parts[i], a.synth_settings, a.rate, a.volume))
+            except Exception as e:
+                print(f"{a.synth_settings['model']} 合成失败: {e}", file=sys.stderr, flush=True)
+                return None
+        else:
+            raw = synth(voice, parts[i], instr, a.rate, a.pitch, a.volume)
         if not raw:
             return None
         path = os.path.join(tmp, f"{i}.wav")
@@ -1036,16 +1177,26 @@ def cmd_say(a):
     else:
         raw = a.text if a.text is not None else sys.stdin.read()
         stop_previous_say()  # 没有 --save 这一步,在这里结束上一次
-    text = truncate_text(clean_markdown(raw), a.max)
+    a.synth_settings = load_settings()
+    try:
+        limit = read_limit(a.synth_settings, a.max)
+    except ValueError as e:
+        return notify(str(e))
+    text = truncate_text(clean_markdown(raw), limit)
+    # 截断附加的省略号也须落在当前接口的安全长度内。
+    cap = READ_LIMIT_CAPS[a.synth_settings["model"]]
+    if len(text) > cap:
+        text = text[:cap - 2] + "……"
     if not text:
         return notify("没有可朗读的文字")
-    check_voice(a.voice)
+    if a.synth_settings["model"] == MODEL:
+        check_voice(a.voice)
     instr = resolve_instruction(a.instruct, a.emotion)
-    parts = split_segments(text)
+    parts = [text]
     os.makedirs(os.path.dirname(SAY_LOG), exist_ok=True)
     with open(SAY_LOG, "a", encoding="utf-8") as log:
         sys.stdout = sys.stderr = log  # 后台运行时输出写进日志
-        print(f"\n--- {time.strftime('%F %T')} {describe(a.voice)} {len(text)} 字,分 {len(parts)} 段 "
+        print(f"\n--- {time.strftime('%F %T')} {a.synth_settings['model']} {describe(a.voice)} {len(text)} 字,分 {len(parts)} 段 "
               f"{[len(p) for p in parts]}:{text[:40]}", flush=True)
         speak_segments(parts, a.voice, instr, a)
 
@@ -1117,10 +1268,10 @@ def main():
         sp.add_argument("--no-open", action="store_true", dest="no_open", help="不自动打开浏览器")
         sp.set_defaults(func=cmd_ui)
 
-    sp = sub.add_parser("say", help="朗读选中文本(macOS,配合鼠标按键或快捷键;分段边合成边播放)")
+    sp = sub.add_parser("say", help="朗读选中文本(macOS,配合鼠标按键或快捷键;整段合成后播放)")
     add_synth_opts(sp)
     sp.add_argument("--text", help="要朗读的文本(默认从 stdin 读)")
-    sp.add_argument("--max", type=int, default=1500, help="最多朗读的字数(默认 1500,超出在句末截断)")
+    sp.add_argument("--max", type=int, help="覆盖当前模型的朗读字数配置(未配置时 1500,超出优先在句末截断)")
     mode = sp.add_mutually_exclusive_group()
     mode.add_argument("--save", action="store_true", help="按键工作流第 1 步:结束上一次朗读,存下剪贴板文字并清空")
     mode.add_argument("--clipboard", action="store_true", help="按键工作流最后一步:朗读刚复制的文字并还原剪贴板")
@@ -1136,7 +1287,11 @@ def main():
     if a.cmd == "fav" and a.action != "list" and not a.voices:
         p.error(f"fav {a.action} 需要至少一个音色")
     if getattr(a, "voice", "") is None and not (getattr(a, "save", False) or getattr(a, "install", False)):
-        a.voice, source = default_voice()
+        if a.cmd == "say" and load_settings()["model"] in eleven.MODELS:
+            favs = eleven.favorites()
+            a.voice, source = (favs[0]["voice"] if favs else ""), "ElevenLabs 收藏第 1 个"
+        else:
+            a.voice, source = default_voice()
         print(f"未指定音色,使用{source}:{a.voice}", file=sys.stderr)
     a.func(a)
 

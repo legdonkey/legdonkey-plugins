@@ -1,10 +1,10 @@
 ---
 name: bailian-tts
-description: 用阿里百炼 qwen-audio-3.1-tts-flash 把中文(及方言、多语种)文案合成自然语音:用任意自然语言指令控制语气/情感/语速/角色,在文本里嵌入 [excited]、[laughing] 等情感与拟声标签;支持试听音色、单段生成 wav、按脚本批量生成并输出字幕(SRT)与拼接音轨,以及用自己的录音复刻音色。当用户想用阿里/百炼/Qwen-Audio/DashScope 做语音合成、TTS、配音、旁白、朗读、文字转语音,给视频/PPT/课件加配音,要带情感或方言的配音,试听音色,把多段文案批量转成 wav 并对齐字幕,或复刻自己的声音时,使用本技能。不要每次现写 SDK 代码。
+description: 用阿里百炼 qwen-audio-3.1-tts-flash 把中文(及方言、多语种)文案合成自然语音:用任意自然语言指令控制语气/情感/语速/角色,在文本里嵌入 [excited]、[laughing] 等情感与拟声标签;支持试听音色、单段生成 wav、按脚本批量生成并输出字幕(SRT)与拼接音轨,以及用自己的录音复刻音色。当用户想用阿里/百炼/Qwen-Audio/DashScope 做语音合成、TTS、配音、旁白、朗读、文字转语音,给视频/PPT/课件加配音,要带情感或方言的配音,试听音色,把多段文案批量转成 wav 并对齐字幕,或复刻自己的声音时,使用本技能。工作台试听与选中朗读也支持 ElevenLabs Eleven v4（独立 Key、固定音色与收藏）。不要每次现写 SDK 代码。
 disable-model-invocation: true
 ---
 
-# 阿里百炼语音合成(qwen-audio-3.1-tts-flash)
+# 语音合成工作台（百炼 Flash / Next、Eleven v4）
 
 把文案合成成接近真人的语音。核心是 `scripts/tts.py`,封装了「读 key → 调 Qwen-Audio-TTS(带指令)→ 规范化为 24kHz 单声道 wav → 量时长」,以及复刻音色的创建、查询、删除。
 
@@ -32,12 +32,28 @@ disable-model-invocation: true
 
 ## 模型与音色
 
-- **固定模型** `qwen-audio-3.1-tts-flash`。**默认音色**:未指定 `-v` 时用用户**收藏的第 1 个**(见 `fav`),收藏为空时用 `longanhuan_v3.1`(女)。脚本会在 stderr 打印实际用了哪个。
+- **Flash 模型** `qwen-audio-3.1-tts-flash` 用于音色收藏、声音复刻及 `gen` / `script` / `preview`。工作台顶部可切换试听和 `say` 的默认模型为 `qwen-audio-3.1-tts-next`，配置保存在 `~/.config/bailian-tts/settings.json`；Next 使用声音描述，不使用 Flash 音色 ID。**默认音色**:未指定 `-v` 时用用户**收藏的第 1 个**(见 `fav`),收藏为空时用 `longanhuan_v3.1`(女)。脚本会在 stderr 打印实际用了哪个。
 - 68 个系统音色在 [references/voices.json](references/voices.json)(与官方列表对齐),`voices` 命令直接读。系统音色名都以 `_v3.1` 结尾,区分大小写。
 - **音色必须属于本模型**:其它模型的系统音色(如 3.0 系列的 `*_v3.6`)、为其它模型创建的复刻音色都不能用,服务端只会回 `411`。脚本会提前识别并提示。
 - 分组:**多语种与方言**(4 个,支持 8 种方言与 8 种外语)、**精品中文**(22 个,仅普通话)、**精品英文**(15 个,仅英文)、**其他系统**(27 个,角色/童声/陪伴等)。
 
-## 控制语气
+### Eleven v4 / Eleven v4 Turbo
+
+- `eleven_v4_turbo` 可在同一模型下拉框中选择，与 v4 共用 ElevenLabs Key、账号音色和本地收藏。保存后同步用于 UI 试听与中键朗读；不改变现有默认音色。
+- Turbo 按[官方实时对话指南](https://elevenlabs.io/docs/eleven-api/guides/how-to/websockets/realtime-tdd)使用 TTD WebSocket：注册一个 voice_id、一次提交全文、收齐 Base64 音频块后播放。不恢复文本分段，不承诺流式首包延迟；出错不自动重试、不会自动改用其他模型。
+- Turbo 依赖 `websocket-client`（通常由 dashscope 环境提供）。缺失时用 `~/.bailian-tts-venv/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ websocket-client` 安装，来源为阿里云 PyPI 镜像。
+- 官网当前 API 基础费率为 v4 $0.08/千字符、Turbo $0.04/千字符，实际价格与音色资格以账号为准；使用 Turbo 不解除音色库的付费套餐限制。
+
+- UI 与 `say` 支持 `eleven_v4`，使用官方 Text to Dialogue HTTPS 接口（单人朗读发送一条 `text` / `voice_id` 输入），支持固定音色。`gen` / `script` / `preview` 与声音复刻仍使用百炼 Flash。
+- 在工作台顶部选择 Eleven v4，打开 ElevenLabs API Key 页面，由用户创建具有读取音色与语音生成权限的 Key，粘贴到本地密码输入框并点击「校验并保存 Key」。不要读取用户剪贴板或把 Key 写进对话。校验只读取账号音色，不提交合成。
+- 密钥：`ELEVENLABS_API_KEY` → `~/.config/bailian-tts/elevenlabs.key`，文件权限 600；只显示掩码，环境变量与新 Key 冲突时拒绝覆盖。
+- 点「保存模型设置」切换试听与中键朗读。刷新账号音色后可加入收藏、设为默认；收藏位于 `~/.config/bailian-tts/elevenlabs-favorites.json`，第 1 个为中键默认音色，与百炼收藏隔离。本地取消收藏不删除 ElevenLabs 账号音色。首次读取账号音色时，若本地收藏文件尚不存在，从可用账号音色中导入 Siqi Liu、Adrian、Roger；不会导入 Coco Li。
+- 使用 `mp3_44100_128` 下载后规范化为现有 24kHz 单声道 WAV，不需要新的 Python 依赖。仅使用文本内音频标签，不传百炼的 `--instruct` / `--emotion` / `--rate` / `--pitch` / `--volume` 参数。UI 试听最多 200 字；中键按当前模型的长度配置截断（初始 1500 字）、整段生成后播放，底层单次限制 2000 字符。
+- 音色范围在已有收藏时默认「仅收藏音色」，可切换为「全部账号音色」挑选新音色；没有收藏时默认展示全部。取消收藏只影响本地收藏，不删除账号音色。音色下拉框标注「免费套餐可试」「API 需付费」「资格待确认」，可勾选仅显示免费套餐可试。依据官方音色元数据：非本人共享音色按 API 付费资格标注，非共享 premade 音色在无付费层级限制时标为免费套餐可试；无法确认时不标免费。`sharing.free_users_allowed` 不等同于 API 免费套餐资格。标注不替代当前账号、模型和额度校验，不提交合成探测资格；免费套餐可试仍消耗额度。
+- 正文会发送到 ElevenLabs；生成消耗该账号额度，用户确认后才提交试听。相同音色与文本在同一工作台中复用已有音频。音色费率与模型费率需按账号确认，首次导入不代表自动核验价格。
+- 参考：[模型文档](https://elevenlabs.io/docs/overview/models#eleven-v4)、[接口](https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert)、[API 定价](https://elevenlabs.io/pricing/api)。
+
+## 控制语气（百炼 Flash）
 
 - **`--instruct "自然语言"`**:原样传给模型。写具体的声音特征比写主观词有效:「沉稳的中年女声,语速偏慢,适合新闻播报」好于「好听一点」。方言也用指令:「请用重庆话表达。」(只对多语种与方言组的 4 个音色有效)。上限 100 字符,汉字计 2,超长脚本直接报错。
 - **`--emotion`**:`neutral / happy / angry / sad / surprised / fearful / disgusted`,未给 `--instruct` 时拼成「用开心的语气说话。」这类指令。
@@ -91,6 +107,7 @@ disable-model-invocation: true
 ... tts.py ui --page clone         # 直接打开「声音复刻」,等同 clone-ui
 ... tts.py ui --page say           # 直接打开「选中朗读」
 ```
+- **模型切换**：展开顶部「默认模型」，选择 Flash、Next、Eleven v4 或 Eleven v4 Turbo 后保存；同步用于工作台「选音色」试听与鼠标/快捷键 `say`，不改变 `gen` / `script` / `preview` 与声音复刻。Next 沿用北京地域 API Key，需要填写业务空间 ID（或设置优先级更高的 `SFM_WORKSPACE_ID`）与声音描述；参考[官方接口](https://help.aliyun.com/zh/model-studio/audio-generation-api)。不上传参考录音，不保证每次音色一致。提示词合计最多 3000 字符，普通场景音频最长 120 秒，1500 字长文可能无法完整生成；试听仍限制 200 字。先用短句试听，不要为尝试模型自动提交付费请求。
 - 用户要挑音色、逐个试听比较 → `--page voices`;要复刻自己的声音 → `--page clone`;要管理音色(收藏、默认、删除复刻)→ `--page voices`。
 - 它会一直运行到用户点顶栏的「完成」。宿主支持后台运行时(如 Claude Code)放到后台,不要轮询;不支持时(如 Pi)前台运行且**不设超时**,地址会先打印出来,命令在用户点「完成」后返回。启动后告诉用户「已在浏览器打开配音工作台(某一栏),操作完点右上角『完成』回到这里」。
 - 进程退出时 stdout 打印 API key 状态(掩码)、本次创建的音色、试听了几个音色合成几次,以及「当前收藏」,据此向用户汇报。
@@ -99,7 +116,13 @@ disable-model-invocation: true
 
 **status** / **key** —— `status` 检查依赖、ffmpeg、API key 与收藏;`key` 查看 key 掩码,`key --console` 在默认浏览器打开百炼控制台的 API Key 页,`key --clipboard` 保存剪贴板里刚复制的 key 并清空剪贴板,`key --stdin` 从标准输入读取。保存前都会向百炼校验,无效 key 不会覆盖已有文件。
 
-**say** —— **用户想「选中文字按一下就读出来」(鼠标按键、快捷键朗读)时用它**,仅 macOS。读入文字 → 去掉代码块与 Markdown 符号 → 超过 `--max`(默认 1500 字)在句末截断 → 按句分段(首段约 80 字尽快开口,后续每段约 180 字),播放当前段的同时合成下一段;再次触发会结束上一次朗读(含正在合成的段落),不再计费。也接受 `-v` / `--instruct` / `--emotion`,不给音色时用收藏第 1 个。输出与报错写到 `~/Library/Logs/bailian-tts-say.log`,失败弹系统通知。
+### 按模型配置朗读长度
+
+- 工作台顶部模型设置提供「当前模型的朗读字数上限」，每个模型独立保存到 `settings.json` 的 `read_limits`。未配置或旧配置按 1500 字处理；修改后点击「保存模型设置」，中键、快捷键与「选中朗读」试读都会读取对应模型的值。
+- CLI 显式指定 `say --max N` 时覆盖该模型的本地配置，仍需满足安全范围：Flash 1～20000、Next 1～2800、Eleven v4 与 Turbo 各 1～2000。Next 为声音描述预留提示词长度，Eleven 使用插件保守的接口限制，不代表模型能力上限；增大字数不能解除输出时长限制。
+- 字数在清理 Markdown 后计算；超出仍优先向前退到句末，必要时硬切并加省略号。整段生成后播放，不恢复自动分段。UI 的音色试听仍固定最多 200 字。
+
+**say** —— **用户想「选中文字按一下就读出来」(鼠标按键、快捷键朗读)时用它**,仅 macOS。读入文字 → 去掉代码块与 Markdown 符号 → 超过当前模型的字数配置（未配置时 1500，`--max` 可覆盖）时优先在句末截断 → 整段一次合成,完成后播放;再次触发会结束上一次朗读(含正在合成的段落),不再计费。也接受 `-v` / `--instruct` / `--emotion`,不给音色时用收藏第 1 个。输出与报错写到 `~/Library/Logs/bailian-tts-say.log`,失败弹系统通知。
 ```bash
 ... tts.py say --install          # 生成 ~/.local/bin/bailian-say,并打印鼠标按键与快捷键的配置方法
 echo "要读的文字" | ~/.local/bin/bailian-say
@@ -144,5 +167,5 @@ echo "要读的文字" | ~/.local/bin/bailian-say
 
 ## 边界
 
-- 只支持 `qwen-audio-3.1-tts-flash` 一个模型。多人对话/配乐/音效一体生成(`qwen-audio-3.1-tts-next`)和声音设计(按文字描述生成音色,官方未对 3.1-flash 开放)不在本技能内。
+- 支持 Flash 音色配音、Eleven v4 固定音色试听与选中朗读，以及 Next 的文字描述声音试听与选中朗读；Next 的多人对话、参考录音、配乐与音效编排不在本技能内。Flash 的声音设计不在本技能内。
 - 复刻他人声音须取得本人授权。

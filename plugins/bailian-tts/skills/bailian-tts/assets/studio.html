@@ -70,7 +70,7 @@
   @keyframes enter { from { opacity: 0; transform: translateY(8px); } }
 
   /* ---- 共用控件 ---- */
-  select, input[type=text], input[type=search], input[type=password], textarea {
+  select, input[type=text], input[type=search], input[type=password], input[type=number], textarea {
     font: inherit; font-size: 15px; width: 100%; padding: 10px 14px; border-radius: 8px;
     border: 1px solid var(--edge); background: var(--inset); color: var(--ivory);
   }
@@ -171,6 +171,21 @@
   .rows.env li { padding: 12px 0; }
 
   /* ================= 选音色 ================= */
+  .model-settings { max-width: 1180px; margin: 0 auto 32px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+  .model-settings .note { color: var(--ash); font-size: 14px; max-width: 72ch; }
+  .model-settings summary { cursor: pointer; margin-bottom: 16px; }
+  .model-settings label { display: block; max-width: 640px; margin: 12px 0; color: var(--ash); font-size: 14px; }
+  .model-settings input, .model-settings select { display: block; width: 100%; margin-top: 8px; }
+  #pg-voices.eleven-mode .studio, #pg-voices.eleven-mode > .gate { display: none; }
+  #elevenPanel { max-width: 680px; position: static; max-height: none; }
+  #eRefresh { flex-shrink: 0; white-space: nowrap; }
+  #elevenPanel label { display: block; margin-bottom: 16px; color: var(--ash); font-size: 14px; }
+  #elevenPanel select, #elevenPanel textarea { width: 100%; margin-top: 8px; }
+  #elevenPanel .note { color: var(--ash); font-size: 14px; }
+  #pg-voices.next-mode .studio { display: block; }
+  #pg-voices.next-mode .desk { max-width: 680px; position: static; max-height: none; }
+  #pg-voices.next-mode .studio > section, #pg-voices.next-mode .desk > .block:last-child,
+  #pg-voices.next-mode #vFav { display: none; }
   #pg-voices { max-width: 1180px; margin-top: -8px; }
   #pg-voices .studio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 1.15fr); gap: 48px; align-items: start; }
   /* 分组:细字标签,当前项象牙白加 1px 下划线 */
@@ -448,6 +463,32 @@
 </header>
 
 <main>
+  <section aria-label="模型设置" class="model-settings">
+    <details>
+      <summary id="modelSummary">试听与选中朗读的默认模型</summary>
+      <form id="modelForm">
+        <label>模型<select id="modelSelect"><option value="qwen-audio-3.1-tts-flash">Flash · 收藏音色</option><option value="qwen-audio-3.1-tts-next">Next · 文字描述声音</option><option value="eleven_v4">Eleven v4 · 固定音色</option><option value="eleven_v4_turbo">Eleven v4 Turbo · 低延迟</option></select></label>
+        <label>当前模型的朗读字数上限<input type="number" id="readMax" min="1" step="1" required aria-describedby="readMaxHint"></label>
+        <p class="note" id="readMaxHint"></p>
+        <p class="note">每个模型独立保存，初始为 1500 字。只影响中键、快捷键和「选中朗读」试读，UI 音色试听仍最多 200 字。超出时优先往前退到句末，仍整段生成后播放。</p>
+        <div id="nextFields" hidden>
+          <label>业务空间 ID<input type="text" id="workspaceId" autocomplete="off" placeholder="例如：llm-xxxxxxxx"></label>
+          <label>Next 声音描述<input type="text" id="nextDescription" maxlength="100" placeholder="例如：沉稳知性的女声，语速适中"></label>
+          <p class="note">北京地域，沿用当前 API Key。Next 不使用 Flash 的收藏或复刻音色；声音由描述生成，不保证每次音色一致。普通场景最长 120 秒，长文可能无法完整读完。环境变量 SFM_WORKSPACE_ID 优先于这里的设置。</p>
+        </div>
+        <div id="elevenFields" hidden>
+          <p class="note">ElevenLabs 使用独立 API Key，不是百炼 Key。请在 ElevenLabs 创建具有 Voices 读取、Text to Speech 生成功能所需权限的 Key；保存时只读取音色列表，不提交合成。</p>
+          <a class="linkish" href="https://elevenlabs.io/app/developers/api-keys" target="_blank" rel="noopener noreferrer">打开 ElevenLabs API Key 页面</a>
+          <label>ElevenLabs API Key<input type="password" id="elevenKey" autocomplete="off" spellcheck="false" placeholder="粘贴 Key，仅保存在本机"></label>
+          <div class="actions"><button type="button" class="compact" id="saveElevenKey">校验并保存 Key</button><span class="note" id="elevenKeyStatus"></span></div>
+          <p class="msg" id="elevenKeyMsg" role="status" aria-live="polite"></p>
+          <p class="note">密钥保存在 ~/.config/bailian-tts/elevenlabs.key（权限 600），ELEVENLABS_API_KEY 环境变量优先。收藏与百炼分开；已有账号音色中的 Siqi Liu、Adrian、Roger 会作为首次推荐收藏导入。生成消耗 ElevenLabs 额度，所选文本会发送至该服务。</p>
+        </div>
+        <div class="actions"><button class="compact" type="submit" id="saveModel">保存模型设置</button><span id="modelCurrent" class="note"></span></div>
+        <p class="msg" id="modelMsg" role="status" aria-live="polite"></p>
+      </form>
+    </details>
+  </section>
   <!-- ================= 开始 ================= -->
   <section class="page" id="pg-home" aria-label="开始" hidden>
     <div class="verdict" id="hHero"><b id="hTitle">先配好 API Key</b><span id="hLead">bailian-tts 用阿里百炼的 qwen-audio-3.1-tts-flash 把文字读成接近真人的配音。第一次用，先花两分钟在百炼控制台创建一个 API Key。</span></div>
@@ -508,6 +549,25 @@
       <div class="verdict"><b>还差一步</b><span>试听要调用百炼接口，先在「开始」里配好 API Key。</span></div>
       <a class="btn primary" href="#home">去配置 API Key</a>
     </div>
+    <section class="desk" id="elevenPanel" aria-label="Eleven v4 试听台" hidden>
+      <div class="card-head"><b id="eTitle">Eleven v4 试听台</b><button class="compact" id="eRefresh">刷新账号音色</button></div>
+      <div class="block">
+        <label>音色范围<select id="eScope"><option value="favorites">仅收藏音色</option><option value="all">全部账号音色</option></select></label>
+        <label>音色<select id="eVoice" aria-label="ElevenLabs 音色"><option value="">请先配置 Key 并刷新</option></select></label>
+        <label><input type="checkbox" id="eFreeOnly"> 仅显示免费套餐可试的音色</label>
+        <p id="eAccess" class="note"></p>
+        <p id="eFavStatus" class="note"></p>
+        <div class="actions"><button class="compact" id="eAdd">加入收藏</button><button class="compact" id="eDefault">设为默认</button><button class="compact" id="eRemove">取消收藏</button></div>
+        <p class="msg" id="eFavMsg" role="status" aria-live="polite"></p>
+      </div>
+      <div class="block">
+        <label>试听文本（最多 200 字）<textarea id="eText" rows="3" maxlength="200">今天，我们一起探索人工智能如何改变工作与生活。</textarea></label>
+        <p class="note">v4 与 Turbo 共用固定 voice_id、Key 和收藏；按 ElevenLabs 额度计费。Turbo 使用 WebSocket 接收音频，仍收齐整段后播放，不承诺网页宣传的首包延迟。仅支持文本内音频标签，不沿用百炼指令、音调或语速参数。鼠标朗读使用顶部为当前模型保存的字数上限，整段完成后播放。</p>
+        <div class="deck"><div class="player empty" id="ePlayer"><button class="play" id="ePlay" aria-label="播放 Eleven v4 试听"><svg><use href="#i-play"/></svg></button><div class="groove"><i></i></div><span class="time">0:00 / 0:00</span></div><button class="primary" id="eListen">试听</button></div>
+        <audio id="eAudio" preload="auto" hidden></audio>
+        <p class="msg" id="eMsg" role="status" aria-live="polite"></p>
+      </div>
+    </section>
     <div class="studio" data-gated>
       <section aria-label="音色清单">
         <div class="tabs" id="vTabs" role="group" aria-label="按分组筛选"></div>
@@ -526,7 +586,7 @@
             <textarea id="vText" maxlength="200" rows="1"></textarea></label>
           <label class="field"><span>指令（可不填）<em class="count" id="vInstrCount">0 / 100</em></span>
             <input type="text" id="vInstr" placeholder="例如：沉稳的中年女声，语速偏慢" autocomplete="off"></label>
-          <p class="hint tight">可写 [laughing]、[serious] 等标签；方言写进指令（仅多语种与方言组）。</p>
+          <p class="hint tight" id="vHint">可写 [laughing]、[serious] 等标签；方言写进指令（仅多语种与方言组）。</p>
         </div>
         <div class="block">
           <div class="ident"><h2 id="vName">—</h2><span class="mark na" id="vFav">未收藏</span></div>
@@ -686,7 +746,7 @@
       <a class="btn primary" href="#home">去配置 API Key</a>
     </div>
     <div data-gated>
-      <div class="verdict"><b>选中文字，按一下就读</b><span id="sLead">在任意 App 里选中文字，按鼠标按键或快捷键，就用默认音色读出来；再按一次立即停止。代码块和 Markdown 符号会自动略过，最多读 1500 字，长文边合成边播放。</span></div>
+      <div class="verdict"><b>选中文字，按一下就读</b><span id="sLead">在任意 App 里选中文字，按鼠标按键或快捷键，就用默认音色读出来；再按一次立即停止。代码块和 Markdown 符号会自动略过，按顶部为当前模型保存的字数上限截断，整段生成后播放。</span></div>
 
       <section class="home-sec" aria-labelledby="sInstTitle">
         <h2 id="sInstTitle">朗读入口</h2>
@@ -775,19 +835,28 @@ const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(
 // 各栏共享的状态:key 是否可用、收藏顺序(第 1 个即默认音色)
 const S = { key: { configured: false }, favorites: [], page: null, closed: false, platform: "" };
 const PAGES = ["home", "voices", "clone", "say"];
+const isEleven = model => ["eleven_v4", "eleven_v4_turbo"].includes(model);
 
 function setFavorites(favs) { S.favorites = favs; Voices.onFavorites(); barInfo(); }
 function setKey(k) {
   const was = S.key.configured;
   S.key = k;
   document.querySelectorAll("[data-gate]").forEach((el) => { el.hidden = k.configured; });
-  document.querySelectorAll("[data-gated]").forEach((el) => { el.hidden = !k.configured; });
+  document.querySelectorAll("[data-gated]").forEach((el) => {
+    const configured = isEleven(S.settings.model) && el.closest("#pg-say") ? S.elevenKey.configured : k.configured;
+    el.hidden = !configured;
+  });
+  if (isEleven(S.settings.model)) {
+    const gate = $("pg-say").querySelector("[data-gate]");
+    gate.hidden = S.elevenKey.configured;
+    if (!S.elevenKey.configured) gate.querySelector(".verdict span").textContent = "请先在顶部模型设置中保存 ElevenLabs API Key。";
+  }
   Home.renderKey();
   if (k.configured && !was) Voices.loadMine();
 }
 function barInfo() {
   const el = $("barInfo");
-  if (S.page === "voices") el.innerHTML = `已收藏 <b>${S.favorites.length}</b>`;
+  if (S.page === "voices") el.innerHTML = `已收藏 <b>${isEleven(S.settings.model) ? Eleven.count() : S.favorites.length}</b>`;
   else if (S.page === "clone" && S.key.configured) el.innerHTML = `<b>0${Clone.stepNo()}</b> / 04`;
   else el.textContent = "";
 }
@@ -904,6 +973,102 @@ const Home = (() => {
   };
 })();
 
+// ================= ElevenLabs：独立密钥与音色收藏 =================
+const Eleven = (() => {
+  let key = {}, favorites = [], voices = [], loaded = false, loading = false;
+  const takes = new Map(), audio = $("eAudio");
+  function keyInfo() { $("elevenKeyStatus").textContent = key.configured ? `已配置 ${key.masked}（${key.source === "env" ? "环境变量" : "本机文件"}）` : "尚未配置"; }
+  const accessText = v => ({free_plan: "免费套餐可试", paid_plan: "API 需付费", unknown: "资格待确认"}[v?.api_access] || "资格待确认");
+  function render() {
+    const current = $("eVoice").value;
+    const list = [...favorites.map(f=>voices.find(v=>v.voice===f.voice)||f), ...voices.filter(v => !favorites.some(f => f.voice === v.voice))]
+      .filter(v=>$("eScope").value === "all" || favorites.some(f=>f.voice===v.voice))
+      .filter(v=>!$("eFreeOnly").checked || v.api_access === "free_plan");
+    $("eVoice").innerHTML = list.length ? list.map(v => `<option value="${esc(v.voice)}">[${accessText(v)}] ${esc(v.name)}${favorites[0]?.voice === v.voice ? " · 默认" : favorites.some(f=>f.voice===v.voice) ? " · 已收藏" : ""}</option>`).join("") : '<option value="">暂无符合条件的音色，请切换全部账号音色或取消免费筛选</option>';
+    if (list.some(v => v.voice === current)) $("eVoice").value = current;
+    status(); barInfo();
+  }
+  function status() {
+    const id = $("eVoice").value, i = favorites.findIndex(v => v.voice === id);
+    const v = voices.find(v=>v.voice===id)||favorites.find(v=>v.voice===id);
+    $("eAccess").textContent = v ? `${v.name} · ${accessText(v)}。免费套餐可试仍消耗额度，不保证当前模型或账号一定可用，以 API 返回为准。` : "资格依据官方音色类型判断；刷新可更新标注，未知音色不会标成免费。";
+    $("eFavStatus").textContent = i === 0 ? "默认音色 · 鼠标朗读使用此声音" : i > 0 ? `收藏第 ${i+1} 位` : "尚未收藏";
+    $("eAdd").disabled = !id || i >= 0;
+    $("eDefault").disabled = !id || i === 0;
+    $("eRemove").disabled = i < 0;
+    $("eListen").disabled = loading || !id || !key.configured;
+    audio.pause(); audio.removeAttribute("src"); audio.load(); syncPlayer();
+  }
+  async function refresh() {
+    if (loading) return;
+    loading = true; $("eRefresh").disabled = true;
+    busy($("eMsg"), "正在读取 ElevenLabs 账号音色，不提交合成…");
+    const r = await get("/eleven-voices").catch(offline);
+    loading = false; $("eRefresh").disabled = false;
+    if (r.error) { msg($("eMsg"), r.error, "err"); return; }
+    voices = r.voices; favorites = r.favorites; loaded = true;
+    render(); msg($("eMsg"), "");
+  }
+  async function fav(action) {
+    const v = [...voices,...favorites].find(v=>v.voice===$("eVoice").value);
+    if (!v) return;
+    const r = await post("/eleven-fav", {...v, action}).catch(offline);
+    if (r.error) { msg($("eFavMsg"), r.error, "err"); return; }
+    favorites = r.favorites; render(); msg($("eFavMsg"), "已保存到 ElevenLabs 本地收藏。", "ok");
+  }
+  function syncPlayer() {
+    const d = isFinite(audio.duration) ? audio.duration : 0;
+    $("ePlayer").classList.toggle("empty", !audio.getAttribute("src"));
+    $("ePlayer").querySelector(".time").textContent = `${fmt(audio.currentTime || 0)} / ${fmt(d)}`;
+    $("ePlayer").querySelector(".groove i").style.transform = `scaleX(${d ? audio.currentTime/d : 0})`;
+    $("ePlay").innerHTML = `<svg><use href="#i-${audio.paused ? "play" : "pause"}"/></svg>`;
+    $("ePlay").disabled = !audio.getAttribute("src");
+  }
+  $("ePlay").addEventListener("click", ()=> audio.paused ? audio.play().catch(()=>{}) : audio.pause());
+  ["play", "pause", "ended", "timeupdate", "loadedmetadata", "emptied"].forEach(ev=>audio.addEventListener(ev,syncPlayer));
+  $("ePlayer").querySelector(".groove").addEventListener("click", e=>{if(isFinite(audio.duration)){const r=e.currentTarget.getBoundingClientRect();audio.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*audio.duration;}});
+  $("eVoice").addEventListener("change", status);
+  $("eFreeOnly").addEventListener("change", render);
+  $("eScope").addEventListener("change", render);
+  $("eText").addEventListener("input", status);
+  $("eRefresh").addEventListener("click", refresh);
+  $("eAdd").addEventListener("click", ()=>fav("add"));
+  $("eDefault").addEventListener("click", ()=>fav("default"));
+  $("eRemove").addEventListener("click", ()=>fav("rm"));
+  $("saveElevenKey").addEventListener("click", async ()=>{
+    const value = $("elevenKey").value.trim();
+    if (!value) { msg($("elevenKeyMsg"), "请先粘贴 ElevenLabs API Key。", "err"); return; }
+    $("saveElevenKey").disabled = true; busy($("elevenKeyMsg"), "校验 Key 并读取音色…");
+    const r = await post("/eleven-key", {key: value}).catch(offline);
+    $("saveElevenKey").disabled = false;
+    if (r.error) { msg($("elevenKeyMsg"), r.error, "err"); return; }
+    $("elevenKey").value = ""; key=r.key; S.elevenKey=key; voices=r.voices; favorites=r.favorites; loaded=true;
+    $("eScope").value = favorites.length ? "favorites" : "all";
+    keyInfo(); render(); setKey(S.key); msg($("elevenKeyMsg"), "Key 已保存；选择 Eleven v4 后请再点「保存模型设置」。", "ok");
+  });
+  $("eListen").addEventListener("click", async ()=>{
+    const voice=$("eVoice").value, text=$("eText").value.trim();
+    if (!text || !voice || loading) return;
+    const cacheKey=`${S.settings.model}\n${voice}\n${text}`;
+    let r=takes.get(cacheKey);
+    if (!r) {
+      loading=true; $("eListen").disabled=true; busy($("eMsg"), `${S.settings.model === "eleven_v4_turbo" ? "Eleven v4 Turbo" : "Eleven v4"} 正在生成，完成后播放…`);
+      r=await post("/say", {voice,text,model:S.settings.model}).catch(offline);
+      loading=false; $("eListen").disabled=false;
+      if (!r.audio) { msg($("eMsg"), r.error || "合成失败", "err"); return; }
+      takes.set(cacheKey,r);
+    }
+    if (voice!==$("eVoice").value || text!==$("eText").value.trim()) return;
+    audio.src=r.audio; audio.play().catch(()=>{}); msg($("eMsg"), "可重复播放，不再提交合成。", "ok");
+  });
+  return {
+    init(d) { key=d.eleven_key; favorites=d.eleven_favorites; voices=[...favorites]; $("eScope").value=favorites.length ? "favorites" : "all"; keyInfo(); render(); $("elevenPanel").hidden=!isEleven(d.settings.model); },
+    count: ()=>favorites.length,
+    enter() { if (key.configured && !loaded) refresh(); },
+  };
+})();
+
+
 // ================= 选音色:同一句话逐个试听,收藏或设为默认 =================
 const Voices = (() => {
   // 分组顺序与 catalog 的 scene 一致;「我的复刻」「已收藏」是页面补的两组
@@ -922,7 +1087,7 @@ const Voices = (() => {
     return voices.find((v) => v.voice === id) || { voice: id, name: id, gender: "", trait: "不在当前清单里", usage: "", lang: "", scene: "其他" };
   }
   async function loadMine() {
-    if (mineState === "loading") return;
+    if (isEleven(S.settings.model) || mineState === "loading") return;
     mineState = "loading"; mineStale = false; renderList();
     const m = await get("/mine").catch(() => ({ error: "network" }));
     voices = voices.filter((v) => v.scene !== "我的复刻");
@@ -1017,6 +1182,11 @@ const Voices = (() => {
   // 复刻音色的名称、创建时间到达后,只刷新试听台的身份信息
   function refreshDesk() {
     const v = byId(selected);
+    if (S.settings.model === "qwen-audio-3.1-tts-next") {
+      $("vName").textContent = "Next · 描述声音";
+      $("vFacts").textContent = "整段生成后播放；声音描述请在顶部模型设置中保存。";
+      return;
+    }
     $("vName").innerHTML = `${esc(v.name)}${v.gender ? `<span>${esc(v.gender)}声</span>` : ""}`;
     const facts = v.scene === "我的复刻"
       ? ["用你的录音复刻", v.created && `创建于 ${v.created}`, v.status === "OK" ? "可用" : `状态 ${v.status || "未知"}`]
@@ -1082,8 +1252,8 @@ const Voices = (() => {
     const voice = selected, key = takeKey(voice);
     let t = takes.get(key);
     if (!t) {
-      inflight = true; $("vListen").disabled = true; busy($("vSayMsg"), "正在合成，通常 1～2 秒…");
-      const r = await post("/say", { voice, text, instruct: instr }).catch(offline);
+      inflight = true; $("vListen").disabled = true; busy($("vSayMsg"), S.settings.model.endsWith("-next") ? "Next 正在生成完整音频，可能需要数分钟…" : "正在合成，通常 1～2 秒…");
+      const r = await post("/say", { voice, text, instruct: instr, model: S.settings.model }).catch(offline);
       inflight = false;
       const cur = byId(selected);
       $("vListen").disabled = !!(cur.status && cur.status !== "OK");
@@ -1165,15 +1335,27 @@ const Voices = (() => {
       $("vInstr").value = store.get("pick-instr", "");
       syncCounts();
       renderList();
-      select(S.favorites[0] || voices[0].voice);
+      const next = d.settings.model.endsWith("-next");
+      $("pg-voices").classList.toggle("next-mode", next);
+      $("pg-voices").classList.toggle("eleven-mode", isEleven(d.settings.model));
+      if (next) {
+        voices = [{voice: "next-description", name: "Next · 描述声音", scene: "其他系统"}];
+        $("vInstr").value = "";
+        $("vInstr").disabled = true;
+        $("vInstr").placeholder = "使用顶部已保存的 Next 声音描述";
+        $("vHint").textContent = "Next 不使用 Flash 的音色 ID 和控制标签，请直接输入要朗读的文字。";
+        syncCounts();
+      }
+      select(next ? "next-description" : S.favorites[0] || voices[0].voice);
     },
     onFavorites() { if (voices.length) { renderFav(); renderList(); } },
     // 复刻出新音色后标记过期,下次进入选音色时重新读取账号里的复刻音色
     markMineStale() { mineStale = true; },
     show(voice) { group = "我的复刻"; renderList(); if (voice) select(voice); },
     enter() {
+      if (isEleven(S.settings.model)) { Eleven.enter(); return; }
       fitText();
-      if (S.key.configured && (mineStale || mineState === "idle" || mineState === "error")) loadMine();
+      if (!S.settings.model.endsWith("-next") && S.key.configured && (mineStale || mineState === "idle" || mineState === "error")) loadMine();
     },
   };
 })();
@@ -1520,7 +1702,7 @@ const Say = (() => {
       renderBtns(keepBtn);
     }
     $("sScript").textContent = r.script;
-    $("sVoice").textContent = `用默认音色 ${Voices.nameOf(r.voice)}`;
+    $("sVoice").textContent = `用默认音色 ${r.voice_name || Voices.nameOf(r.voice)}`;
     $("sTry").disabled = !w.installed;
     $("sLog").textContent = r.log.length ? r.log.join("\n") : "还没有朗读记录。";
     $("sLogPath").textContent = `完整日志：${r.log_path}`;
@@ -1593,6 +1775,42 @@ const Say = (() => {
   S.favorites = d.favorites;
   S.platform = d.platform;
   $("navSay").hidden = d.platform !== "darwin";
+  S.settings = d.settings;
+  S.elevenKey = d.eleven_key;
+  const modelName = {eleven_v4: "Eleven v4 · 固定音色", eleven_v4_turbo: "Eleven v4 Turbo · 低延迟", "qwen-audio-3.1-tts-next": "Next · 文字描述声音", "qwen-audio-3.1-tts-flash": "Flash · 收藏音色"};
+  $("modelSummary").textContent = `默认模型：${modelName[d.settings.model]}（点击设置）`;
+  $("modelSelect").value = d.settings.model;
+  $("workspaceId").value = d.settings.workspace_id;
+  $("nextDescription").value = d.settings.description;
+  $("modelCurrent").textContent = `当前：${modelName[d.settings.model]} · 保存后同步用于鼠标朗读`;
+  $("eTitle").textContent = `${d.settings.model === "eleven_v4_turbo" ? "Eleven v4 Turbo" : "Eleven v4"} 试听台`;
+  Eleven.init(d);
+  const readLimits = {...d.settings.read_limits};
+  let limitModel = d.settings.model;
+  function modelFields() {
+    const model = $("modelSelect").value;
+    $("readMax").max = d.read_limit_caps[model];
+    $("readMax").value = readLimits[model] ?? 1500;
+    $("readMaxHint").textContent = `可设置 1～${d.read_limit_caps[model]} 字。${model.endsWith("-next") ? "Next 为声音描述预留空间；音频仍受 120 秒限制，增加字数不保证能读完。" : isEleven(model) ? "Eleven 使用本插件保守的 2000 字符接口上限；更长文本需另行分段。" : "Flash 上限按单次提交 20000 字符控制；长文等待时间与费用会增加。"}`;
+    $("nextFields").hidden = !$("modelSelect").value.endsWith("-next");
+    $("elevenFields").hidden = !isEleven($("modelSelect").value);
+  }
+  modelFields();
+  $("modelSelect").addEventListener("change", () => {
+    readLimits[limitModel] = Number($("readMax").value);
+    limitModel = $("modelSelect").value;
+    modelFields();
+  });
+  $("modelForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("saveModel").disabled = true;
+    readLimits[$("modelSelect").value] = Number($("readMax").value);
+    const r = await post("/settings", {model: $("modelSelect").value, workspace_id: $("workspaceId").value,
+      description: $("nextDescription").value, read_limits: readLimits}).catch(offline);
+    $("saveModel").disabled = false;
+    if (r.error) { msg($("modelMsg"), r.error, "err"); return; }
+    location.reload();
+  });
   Home.init(d);
   Voices.init(d);
   setKey(d.key);

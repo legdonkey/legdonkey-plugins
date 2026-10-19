@@ -19,7 +19,7 @@ web
 
 ## Product Purpose
 
-bailian-tts 用阿里百炼 `qwen-audio-3.1-tts-flash` 把文案合成为配音。「开始」负责第一次使用的引导：说明插件能做什么、检查运行环境，并把创建 API Key 这件事拆成三步；成功标准是**不懂技术的人两分钟内配好 key，且 key 不经过对话**。
+bailian-tts 用阿里百炼 `qwen-audio-3.1-tts-flash` 把文案合成为配音。工作台顶部可保存试听与选中朗读的默认模型（Flash / `qwen-audio-3.1-tts-next` / `eleven_v4` / `eleven_v4_turbo`），配置位于 `~/.config/bailian-tts/settings.json`。Next 沿用 API Key，另需北京业务空间 ID（环境变量 `SFM_WORKSPACE_ID` 优先）与文字声音描述，不使用 Flash 的音色 ID，不上传参考录音；普通场景最长 120 秒。Flash 收藏独立保留，声音复刻和既有配音命令仍使用 Flash。模型设置通过 `POST /settings` 保存，`GET /state` 返回当前设置。Eleven v4 使用独立的密钥和本地收藏（`elevenlabs.key`、`elevenlabs-favorites.json`，均在 `~/.config/bailian-tts/`），不修改百炼收藏；账号音色由 `GET /eleven-voices` 获取，`POST /eleven-key` 只校验并保存 Key，`POST /eleven-fav` 管理本地收藏。Eleven 音色范围在已有收藏时默认仅显示本地收藏，没有收藏时默认显示全部账号音色；用户可主动切换到全部，免费套餐筛选与音色范围取交集，刷新不改变当前范围。Eleven 音色下拉框按官方元数据标注免费套餐可试、API 需付费或资格待确认，并支持仅显示免费套餐可试；不以共享音色的 free_users_allowed 字段保证 API 免费调用。标注不替代模型、账号及额度校验，也不通过合成探测资格。Eleven v4 与 Turbo 共用固定 voice_id、API Key 和本地收藏；Turbo 使用官方 TTD WebSocket，一次提交全文，收齐完整音频后播放，不恢复文本分段或自动重试。Eleven v4 单独使用固定 voice_id 与文本内标签，通过 Text to Dialogue API 合成，UI 音色试听最多 200 字；中键、快捷键与选中朗读试读的上限按模型分别保存在 settings.json 的 read_limits，未配置时 1500 字，CLI 显式 --max 优先。配置安全范围为 Flash 1～20000、Next 1～2800、Eleven v4 / Turbo 各 1～2000；界面按所选模型回显并校验，保存其他模型时保留已有数值。整段生成后播放，输出时长限制不变。密钥仅在本机输入、落盘权限 600，页面只显示掩码；不会自动购买、订阅或提交付费合成。「开始」负责第一次使用的引导：说明插件能做什么、检查运行环境，并把创建 API Key 这件事拆成三步；成功标准是**不懂技术的人两分钟内配好 key，且 key 不经过对话**。
 
 「声音复刻」负责把「复刻自己的声音」这件事一次走完：准备环境 → 录音 → 复刻 → 试听 → 收藏。
 
