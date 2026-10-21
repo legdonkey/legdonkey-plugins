@@ -54,14 +54,18 @@ pi install git:github.com/legdonkey/legdonkey-plugins
 
 ## 运行环境
 
-这个插件会调用阿里百炼 DashScope API（北京地域），并在本机生成音频文件。使用前需要：
+插件通过标准库启动器准备专用 Python 环境，不依赖插件市场的安装后钩子。安装插件本身不会运行 pip；首次使用时由助手先征求同意，或在交互式终端确认，再创建/修复 `~/.bailian-tts-venv` 并从阿里云 PyPI 镜像安装固定版本依赖。环境保存在用户目录，插件升级不删除它，不要求 sudo。
 
 ```bash
-python3 -m venv ~/.bailian-tts-venv
-~/.bailian-tts-venv/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ dashscope
+# skill_dir 是安装后的技能目录，包含 SKILL.md 和 scripts/
+python3 "$skill_dir/scripts/run.py" --check
+python3 "$skill_dir/scripts/run.py" --setup --yes  # 明确同意后初始化
+python3 "$skill_dir/scripts/run.py" ui
 ```
 
-上面用的是阿里云 PyPI 镜像；如需校验版本，可对照官方源 `https://pypi.org/project/dashscope/`。
+后续技能、工作台和新安装的中键入口统一使用该环境；旧的 `tts.py` 命令也会转交启动器。旧版中键入口需用 `run.py say --install` 更新一次。启动器不常驻：只有打开工作台时才运行本地 HTTP 服务，中键朗读不依赖它。非交互模式缺依赖时只给出初始化指引，不读取 stdin 正文作为确认，也不静默安装。可用 `BAILIAN_TTS_VENV` 指定其他用户目录；不要指向插件缓存内部。下载失败时修复网络后重跑初始化，正常失败会释放安装锁，异常终止残留的锁只在确认没有安装任务后手动移除。
+
+固定依赖见 `scripts/requirements.txt`；镜像来源为阿里云 PyPI，必要时对照官方 PyPI 校验。
 
 API key 读取顺序是环境变量 `DASHSCOPE_API_KEY`，然后是 `~/.dashscope_key`。第一次使用时技能会自动打开工作台的「开始」页带你创建：在百炼控制台（华北2 北京）创建并复制 key 后，由 `tts.py key --clipboard` 或页面按钮读取剪贴板、向百炼校验，再写入 `~/.dashscope_key`（权限 600）并清空剪贴板。不要把 key 写进项目文件或对话内容。
 
@@ -101,6 +105,17 @@ Flash 的音色与模型强绑定：系统音色以 `_v3.1` 结尾，复刻音�
 - 声音设计（按文字描述生成音色）——官方目前只对 `qwen-audio-3.0-tts-*` 开放；
 - 百炼上的其它语音合成模型。
 
+## 安装验证
+
+```bash
+python3 -m unittest discover -s plugins/bailian-tts/skills/bailian-tts/scripts -p 'test_*.py'
+# 以下验收会真实下载依赖，但不读取真实用户配置、不调用模型：
+python3 plugins/bailian-tts/skills/bailian-tts/scripts/smoke_install.py --claude
+python3 plugins/bailian-tts/skills/bailian-tts/scripts/smoke_install.py --codex
+```
+
+两种验收分别使用真实市场安装命令和临时 HOME / 宿主配置目录：安装插件副本、确认前不安装、初始化、直接启动 tts.py、重复启动复用环境、工作台启动与退出，以及 macOS 中键入口和缓存升级回退。临时用户没有 Key 或收藏。其他平台不执行 macOS 中键安装步骤；该验收不证明真实 API 权限、额度或音频合成可用。
+
 ## 插件结构
 
 ```text
@@ -111,7 +126,10 @@ plugins/bailian-tts/
 └── skills/bailian-tts/
     ├── SKILL.md                    # 入口（禁自动调用，只手动点名才跑）
     ├── agents/openai.yaml          # Codex 专属元数据
+    ├── scripts/run.py              # 标准库启动器与环境初始化，不常驻
+    ├── scripts/requirements.txt    # 固定 Python 依赖版本
     ├── scripts/tts.py              # 合成、试听、脚本批量配音、选中朗读、声音复刻、本机页面服务
+    ├── scripts/smoke_install.py    # 隔离用户目录的真实市场安装验收
     ├── assets/studio.html          # 配音工作台页面：开始 / 选音色 / 声音复刻 / 选中朗读（由 ui 在本机提供）
     └── references/
         ├── voices.md               # 指令、文本标签、复刻与排错说明

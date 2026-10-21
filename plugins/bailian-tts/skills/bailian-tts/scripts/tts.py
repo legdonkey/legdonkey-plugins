@@ -20,6 +20,7 @@ API key:环境变量 DASHSCOPE_API_KEY → 文件 ~/.dashscope_key(权限 600,�
 依赖:dashscope、ffmpeg、afplay(macOS 播放)。
 """
 import argparse, json, os, re, subprocess, sys, tempfile, time, wave
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elevenlabs_api as eleven
 
 MODEL = "qwen-audio-3.1-tts-flash"
@@ -1026,15 +1027,19 @@ SHORTCUT_SCRIPT = "$HOME/.local/bin/bailian-say"
 
 def write_say_wrapper():
     """生成 ~/.local/bin/bailian-say:把参数转给当前这份 tts.py 的 say;路径失效时找插件缓存里最新的一份。"""
+    import shlex
     tts = os.path.abspath(__file__)
+    base_python = getattr(sys, "_base_executable", sys.executable)
     os.makedirs(os.path.dirname(SAY_WRAPPER), exist_ok=True)
     with open(SAY_WRAPPER, "w", encoding="utf-8") as f:
         f.write(f'''#!/bin/sh
 # 由 bailian-tts 的 `tts.py say --install` 生成:把参数转给 tts.py say。
 # 插件移动或升级后,原路径失效时自动改用 Claude Code 插件缓存里最新的 bailian-tts。
-TTS="{tts}"
-[ -f "$TTS" ] || TTS=$(ls -dt "$HOME"/.claude/plugins/cache/*/bailian-tts/*/skills/bailian-tts/scripts/tts.py 2>/dev/null | head -1)
-exec "{sys.executable}" "$TTS" say "$@"
+TTS={shlex.quote(tts)}
+[ -f "$TTS" ] || TTS=$(ls -dt "$HOME"/.claude/plugins/cache/*/bailian-tts/*/skills/bailian-tts/scripts/tts.py "$HOME"/.codex/plugins/cache/*/bailian-tts/*/skills/bailian-tts/scripts/tts.py 2>/dev/null | head -1)
+PYTHON={shlex.quote(base_python)}
+[ -x "$PYTHON" ] || PYTHON=python3
+exec "$PYTHON" "${{TTS%/*}}/run.py" say "$@"
 ''')
     os.chmod(SAY_WRAPPER, 0o755)
     return tts
@@ -1044,8 +1049,11 @@ def say_wrapper_status():
     """入口是否装好、指向哪份 tts.py、那份是否还在、是否就是当前这份。"""
     if not os.path.exists(SAY_WRAPPER):
         return {"installed": False, "path": tilde(SAY_WRAPPER)}
-    m = re.search(r'^TTS="(.*)"$', open(SAY_WRAPPER, encoding="utf-8").read(), re.M)
-    target = m.group(1) if m else ""
+    import shlex
+    with open(SAY_WRAPPER, encoding="utf-8") as f:
+        m = re.search(r'^TTS=(.*)$', f.read(), re.M)
+    targets = shlex.split(m.group(1)) if m else []
+    target = targets[0] if targets else ""
     return {"installed": True, "path": tilde(SAY_WRAPPER), "target": tilde(target), "exists": os.path.isfile(target),
             "current": os.path.abspath(target) == os.path.abspath(__file__) if target else False}
 
@@ -1297,4 +1305,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import run
+    run.cli()

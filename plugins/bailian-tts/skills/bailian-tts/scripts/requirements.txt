@@ -1,0 +1,2 @@
+dashscope==1.27.7
+websocket-client==1.9.2
