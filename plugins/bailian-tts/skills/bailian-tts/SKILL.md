@@ -49,7 +49,7 @@ disable-model-invocation: true
 - 密钥：`ELEVENLABS_API_KEY` → `~/.config/bailian-tts/elevenlabs.key`，文件权限 600；只显示掩码，环境变量与新 Key 冲突时拒绝覆盖。
 - 点「保存模型设置」切换试听与中键朗读。刷新账号音色后可加入收藏、设为默认；收藏位于 `~/.config/bailian-tts/elevenlabs-favorites.json`，第 1 个为中键默认音色，与百炼收藏隔离。本地取消收藏不删除 ElevenLabs 账号音色。首次读取账号音色时，若本地收藏文件尚不存在，从可用账号音色中导入 Siqi Liu、Adrian、Roger；不会导入 Coco Li。
 - 使用 `mp3_44100_128` 下载后规范化为现有 24kHz 单声道 WAV，不需要新的 Python 依赖。仅使用文本内音频标签，不传百炼的 `--instruct` / `--emotion` / `--rate` / `--pitch` / `--volume` 参数。UI 试听最多 200 字；中键按当前模型的长度配置截断（初始 1500 字）、整段生成后播放，底层单次限制 2000 字符。
-- 音色范围在已有收藏时默认「仅收藏音色」，可切换为「全部账号音色」挑选新音色；没有收藏时默认展示全部。取消收藏只影响本地收藏，不删除账号音色。音色下拉框标注「免费套餐可试」「API 需付费」「资格待确认」，可勾选仅显示免费套餐可试。依据官方音色元数据：非本人共享音色按 API 付费资格标注，非共享 premade 音色在无付费层级限制时标为免费套餐可试；无法确认时不标免费。`sharing.free_users_allowed` 不等同于 API 免费套餐资格。标注不替代当前账号、模型和额度校验，不提交合成探测资格；免费套餐可试仍消耗额度。
+- Eleven 选音色页与 Flash 一样采用左侧列表、右侧试听台：已有收藏时默认「已收藏」，可切换「全部」「免费套餐可试」「API 需付费」「资格待确认」，支持搜索、性别筛选、↑↓ 切换与回车试听；右侧管理收藏、默认音色、播放与重复试听，列表显示试听时长。取消收藏只影响本地收藏，不删除账号音色。资格信息标注「免费套餐可试」「API 需付费」「资格待确认」，可勾选仅显示免费套餐可试。依据官方音色元数据：非本人共享音色按 API 付费资格标注，非共享 premade 音色在无付费层级限制时标为免费套餐可试；无法确认时不标免费。`sharing.free_users_allowed` 不等同于 API 免费套餐资格。标注不替代当前账号、模型和额度校验，不提交合成探测资格；免费套餐可试仍消耗额度。
 - 正文会发送到 ElevenLabs；生成消耗该账号额度，用户确认后才提交试听。相同音色与文本在同一工作台中复用已有音频。音色费率与模型费率需按账号确认，首次导入不代表自动核验价格。
 - 参考：[模型文档](https://elevenlabs.io/docs/overview/models#eleven-v4)、[接口](https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert)、[API 定价](https://elevenlabs.io/pricing/api)。
 

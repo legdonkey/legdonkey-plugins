@@ -36,11 +36,14 @@ class ElevenTests(unittest.TestCase):
                 eleven.save_key("new-key-1234567890123456")
 
     def test_voices_pagination_and_favorites(self):
-        pages = [{"voices": [{"voice_id": "a", "name": eleven.PREFERRED[0]}], "has_more": True, "next_page_token": "page2"},
+        pages = [{"voices": [{"voice_id": "a", "name": eleven.PREFERRED[0], "labels": {"gender": "male"}, "description": "温暖旁白"}], "has_more": True, "next_page_token": "page2"},
                  {"voices": [{"voice_id": "b", "name": eleven.PREFERRED[1]}, {"voice_id": "c", "name": "Other"}], "has_more": False}]
         with patch.object(eleven, "request", side_effect=pages) as request:
             voices = eleven.list_voices()
             self.assertIn("next_page_token=page2", request.call_args.args[0])
+        self.assertEqual(voices[0]["gender"], "male")
+        self.assertEqual(voices[0]["description"], "温暖旁白")
+        self.assertEqual(voices[1]["gender"], "")
         self.assertEqual([v["voice"] for v in eleven.seed_favorites(voices)], ["a", "b"])
         eleven.update_favorite("b", eleven.PREFERRED[1], "default")
         self.assertEqual(eleven.favorites()[0]["voice"], "b")
@@ -79,7 +82,16 @@ class ElevenTests(unittest.TestCase):
         voices = [{"voice": "roger", "name": "Roger", "api_access": "free_plan"},
                   {"voice": "other", "name": eleven.PREFERRED[0], "api_access": "paid_plan"}]
         self.assertEqual(eleven.seed_favorites(voices), [voices[0]])
-        self.assertEqual(eleven.favorites(), [voices[0]])
+        self.assertEqual(eleven.favorites(), [dict(voices[0], trait_zh="暂无中文描述")])
+
+    def test_chinese_traits_preserve_voice_names(self):
+        self.assertEqual(eleven.trait_zh("Alice - Clear, Engaging Educator"), "清晰、生动的教学声线")
+        self.assertEqual(eleven.trait_zh("Roger - Laid-Back, Casual, Resonant"), "松弛、自然、浑厚")
+        self.assertEqual(eleven.trait_zh("未知音色 - 温柔女声"), "温柔女声")
+        self.assertEqual(eleven.trait_zh("New voice - Unknown traits"), "暂无中文描述")
+        eleven.save_favorites([{"voice": "roger", "name": "Roger - Laid-Back, Casual, Resonant"}])
+        self.assertEqual(eleven.favorites()[0]["trait_zh"], "松弛、自然、浑厚")
+        self.assertEqual(eleven.favorites()[0]["name"], "Roger - Laid-Back, Casual, Resonant")
 
     def test_turbo_websocket_contract_and_audio_assembly(self):
         ws = MagicMock()

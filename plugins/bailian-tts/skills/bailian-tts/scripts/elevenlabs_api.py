@@ -15,6 +15,30 @@ BASE = "https://api.elevenlabs.io"
 PREFERRED = ("Siqi Liu - Calm, Warm and Gentle", "Adrian - Chinese Mandarin Narration", "Roger - Laid-Back, Casual, Resonant")
 
 
+TRAITS_ZH = {
+    "Clear, Engaging Educator": "清晰、生动的教学声线", "Calm, Warm and Gentle": "平静、温暖、柔和",
+    "Chinese Mandarin Narration": "标准普通话旁白", "Laid-Back, Casual, Resonant": "松弛、自然、浑厚",
+    "Deep, Resonant and Comforting": "低沉、浑厚、温暖", "Steady Broadcaster": "沉稳的播报声线",
+    "Professional, Bright, Warm": "专业、明亮、温暖", "Mature, Reassuring, Confident": "成熟、安心、自信",
+    "Enthusiast, Quirky Attitude": "热情、活泼、有个性", "Deep, Confident, Energetic": "低沉、自信、有活力",
+    "Warm, Captivating Storyteller": "温暖、引人入胜的叙述声线", "Husky Trickster": "沙哑、狡黠的角色声线",
+    "Relaxed, Neutral, Informative": "放松、中性、适合信息讲解", "Fierce Warrior": "强劲的战士角色声线",
+    "Energetic, Social Media Creator": "活力充沛的社交媒体声线", "Knowledgable, Professional": "知性、专业",
+    "Relaxed Optimist": "轻松、乐观", "Playful, Bright, Warm": "俏皮、明亮、温暖",
+    "Smooth, Trustworthy": "流畅、可信赖", "Charming, Down-to-Earth": "亲切、有魅力、接地气",
+    "Velvety Actress": "柔滑细腻的表演声线", "Dominant, Firm": "有力、坚定",
+    "Wise, Mature, Balanced": "睿智、成熟、稳重", "Smooth and Relaxed": "流畅、放松",
+    "Calm, Young and Trustworthy": "平静、年轻、可信赖", "Calm": "平静",
+}
+
+
+def trait_zh(name):
+    trait = name.partition(" - ")[2].strip()
+    if trait in TRAITS_ZH:
+        return TRAITS_ZH[trait]
+    return trait if re.search(r"[\u4e00-\u9fff]", trait) else "暂无中文描述"
+
+
 def atomic_write(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path))
@@ -89,7 +113,9 @@ def list_voices(key=None):
             if v["voice_id"] not in seen:
                 seen.add(v["voice_id"])
                 voices.append({"voice": v["voice_id"], "name": v.get("name", v["voice_id"]),
-                               "api_access": api_access(v)})
+                               "trait_zh": trait_zh(v.get("name") or ""),
+                               "api_access": api_access(v), "gender": (v.get("labels") or {}).get("gender", ""),
+                               "description": v.get("description") or ""})
         if not data.get("has_more"):
             return voices
         next_token = data.get("next_page_token")
@@ -115,7 +141,7 @@ def favorites():
     if not os.path.exists(FAV_PATH):
         return []
     with open(FAV_PATH, encoding="utf-8") as f:
-        return json.load(f)
+        return [dict(v, trait_zh=trait_zh(v.get("name", ""))) for v in json.load(f)]
 
 
 def save_favorites(rows):
