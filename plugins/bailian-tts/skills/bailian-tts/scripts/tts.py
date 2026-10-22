@@ -20,6 +20,7 @@ API key:环境变量 DASHSCOPE_API_KEY → 文件 ~/.dashscope_key(权限 600,�
 依赖:dashscope、ffmpeg、afplay(macOS 播放)。
 """
 import argparse, json, os, re, subprocess, sys, tempfile, time, wave
+from contextlib import contextmanager
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elevenlabs_api as eleven
 
@@ -960,24 +961,91 @@ def front_bundle_id():
     return m.group(1) if m else ""
 
 
-def stop_previous_say():
-    """结束上一次朗读的整个进程组;先确认那个进程确实是 say,避免误杀复用的进程号。"""
+def is_say_command(command):
+    """只接受 Python 直接运行的插件朗读入口，不匹配正文或其他项目的 run.py。"""
+    import shlex
+    from pathlib import PurePath
+    try:
+        args = shlex.split(command)
+    except ValueError:
+        return False
+    if not args or not PurePath(args[0]).name.lower().startswith("python"):
+        return False
+    i = 1
+    while i < len(args) and args[i] in ("-I", "-u", "-B", "-E", "-s"):
+        i += 1
+    # macOS ps 不保留 argv 的引号，含空格的脚本路径会被拆开；只重组到第一个 .py 文件。
+    for end in range(i, len(args)):
+        if args[end].startswith("-"):
+            return False
+        if args[end].endswith(".py"):
+            path = PurePath(" ".join(args[i:end + 1]))
+            return (end + 1 < len(args) and args[end + 1] == "say"
+                    and path.name in ("tts.py", "run.py")
+                    and path.parts[-4:-1] == ("skills", "bailian-tts", "scripts"))
+    return False
+
+
+@contextmanager
+def say_control():
+    """串行执行停止、播放锁交接和 PID 注册。朗读仅支持 macOS。"""
+    import fcntl
+    os.makedirs(SAY_DIR, exist_ok=True)
+    with open(os.path.join(SAY_DIR, "control.lock"), "a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        yield
+
+
+def _stop_previous_say():
     import signal
     try:
-        pid = int(open(SAY_PID).read())
+        with open(SAY_PID) as f:
+            pid = int(f.read())
+        if pid <= 1 or pid == os.getpid():
+            return
         cmd = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True).stdout
-        if "tts.py" in cmd and " say" in cmd:
+        if is_say_command(cmd) and os.getpgid(pid) == pid:
             os.killpg(pid, signal.SIGTERM)
     except (OSError, ValueError):
         pass
 
 
+def stop_previous_say():
+    """停止整组朗读，并防止停止动作与新一轮 PID 注册互相覆盖。"""
+    with say_control():
+        _stop_previous_say()
+
+
+@contextmanager
+def say_session():
+    """播放锁持有至任务结束；即使旧任务未立即退出也不并行播放。"""
+    import fcntl
+    os.makedirs(SAY_DIR, exist_ok=True)
+    if os.getpgrp() != os.getpid():
+        os.setpgrp()
+    with open(os.path.join(SAY_DIR, "playback.lock"), "a") as playback:
+        with say_control():
+            _stop_previous_say()
+            fcntl.flock(playback, fcntl.LOCK_EX)
+            with open(SAY_PID, "w") as f:
+                f.write(str(os.getpid()))
+        try:
+            yield playback.fileno()
+        finally:
+            # 仍持有播放锁，新任务尚不能注册；只清理自己的 PID。
+            try:
+                with open(SAY_PID) as f:
+                    mine = f.read().strip() == str(os.getpid())
+                if mine:
+                    os.unlink(SAY_PID)
+            except OSError:
+                pass
+
+
 def speak_segments(parts, voice, instr, a):
-    """播放第 i 段的同时合成第 i+1 段。返回是否全部念完。"""
+    """在独占播放会话内合成并播放，取消时结束整组子进程。返回是否全部念完。"""
     import shutil, signal
     from concurrent.futures import ThreadPoolExecutor
-    os.setpgrp()  # 自成进程组,方便下次触发时整组结束
-    open(SAY_PID, "w").write(str(os.getpid()))
     tmp = tempfile.mkdtemp(prefix="bailian_say_")
 
     def interrupted(*_):  # 被打断:清掉临时音频后直接退出,不等合成线程
@@ -1002,7 +1070,7 @@ def speak_segments(parts, voice, instr, a):
         return path
 
     try:
-        with ThreadPoolExecutor(max_workers=1) as pool:
+        with say_session() as playback_fd, ThreadPoolExecutor(max_workers=1) as pool:
             fut = pool.submit(job, 0)
             for i in range(len(parts)):
                 path = fut.result()
@@ -1011,7 +1079,7 @@ def speak_segments(parts, voice, instr, a):
                     return False
                 if i + 1 < len(parts):
                     fut = pool.submit(job, i + 1)
-                subprocess.run(["afplay", path])
+                subprocess.run(["afplay", path], pass_fds=(playback_fd,))
         return True
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
