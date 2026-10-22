@@ -16,6 +16,71 @@ spec.loader.exec_module(tts)
 
 
 class ModelTests(unittest.TestCase):
+    def test_generation_dispatches_selected_model(self):
+        for model in (tts.MODEL, tts.NEXT_MODEL, *tts.eleven.MODELS):
+            args = SimpleNamespace(synth_settings={"model": model}, rate=1.0, pitch=1.0, volume=50)
+            with self.subTest(model=model), patch.object(tts, "synth", return_value=b"flash") as flash, patch.object(tts, "synth_next", return_value=b"next") as next_call, patch.object(tts.eleven, "synth", return_value=b"eleven") as eleven_call, patch.object(tts, "normalize") as normalize, patch.object(tts, "duration", return_value=1):
+                tts.synth_to_file("voice123", "你好", None, args, "out.wav")
+                expected = b"flash" if model == tts.MODEL else b"next" if model == tts.NEXT_MODEL else b"eleven"
+                normalize.assert_called_once_with(expected, "out.wav")
+                self.assertEqual(flash.call_count + next_call.call_count + eleven_call.call_count, 1)
+
+    def test_generation_cli_uses_model_favorites(self):
+        for command, extra in (("gen", ["--text", "你好", "--out", "out.wav"]), ("preview", []), ("script", ["input.txt", "--out-dir", "dub"])):
+            for model, voice in ((tts.NEXT_MODEL, ""), (tts.eleven.MODEL, "eleven123"), (tts.eleven.TURBO_MODEL, "eleven123")):
+                with self.subTest(command=command, model=model), patch.object(tts, "load_settings", return_value={"model": model}), patch.object(tts.eleven, "favorites", return_value=[{"voice": "eleven123"}]), patch.object(tts, "default_voice") as flash, patch.object(tts, "cmd_" + command) as handler, patch.object(sys, "argv", ["tts.py", command, *extra]):
+                    tts.main()
+                    self.assertEqual(handler.call_args.args[0].voice, voice)
+                    self.assertEqual(handler.call_args.args[0].synth_settings["model"], model)
+                    flash.assert_not_called()
+
+    def test_incompatible_options_fail_before_synthesis(self):
+        args = SimpleNamespace(synth_settings={"model": tts.NEXT_MODEL}, rate=1.0, pitch=1.0, volume=50, emotion=None)
+        for voice, text, instr in (("longanhuan_v3.1", "你好", None), ("", "你好", "开心"), ("", "甲" * 2801, None)):
+            with self.assertRaises(SystemExit):
+                tts.validate_synthesis(voice, text, instr, args)
+        args.synth_settings["model"] = tts.eleven.MODEL
+        for voice in ("", "longanhuan_v3.1"):
+            with self.assertRaises(SystemExit):
+                tts.validate_synthesis(voice, "你好", None, args)
+        tts.validate_synthesis("eleven123", "你好", None, args)
+
+    def test_script_preflight_and_manifest_model(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = Path(root) / "script.txt"
+            source.write_text("第一段\n@instruct 开心\n第二段", encoding="utf-8")
+            args = SimpleNamespace(file=str(source), voice="eleven123", instruct=None, emotion=None, rate=1.0, pitch=1.0, volume=50, synth_settings={"model": tts.eleven.MODEL}, out_dir=root + "/dub", gap=0.3)
+            with patch.object(tts, "synth_to_file") as synth:
+                with self.assertRaises(SystemExit):
+                    tts.cmd_script(args)
+                synth.assert_not_called()
+            source.write_text("第一段\n第二段", encoding="utf-8")
+            def fake_audio(voice, text, instr, args, out):
+                with tts.wave.open(out, "wb") as wav:
+                    wav.setnchannels(1)
+                    wav.setsampwidth(2)
+                    wav.setframerate(24000)
+                    wav.writeframes(b"\x00\x00" * 240)
+                return 0.01
+            with patch.object(tts, "synth_to_file", side_effect=fake_audio):
+                tts.cmd_script(args)
+            manifest = json.loads((Path(args.out_dir) / "manifest.json").read_text())
+            self.assertEqual(manifest["model"], tts.eleven.MODEL)
+            self.assertEqual(len(manifest["segments"]), 2)
+            self.assertTrue((Path(args.out_dir) / "subtitles.srt").exists())
+
+    def test_ui_flash_preview_keeps_explicit_flash_settings(self):
+        with tempfile.TemporaryDirectory() as root:
+            ui = tts.LocalUI("studio.html")
+            import shutil
+            self.addCleanup(shutil.rmtree, ui.workdir)
+            def fake_audio(voice, text, instr, args, path):
+                self.assertEqual(args.synth_settings["model"], tts.MODEL)
+                Path(path).write_bytes(b"audio")
+                return 1
+            with patch.object(tts, "synth_to_file", side_effect=fake_audio):
+                self.assertEqual(ui.say("longanhuan_v3.1", "你好")[1], 1)
+
     def test_settings_roundtrip_and_environment(self):
         with tempfile.TemporaryDirectory() as root, patch.object(tts, "SETTINGS_PATH", root + "/settings.json"), patch.dict(os.environ, {}, clear=True):
             self.assertEqual(tts.load_settings()["model"], tts.MODEL)
