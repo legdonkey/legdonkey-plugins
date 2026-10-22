@@ -170,6 +170,21 @@
   .rows li .say { color: var(--ivory); }
   .rows.env li { padding: 12px 0; }
 
+  /* 使用案例:需求在左、助手的执行方式在右，不在帮助区执行命令。 */
+  #hUsageTitle { scroll-margin-top: 88px; }
+  .usage-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 20px; font-size: 15px; }
+  .usage-table th, .usage-table td { padding: 16px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  .usage-table thead th { color: var(--ash); font-size: 14px; font-weight: 400; }
+  .usage-table th:first-child { width: 40%; padding-right: 24px; }
+  .usage-table tbody th { font-weight: 400; }
+  .usage-table td { color: var(--ash); }
+  .usage-table code { color: var(--ivory); font: 14px/1.6 var(--mono); }
+  .usage-table a { color: var(--ivory); text-decoration-color: var(--ash); text-underline-offset: 4px; }
+  @media (max-width: 760px) {
+    .usage-table { font-size: 14px; }
+    .usage-table th:first-child { width: 42%; padding-right: 16px; }
+  }
+
   /* ================= 选音色 ================= */
   .model-settings { max-width: 1180px; margin: 0 auto 32px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
   .model-settings .note { color: var(--ash); font-size: 14px; max-width: 72ch; }
@@ -464,7 +479,7 @@
 <main>
   <section aria-label="模型设置" class="model-settings">
     <details>
-      <summary id="modelSummary">试听与选中朗读的默认模型</summary>
+      <summary id="modelSummary">全局配音默认模型（复刻仍使用 Flash）</summary>
       <form id="modelForm">
         <label>模型<select id="modelSelect"><option value="qwen-audio-3.1-tts-flash">Flash · 收藏音色</option><option value="qwen-audio-3.1-tts-next">Next · 文字描述声音</option><option value="eleven_v4">Eleven v4 · 固定音色</option><option value="eleven_v4_turbo">Eleven v4 Turbo · 低延迟</option></select></label>
         <label>当前模型的朗读字数上限<input type="number" id="readMax" min="1" step="1" required aria-describedby="readMaxHint"></label>
@@ -534,6 +549,28 @@
         <li id="hSayRow"><div><b>选中即朗读</b><p>在任意 App 里选中文字，按一下鼠标按键或快捷键就用默认音色读出来，再按一次停止。仅 macOS。</p></div>
           <a class="btn compact" href="#say">去配置</a></li>
       </ul>
+    </section>
+
+    <section class="home-sec" aria-labelledby="hUsageTitle">
+      <h2 id="hUsageTitle">怎么向 AI 提需求</h2>
+      <p class="hint" id="hUsageHint">在 AI 对话中手动调用 bailian-tts 技能后，直接说下面这些话。右列是助手应采用的命令或操作，不需要在本页面输入，也不会在这里自动执行。</p>
+      <table class="usage-table" aria-labelledby="hUsageTitle" aria-describedby="hUsageHint hUsageModel">
+        <thead><tr><th scope="col">你说的需求</th><th scope="col">AI 应调用 / 怎么做</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">“检查一下能不能用”</th><td><code>run.py --check</code> → <code>status</code>，只做本地检查。</td></tr>
+          <tr><th scope="row">“第一次用，帮我配置”</th><td>经你确认后初始化环境，再用 <code>ui</code>、<code>key</code> 引导配置；Key 不发到对话里。</td></tr>
+          <tr><th scope="row">“给我找几个女声音色”</th><td>百炼 Flash 用 <code>voices --gender 女</code>；ElevenLabs 在工作台筛选女声；Next 用声音描述。</td></tr>
+          <tr><th scope="row">“我想自己试听挑声音”</th><td><a href="#voices"><code>ui --page voices</code> · 去选音色</a>，现场试听会消耗额度。</td></tr>
+          <tr><th scope="row">“用这个声音试读一句”</th><td><code>preview</code>，合成一句并播放，适合比较音色和效果。</td></tr>
+          <tr><th scope="row">“把这段文案生成音频”</th><td><code>gen</code>，生成单段 WAV 音频文件。</td></tr>
+          <tr><th scope="row">“给这份多段脚本配音并生成字幕”</th><td><code>script</code>，生成分段音频、完整音轨和 SRT 字幕。</td></tr>
+          <tr><th scope="row">“以后默认用这个声音”</th><td>Flash 用 <code>fav</code>；ElevenLabs 在<a href="#voices">选音色</a>里设为默认；Next 在顶部模型设置中保存声音描述。</td></tr>
+          <tr><th scope="row">“选中文字按热键就朗读”</th><td><a href="#say"><code>ui --page say</code> · 去配置</a>；之后热键调用 <code>say</code>，不需要 AI 或工作台常驻。仅 macOS。</td></tr>
+          <tr><th scope="row">“用我的录音复刻声音”</th><td><a href="#clone"><code>ui --page clone</code> · 去复刻</a>，有现成录音文件时用 <code>clone</code>。复刻他人声音须先取得授权。</td></tr>
+          <tr><th scope="row">“删除这个复刻音色”</th><td>经你确认后调用 <code>delete</code>，删除云端音色，不可恢复；取消收藏不等于删除。</td></tr>
+        </tbody>
+      </table>
+      <p class="hint" id="hUsageModel"><code>preview</code>、<code>gen</code>、<code>script</code>、<code>say</code> 跟随顶部保存的默认模型。声音复刻与百炼音色管理仍使用 Flash；试听和生成会消耗对应服务的额度。命令统一通过 <code>python3 "$skill_dir/scripts/run.py" &lt;子命令&gt;</code> 执行，<code>$skill_dir</code> 是技能目录。</p>
     </section>
 
     <section class="home-sec" aria-labelledby="hEnvTitle">
@@ -1827,7 +1864,7 @@ const Say = (() => {
   $("modelSelect").value = d.settings.model;
   $("workspaceId").value = d.settings.workspace_id;
   $("nextDescription").value = d.settings.description;
-  $("modelCurrent").textContent = `当前：${modelName[d.settings.model]} · 保存后同步用于鼠标朗读`;
+  $("modelCurrent").textContent = `当前：${modelName[d.settings.model]} · 保存后同步用于试听及 gen / script / preview / say`;
   $("eTitle").textContent = "试听台";
   Eleven.init(d);
   const readLimits = {...d.settings.read_limits};

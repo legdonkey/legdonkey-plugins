@@ -1,6 +1,6 @@
 ---
 name: bailian-tts
-description: 用阿里百炼 qwen-audio-3.1-tts-flash 把中文(及方言、多语种)文案合成自然语音:用任意自然语言指令控制语气/情感/语速/角色,在文本里嵌入 [excited]、[laughing] 等情感与拟声标签;支持试听音色、单段生成 wav、按脚本批量生成并输出字幕(SRT)与拼接音轨,以及用自己的录音复刻音色。当用户想用阿里/百炼/Qwen-Audio/DashScope 做语音合成、TTS、配音、旁白、朗读、文字转语音,给视频/PPT/课件加配音,要带情感或方言的配音,试听音色,把多段文案批量转成 wav 并对齐字幕,或复刻自己的声音时,使用本技能。工作台试听与选中朗读也支持 ElevenLabs Eleven v4（独立 Key、固定音色与收藏）。不要每次现写 SDK 代码。
+description: 用阿里百炼 qwen-audio-3.1-tts-flash 把中文(及方言、多语种)文案合成自然语音:用任意自然语言指令控制语气/情感/语速/角色,在文本里嵌入 [excited]、[laughing] 等情感与拟声标签;支持试听音色、单段生成 wav、按脚本批量生成并输出字幕(SRT)与拼接音轨,以及用自己的录音复刻音色。当用户想用阿里/百炼/Qwen-Audio/DashScope 做语音合成、TTS、配音、旁白、朗读、文字转语音,给视频/PPT/课件加配音,要带情感或方言的配音,试听音色,把多段文案批量转成 wav 并对齐字幕,或复刻自己的声音时,使用本技能。所有文本合成命令跟随工作台默认模型，也支持 ElevenLabs Eleven v4（独立 Key、固定音色与收藏）。不要每次现写 SDK 代码。
 disable-model-invocation: true
 ---
 
@@ -32,7 +32,7 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 
 ## 模型与音色
 
-- **Flash 模型** `qwen-audio-3.1-tts-flash` 用于音色收藏、声音复刻及 `gen` / `script` / `preview`。工作台顶部可切换试听和 `say` 的默认模型为 `qwen-audio-3.1-tts-next`，配置保存在 `~/.config/bailian-tts/settings.json`；Next 使用声音描述，不使用 Flash 音色 ID。**默认音色**:未指定 `-v` 时用用户**收藏的第 1 个**(见 `fav`),收藏为空时用 `longanhuan_v3.1`(女)。脚本会在 stderr 打印实际用了哪个。
+- **Flash 模型** `qwen-audio-3.1-tts-flash` 用于百炼音色收藏与声音复刻。`gen` / `script` / `preview` / `say` 均跟随工作台默认模型，工作台顶部可切换为 `qwen-audio-3.1-tts-next`，配置保存在 `~/.config/bailian-tts/settings.json`；Next 使用声音描述，不使用 Flash 音色 ID。**默认音色**:未指定 `-v` 时用用户**收藏的第 1 个**(见 `fav`),收藏为空时用 `longanhuan_v3.1`(女)。脚本会在 stderr 打印实际用了哪个。
 - 68 个系统音色在 [references/voices.json](references/voices.json)(与官方列表对齐),`voices` 命令直接读。系统音色名都以 `_v3.1` 结尾,区分大小写。
 - **音色必须属于本模型**:其它模型的系统音色(如 3.0 系列的 `*_v3.6`)、为其它模型创建的复刻音色都不能用,服务端只会回 `411`。脚本会提前识别并提示。
 - 分组:**多语种与方言**(4 个,支持 8 种方言与 8 种外语)、**精品中文**(22 个,仅普通话)、**精品英文**(15 个,仅英文)、**其他系统**(27 个,角色/童声/陪伴等)。
@@ -44,7 +44,7 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 - Turbo 依赖 `websocket-client`，由启动器按 `requirements.txt` 与 dashscope 一起安装和校验；缺失时经用户确认执行 `run.py --setup --yes` 修复，不单独向其他 Python 环境安装。
 - 官网当前 API 基础费率为 v4 $0.08/千字符、Turbo $0.04/千字符，实际价格与音色资格以账号为准；使用 Turbo 不解除音色库的付费套餐限制。
 
-- UI 与 `say` 支持 `eleven_v4`，使用官方 Text to Dialogue HTTPS 接口（单人朗读发送一条 `text` / `voice_id` 输入），支持固定音色。`gen` / `script` / `preview` 与声音复刻仍使用百炼 Flash。
+- UI 与 `say` 支持 `eleven_v4`，使用官方 Text to Dialogue HTTPS 接口（单人朗读发送一条 `text` / `voice_id` 输入），支持固定音色。`gen` / `script` / `preview` 同样跟随默认模型；声音复刻仍使用百炼 Flash。
 - 在工作台顶部选择 Eleven v4，打开 ElevenLabs API Key 页面，由用户创建具有读取音色与语音生成权限的 Key，粘贴到本地密码输入框并点击「校验并保存 Key」。不要读取用户剪贴板或把 Key 写进对话。校验只读取账号音色，不提交合成。
 - 密钥：`ELEVENLABS_API_KEY` → `~/.config/bailian-tts/elevenlabs.key`，文件权限 600；只显示掩码，环境变量与新 Key 冲突时拒绝覆盖。
 - 点「保存模型设置」切换试听与中键朗读。刷新账号音色后可加入收藏、设为默认；收藏位于 `~/.config/bailian-tts/elevenlabs-favorites.json`，第 1 个为中键默认音色，与百炼收藏隔离。本地取消收藏不删除 ElevenLabs 账号音色。首次读取账号音色时，若本地收藏文件尚不存在，从可用账号音色中导入 Siqi Liu、Adrian、Roger；不会导入 Coco Li。
@@ -61,6 +61,12 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 - 副参数:`--rate 0.5-2.0` `--pitch 0.5-2.0` `--volume 0-100`(已自动钳制)。
 
 > 用户说"开心点/严肃点""像客服/像主播/讲新闻""快一点""用东北话"——直接翻译成 `--instruct` 的自然语言;需要句中插笑声、叹气、或一段内切换情绪时用文本标签。
+
+## 全局模型与命令行限制
+
+`gen` / `script` / `preview` / `say` 使用工作台保存的模型，不会自动回退到 Flash。ElevenLabs 未指定 `-v` 时使用其独立收藏的第一个音色，Next 使用工作台声音描述，不接受 `-v` / `@voice`。`voices` / `fav` / `clone` / `delete` 仍管理百炼 Flash 音色。
+
+`gen` / `script` / `preview` 不自动截断正文；Next 单段上限 2800 字符，Eleven 单段上限 2000 字符。Next 不接受 `--instruct` / `--emotion` / `--pitch` / `@instruct`；Eleven 还不接受非默认 `--rate` / `--volume`。不兼容设置在合成前报错；脚本先校验全部段落再提交。Next 的输出时长限制仍可能导致长文不完整，先用短句验证。
 
 ## 子命令
 
@@ -107,7 +113,7 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 ... run.py ui --page clone         # 直接打开「声音复刻」,等同 clone-ui
 ... run.py ui --page say           # 直接打开「选中朗读」
 ```
-- **模型切换**：展开顶部「默认模型」，选择 Flash、Next、Eleven v4 或 Eleven v4 Turbo 后保存；同步用于工作台「选音色」试听与鼠标/快捷键 `say`，不改变 `gen` / `script` / `preview` 与声音复刻。Next 沿用北京地域 API Key，需要填写业务空间 ID（或设置优先级更高的 `SFM_WORKSPACE_ID`）与声音描述；参考[官方接口](https://help.aliyun.com/zh/model-studio/audio-generation-api)。不上传参考录音，不保证每次音色一致。提示词合计最多 3000 字符，普通场景音频最长 120 秒，1500 字长文可能无法完整生成；试听仍限制 200 字。先用短句试听，不要为尝试模型自动提交付费请求。
+- **模型切换**：展开顶部「默认模型」，选择 Flash、Next、Eleven v4 或 Eleven v4 Turbo 后保存；同步用于工作台试听及 `gen` / `script` / `preview` / `say`；声音复刻、`voices` / `fav` / `delete` 仍为 Flash 专属。Next 沿用北京地域 API Key，需要填写业务空间 ID（或设置优先级更高的 `SFM_WORKSPACE_ID`）与声音描述；参考[官方接口](https://help.aliyun.com/zh/model-studio/audio-generation-api)。不上传参考录音，不保证每次音色一致。提示词合计最多 3000 字符，普通场景音频最长 120 秒，1500 字长文可能无法完整生成；试听仍限制 200 字。先用短句试听，不要为尝试模型自动提交付费请求。
 - 用户要挑音色、逐个试听比较 → `--page voices`;要复刻自己的声音 → `--page clone`;要管理音色(收藏、默认、删除复刻)→ `--page voices`。
 - 它会一直运行到用户点顶栏的「完成」。宿主支持后台运行时(如 Claude Code)放到后台,不要轮询;不支持时(如 Pi)前台运行且**不设超时**,地址会先打印出来,命令在用户点「完成」后返回。启动后告诉用户「已在浏览器打开配音工作台(某一栏),操作完点右上角『完成』回到这里」。
 - 进程退出时 stdout 打印 API key 状态(掩码)、本次创建的音色、试听了几个音色合成几次,以及「当前收藏」,据此向用户汇报。
@@ -167,5 +173,5 @@ echo "要读的文字" | ~/.local/bin/bailian-say
 
 ## 边界
 
-- 支持 Flash 音色配音、Eleven v4 固定音色试听与选中朗读，以及 Next 的文字描述声音试听与选中朗读；Next 的多人对话、参考录音、配乐与音效编排不在本技能内。Flash 的声音设计不在本技能内。
+- 支持 Flash 音色配音、Eleven v4 / Turbo 固定音色配音，以及 Next 的文字描述声音配音；Next 的多人对话、参考录音、配乐与音效编排不在本技能内。Flash 的声音设计不在本技能内。
 - 复刻他人声音须取得本人授权。

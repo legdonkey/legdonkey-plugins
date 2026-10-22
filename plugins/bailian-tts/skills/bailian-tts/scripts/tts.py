@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""语音合成工作台(Flash 配音；UI 试听与 say 可切换 Next、Eleven v4)。
+"""语音合成工作台(所有文本合成跟随默认模型；声音复刻保留 Flash)。
 
 - voices:  列出系统音色(与官方对齐);--mine 列出账号下全部复刻音色,标出哪些本模型可用
 - preview: 合成一句并播放(试听)
@@ -314,7 +314,13 @@ def duration(path):
 
 
 def synth_to_file(voice, text, instr, a, out_path):
-    raw = synth(voice, text, instr, a.rate, a.pitch, a.volume)
+    settings = a.synth_settings
+    if settings["model"] in eleven.MODELS:
+        raw = eleven.synth(text, voice, settings["model"])
+    elif settings["model"] == NEXT_MODEL:
+        raw = synth_next(text, settings, a.rate, a.volume)
+    else:
+        raw = synth(voice, text, instr, a.rate, a.pitch, a.volume)
     if not raw:
         sys.exit("✗ 合成失败(411 = 音色不属于本模型;指令过长或格式异常也会失败)")
     normalize(raw, out_path)
@@ -514,7 +520,7 @@ class LocalUI:
             normalize(raw, path)
             secs = duration(path)
         else:
-            secs = synth_to_file(voice, text, instruction, types.SimpleNamespace(rate=1.0, pitch=1.0, volume=50), path)
+            secs = synth_to_file(voice, text, instruction, types.SimpleNamespace(rate=1.0, pitch=1.0, volume=50, synth_settings={"model": MODEL}), path)
         self.audio[key] = open(path, "rb").read()
         return f"/audio?t={self.token}&k={key}", round(secs, 2)
 
@@ -798,24 +804,47 @@ def read_text(a, allow_default):
     sys.exit("请用 --text \"...\" 或 --file 文件 提供文本。")
 
 
+def validate_synthesis(voice, text, instr, a):
+    model = a.synth_settings["model"]
+    if model == MODEL:
+        check_voice(voice)
+        resolve_instruction(instr, a.emotion)
+        return
+    if instr or a.emotion or a.pitch != 1.0:
+        sys.exit("当前模型不支持 --instruct / --emotion / --pitch 或 @instruct；请移除这些设置。Next 请在工作台设置声音描述。")
+    if model in eleven.MODELS:
+        if not voice:
+            sys.exit("请先在工作台收藏 ElevenLabs 音色，或用 -v 指定 ElevenLabs voice_id")
+        if voice_entry(voice) or voice.startswith(MODEL + "-"):
+            sys.exit("ElevenLabs 不能使用百炼音色 ID")
+        if a.rate != 1.0 or a.volume != 50:
+            sys.exit("ElevenLabs 不支持 --rate / --volume，请使用文本内音频标签")
+    elif voice:
+        sys.exit("Next 使用工作台声音描述，不支持 -v 或 @voice")
+    if len(text) > READ_LIMIT_CAPS[model]:
+        sys.exit(f"{model} 单段正文不能超过 {READ_LIMIT_CAPS[model]} 字符；请自行拆段，不会自动截断")
+
+
 def cmd_preview(a):
-    check_voice(a.voice)
+    text = read_text(a, True)
+    validate_synthesis(a.voice, text, a.instruct, a)
     instr = resolve_instruction(a.instruct, a.emotion)
     out = a.out or os.path.join(tempfile.gettempdir(), f"preview_{a.voice}.wav")
     print(f"🎙 {describe(a.voice)}  | 指令:{instr or '无'}")
-    print(f"✅ {out}  ({synth_to_file(a.voice, read_text(a, True), instr, a, out):.2f}s)")
+    print(f"✅ {out}  ({synth_to_file(a.voice, text, instr, a, out):.2f}s)")
     if sys.platform == "darwin":
         print("▶️ 播放中…"); subprocess.run(["afplay", out])
 
 
 def cmd_gen(a):
-    check_voice(a.voice)
+    text = read_text(a, False)
+    validate_synthesis(a.voice, text, a.instruct, a)
     instr = resolve_instruction(a.instruct, a.emotion)
     print(f"🎙 {describe(a.voice)}  | 指令:{instr or '无'}")
-    print(f"✅ {a.out}  ({synth_to_file(a.voice, read_text(a, False), instr, a, a.out):.2f}s)")
+    print(f"✅ {a.out}  ({synth_to_file(a.voice, text, instr, a, a.out):.2f}s)")
 
 
-def parse_script(path, voice, instruct):
+def parse_script(path, voice, instruct, model=MODEL):
     """脚本格式:每个非空行是一段;`#` 开头为注释;
     `@voice <音色>` / `@instruct <指令>` 设置之后各段的音色与指令,`@instruct` 留空即清除。"""
     segs = []
@@ -836,7 +865,8 @@ def parse_script(path, voice, instruct):
     if not segs:
         sys.exit(f"{path} 里没有可合成的文本行")
     for s in segs:
-        check_voice(s["voice"])
+        if model == MODEL:
+            check_voice(s["voice"])
         resolve_instruction(s["instruction"], None)  # 先校验长度,避免跑到一半才失败
     return segs
 
@@ -847,7 +877,10 @@ def srt_time(t):
 
 
 def cmd_script(a):
-    segs = parse_script(a.file, a.voice, a.instruct)
+    segs = parse_script(a.file, a.voice, a.instruct, a.synth_settings["model"])
+    for s in segs:
+        validate_synthesis(s["voice"], s["text"], s["instruction"], a)
+        s["instruction"] = resolve_instruction(s["instruction"], a.emotion)
     os.makedirs(a.out_dir, exist_ok=True)
     t, srt = 0.0, []
     for i, s in enumerate(segs, 1):
@@ -872,7 +905,7 @@ def cmd_script(a):
     with open(os.path.join(a.out_dir, "subtitles.srt"), "w", encoding="utf-8") as f:
         f.write("\n".join(srt))
     with open(os.path.join(a.out_dir, "manifest.json"), "w", encoding="utf-8") as f:
-        json.dump({"model": MODEL, "gap": a.gap, "total": round(t - a.gap, 3), "segments": segs},
+        json.dump({"model": a.synth_settings["model"], "gap": a.gap, "total": round(t - a.gap, 3), "segments": segs},
                   f, ensure_ascii=False, indent=2)
     print(f"✅ {len(segs)} 段,总长 {t - a.gap:.2f}s → {a.out_dir}/(all.wav、subtitles.srt、manifest.json)")
 
@@ -1362,10 +1395,17 @@ def main():
     a = p.parse_args()
     if a.cmd == "fav" and a.action != "list" and not a.voices:
         p.error(f"fav {a.action} 需要至少一个音色")
+    if a.cmd in ("gen", "preview", "script", "say"):
+        a.synth_settings = load_settings()
+        print(f"使用模型:{a.synth_settings['model']}", file=sys.stderr)
+    if a.cmd in ("clone", "delete", "voices", "fav"):
+        print(f"百炼音色管理使用:{MODEL}", file=sys.stderr)
     if getattr(a, "voice", "") is None and not (getattr(a, "save", False) or getattr(a, "install", False)):
-        if a.cmd == "say" and load_settings()["model"] in eleven.MODELS:
+        if a.cmd in ("gen", "preview", "script", "say") and a.synth_settings["model"] in eleven.MODELS:
             favs = eleven.favorites()
             a.voice, source = (favs[0]["voice"] if favs else ""), "ElevenLabs 收藏第 1 个"
+        elif a.cmd in ("gen", "preview", "script", "say") and a.synth_settings["model"] == NEXT_MODEL:
+            a.voice, source = "", "Next 声音描述"
         else:
             a.voice, source = default_voice()
         print(f"未指定音色,使用{source}:{a.voice}", file=sys.stderr)
