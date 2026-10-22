@@ -637,7 +637,10 @@ def cmd_ui(a):
     page = a.page if key_status()["configured"] or (load_settings()["model"] in eleven.MODELS and eleven.key_status()["configured"]) else "home"
 
     def state(q, body, ctype):
-        return {"settings": load_settings(), "model": MODEL, "key": key_status(), "deps": deps_status(), "console": KEY_CONSOLE,
+        manifest = os.path.join(os.path.dirname(__file__), "..", "..", "..", ".claude-plugin", "plugin.json")
+        with open(manifest, encoding="utf-8") as f:
+            version = json.load(f)["version"]
+        return {"version": version, "settings": load_settings(), "model": MODEL, "key": key_status(), "deps": deps_status(), "console": KEY_CONSOLE,
                 "catalog": load_catalog(), "favorites": load_favorites(), "sample": DEFAULT_SAMPLE,
                 "platform": sys.platform, "eleven_key": eleven.key_status(), "eleven_favorites": eleven.favorites(), "read_limit_caps": READ_LIMIT_CAPS}
 
