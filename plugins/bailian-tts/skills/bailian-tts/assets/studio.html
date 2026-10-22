@@ -46,6 +46,7 @@
     background: var(--room); border-bottom: 1px solid var(--line);
   }
   .bar .left { display: flex; align-items: center; gap: 36px; height: 100%; min-width: 0; }
+  .app-version { color: var(--ash); font: 14px/1.5 var(--mono); letter-spacing: 0; margin-left: 12px; }
   .bar h1 { font-size: 15px; font-weight: 300; margin: 0; letter-spacing: .14em; white-space: nowrap; }
   .nav { display: flex; gap: 26px; height: 100%; }
   .nav a {
@@ -461,7 +462,7 @@
 
 <header class="bar">
   <div class="left">
-    <h1>百炼配音</h1>
+    <h1>百炼配音<span class="app-version" id="appVersion" aria-label="插件版本"></span></h1>
     <nav class="nav" aria-label="页面">
       <a href="#home" data-page="home">开始</a>
       <a href="#voices" data-page="voices">选音色</a>
@@ -1854,6 +1855,8 @@ const Say = (() => {
     document.querySelector("main").innerHTML = `<div class="gate"><div class="verdict fail"><b>连不上本地服务</b><span>回到对话里重新打开配音工作台。</span></div></div>`;
     return;
   }
+  $("appVersion").textContent = d.version ? `v${d.version}` : "";
+  $("appVersion").title = d.version ? `当前运行的插件版本：${d.version}` : "";
   S.favorites = d.favorites;
   S.platform = d.platform;
   $("navSay").hidden = d.platform !== "darwin";
