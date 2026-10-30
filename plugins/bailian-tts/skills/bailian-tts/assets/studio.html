@@ -798,7 +798,9 @@
       <section class="home-sec" aria-labelledby="sInstTitle">
         <h2 id="sInstTitle">朗读入口</h2>
         <ul class="rows"><li><div><b>bailian-say</b><p id="sWrapText">鼠标按键和快捷键都通过它来朗读。</p></div>
-          <div class="actions"><span class="mark na" id="sWrapMark">未安装</span><button class="compact primary" id="sInstall">安装</button></div></li></ul>
+          <div class="actions"><span class="mark na" id="sWrapMark">未安装</span><button class="compact primary" id="sInstall">安装</button></div></li>
+          <li><div><b>按键运行环境</b><p id="sEnvText">先安装朗读入口。</p></div>
+          <div class="actions"><span class="mark na" id="sEnvMark">未检查</span></div></li></ul>
         <p class="msg" id="sInstMsg" role="status" aria-live="polite"></p>
       </section>
 
@@ -813,6 +815,7 @@
               <select id="sOlBtn" aria-label="按键"></select>
             </div>
             <p class="now">这个键现在：<code id="sOlNow"></code></p>
+            <p class="now" id="sOlHitRow"><span class="mark na" id="sOlHitMark"></span> <span id="sOlHitText"></span></p>
             <div class="actions">
               <button class="primary" id="sOlWrite">改为选中朗读</button>
               <button class="linkish" id="sOlCopy">只复制配置片段</button>
@@ -1769,6 +1772,11 @@ const Say = (() => {
     $("sWrapText").textContent = text;
     $("sInstall").textContent = !w.installed ? "安装" : "重新安装";
     $("sInstall").classList.toggle("primary", kind !== "pass");
+    // 在按键触发的环境（系统默认的短 PATH）里检查 ffmpeg、依赖与 key
+    const env = r.env, [ek, ew, et] = !env ? ["na", "未检查", "先安装朗读入口。"]
+      : env.ok ? ["pass", "正常", "按鼠标键时的环境（系统默认 PATH）里找得到 ffmpeg、Python 依赖和 API Key。"]
+      : ["fail", "缺东西", env.detail || "检查失败。"];
+    $("sEnvMark").className = `mark ${ek}`; $("sEnvMark").textContent = ew; $("sEnvText").textContent = et;
     // OpenLogi
     const ol = r.openlogi, devs = ol.devices || [];
     $("sOlNone").hidden = ol.found && devs.length;
@@ -1777,6 +1785,12 @@ const Say = (() => {
     const bound = devs.flatMap((d) => Object.entries(d.bindings).filter(([, v]) => v.includes("bailian-say")).map(([b]) => btnName(b)));
     $("sOlMark").className = `mark ${bound.length ? "pass" : "na"}`;
     $("sOlMark").textContent = bound.length ? `已配置：${bound.join("、")}` : "未配置";
+    // 按键工作流第 1 步会记一笔日志：收到说明 OpenLogi 在运行、已加载配置、有辅助功能权限
+    $("sOlHitRow").hidden = !bound.length;
+    $("sOlHitMark").className = `mark ${r.trigger ? "pass" : "warn"}`;
+    $("sOlHitMark").textContent = r.trigger ? "收到按键" : "还没收到按键";
+    $("sOlHitText").textContent = r.trigger ? `最近一次：${r.trigger}`
+      : `在菜单栏退出 OpenLogi 再打开，选中文字按一下${bound[0] || ""}，再点下方朗读记录的「刷新」。一直收不到：OpenLogi 没在运行、没重开，或没在系统设置里给它辅助功能权限。`;
     if (devs.length) {
       const keepDev = $("sOlDev").value, keepBtn = $("sOlBtn").value;
       $("sOlDev").replaceChildren(...devs.map((d) => new Option(d.name, d.id)));

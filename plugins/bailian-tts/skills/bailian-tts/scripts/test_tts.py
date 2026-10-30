@@ -119,10 +119,29 @@ class ModelTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             tts.read_limit(settings, 2001)
 
+    def test_say_logs_and_notifies_when_ffmpeg_missing(self):
+        import contextlib, signal
+        a = SimpleNamespace(synth_settings={"model": tts.MODEL}, rate=1, pitch=1, volume=50)
+        err = io.StringIO()
+        with patch.object(tts, "say_session", lambda: contextlib.nullcontext(0)), patch.object(signal, "signal"), patch.object(tts, "synth", return_value=b"x"), patch.object(tts, "normalize", side_effect=FileNotFoundError("ffmpeg")), patch.object(tts, "notify") as notify, patch.object(sys, "stderr", err):
+            self.assertFalse(tts.speak_segments(["测试"], "voice", None, a))
+        self.assertIn("ffmpeg", err.getvalue())
+        notify.assert_called_once()
+
+    def test_say_check_and_last_trigger(self):
+        with tempfile.TemporaryDirectory() as root, patch.object(tts, "SAY_LOG", root + "/say.log"):
+            self.assertEqual(tts.last_trigger(), "")
+            Path(tts.SAY_LOG).write_text("\n--- 2026-10-30 10:00:00 按键触发\n\n--- 2026-10-30 10:00:01 qwen 3 字\n")
+            self.assertEqual(tts.last_trigger(), "2026-10-30 10:00:00")
+        with patch.object(tts, "load_settings", return_value={"model": tts.MODEL}), patch.object(tts, "deps_status", return_value={"ffmpeg": False, "dashscope": True}), patch.object(tts, "key_status", return_value={"configured": True}), patch.dict(os.environ, {"PATH": "/usr/bin"}):
+            with self.assertRaises(SystemExit) as e:
+                tts.say_check()
+            self.assertIn("ffmpeg", str(e.exception.code))
+
     def test_say_respects_model_limit_and_interface_boundary(self):
         for model, configured, override, expected in [(tts.NEXT_MODEL, 20, None, 22), (tts.NEXT_MODEL, 20, 10, 12), (tts.eleven.MODEL, 2000, None, 2000)]:
             with self.subTest(model=model, configured=configured, override=override):
-                args = SimpleNamespace(install=False, save=False, clipboard=False, text="甲" * 3000,
+                args = SimpleNamespace(install=False, check=False, save=False, clipboard=False, text="甲" * 3000,
                                        max=override, voice="voice123", instruct=None, emotion=None)
                 settings = {"model": model, "read_limits": {model: configured}}
                 stdout, stderr = sys.stdout, sys.stderr
@@ -192,7 +211,7 @@ class ModelTests(unittest.TestCase):
 
     def test_say_uses_whole_truncated_text(self):
         raw = "甲" * 1000 + "。" + "乙" * 1000
-        args = SimpleNamespace(install=False, save=False, clipboard=False, text=raw,
+        args = SimpleNamespace(install=False, check=False, save=False, clipboard=False, text=raw,
                                max=1500, voice="flash-voice", instruct=None, emotion=None)
         settings = {"model": tts.NEXT_MODEL, "workspace_id": "llm-test", "description": "女声"}
         stdout, stderr = sys.stdout, sys.stderr

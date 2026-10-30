@@ -736,7 +736,7 @@ def cmd_ui(a):
             voice = {"voice": vid, "name": describe(vid)}
         return {"wrapper": say_wrapper_status(), "openlogi": openlogi_status(), "workflow": OPENLOGI_WORKFLOW,
                 "script": SHORTCUT_SCRIPT, "voice": voice["voice"], "voice_name": voice["name"],
-                "log": say_log_tail(), "log_path": tilde(SAY_LOG)}
+                "env": say_env_check(), "trigger": last_trigger(), "log": say_log_tail(), "log_path": tilde(SAY_LOG)}
 
     def say_install(q, body, ctype):
         write_say_wrapper()
@@ -758,7 +758,7 @@ def cmd_ui(a):
         err = os.path.join(ui.workdir, "say_try.err")
         with open(err, "w") as ef:
             p = subprocess.Popen([SAY_WRAPPER], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-                                 stderr=ef, start_new_session=True, text=True)
+                                 stderr=ef, start_new_session=True, text=True, env=agent_env())
         p.stdin.write(text); p.stdin.close()  # type: ignore[union-attr]
         try:  # 正常时会一直播放;1.5 秒内就退出且返回码非 0 说明没启动起来
             if p.wait(timeout=1.5):
@@ -922,6 +922,8 @@ SAY_PID = os.path.join(SAY_DIR, "reader.pid")
 SAY_CLIP = os.path.join(SAY_DIR, "clipboard.txt")
 SAY_LOG = os.path.expanduser("~/Library/Logs/bailian-tts-say.log")
 SAY_WRAPPER = os.path.expanduser("~/.local/bin/bailian-say")
+SAY_TRIGGER = "按键触发"
+AGENT_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"  # OpenLogi 后台进程、快捷指令运行命令时的 PATH
 SAY_FIRST, SAY_SIZE = 80, 180  # 首段短一些,尽快开口;后续每段约 180 字
 
 
@@ -1109,7 +1111,11 @@ def speak_segments(parts, voice, instr, a):
         with say_session() as playback_fd, ThreadPoolExecutor(max_workers=1) as pool:
             fut = pool.submit(job, 0)
             for i in range(len(parts)):
-                path = fut.result()
+                try:
+                    path = fut.result()
+                except Exception as e:  # 如找不到 ffmpeg:趁日志还开着记下原因,否则退出时 stderr 已关闭,原因丢失
+                    print(f"第 {i + 1} 段处理失败: {e!r}", file=sys.stderr, flush=True)
+                    path = None
                 if not path:
                     notify(f"第 {i + 1} 段合成失败,详情见 {SAY_LOG}")
                     return False
@@ -1245,6 +1251,51 @@ def openlogi_bind(dev_id, button):
     return backup
 
 
+def agent_env():
+    """模拟鼠标按键触发时的环境:系统默认的短 PATH,没有终端里设置的 API key 等环境变量。"""
+    return dict({k: os.environ[k] for k in ("HOME", "USER", "LOGNAME", "TMPDIR") if k in os.environ}, PATH=AGENT_PATH)
+
+
+def say_env_check():
+    """在按键触发的环境里运行 bailian-say --check,覆盖入口、Python、虚拟环境、ffmpeg 与 key。"""
+    if not os.path.exists(SAY_WRAPPER):
+        return None
+    try:
+        r = subprocess.run([SAY_WRAPPER, "--check"], env=agent_env(), stdin=subprocess.DEVNULL,
+                           capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return {"ok": False, "detail": str(e)[-300:]}
+    return {"ok": r.returncode == 0, "detail": (r.stdout + r.stderr).strip()[-300:]}
+
+
+def say_log(line):
+    os.makedirs(os.path.dirname(SAY_LOG), exist_ok=True)
+    with open(SAY_LOG, "a", encoding="utf-8") as f:
+        f.write(f"\n--- {time.strftime('%F %T')} {line}\n")
+
+
+def last_trigger():
+    """日志里最近一次鼠标按键触发的时间;没有就返回空字符串。"""
+    try:
+        lines = open(SAY_LOG, encoding="utf-8").read().split("\n")
+    except FileNotFoundError:
+        return ""
+    hit = next((l for l in reversed(lines) if l.startswith("--- ") and SAY_TRIGGER in l), "")
+    return hit[4:23]
+
+
+def say_check():
+    """bailian-say --check:检查朗读要用的工具和 key,缺什么就以非 0 退出并列出来。"""
+    import shutil
+    settings, deps = load_settings(), deps_status()
+    key = eleven.key_status() if settings["model"] in eleven.MODELS else key_status()
+    missing = [name for name, ok in [("ffmpeg", deps["ffmpeg"]), ("afplay", shutil.which("afplay")),
+                                     ("dashscope", deps["dashscope"]), ("API Key", key["configured"])] if not ok]
+    if missing:
+        sys.exit("按键触发时找不到:" + "、".join(missing) + "(PATH=" + os.environ["PATH"] + ")")
+    print("按键环境正常")
+
+
 def say_log_tail(n=12):
     try:
         return open(SAY_LOG, encoding="utf-8").read().strip().split("\n")[-n:]
@@ -1266,15 +1317,19 @@ def install_say():
 def cmd_say(a):
     if sys.platform != "darwin":
         sys.exit("say 只支持 macOS(依赖 pbpaste / pbcopy / afplay)")
-    # 按键工作流和快捷指令里的 PATH 很短,合成要用 Homebrew 的 ffmpeg
-    os.environ["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", "/usr/bin:/bin")
+    # 按键工作流和快捷指令里的 PATH 很短,合成要用 Homebrew 或 ~/.local/bin 里的 ffmpeg
+    os.environ["PATH"] = (f"/opt/homebrew/bin:/usr/local/bin:{os.path.expanduser('~/.local/bin')}:"
+                          + os.environ.get("PATH", "/usr/bin:/bin"))
     if a.install:
         return install_say()
+    if a.check:
+        return say_check()
     os.makedirs(SAY_DIR, exist_ok=True)
     # 按键工作流:--save 存下剪贴板文字并清空 → 按键发 Cmd+C 复制选中内容 → --clipboard 读出并还原剪贴板。
     # 只还原纯文字,图片等其它剪贴板内容不保留。Cmd+C 没复制到内容且前台是选中即复制的终端时,
     # 改读 --save 存下的文字。
     if a.save:
+        say_log(SAY_TRIGGER)
         stop_previous_say()
         open(SAY_CLIP, "w", encoding="utf-8").write(pb_paste())
         return pb_copy("")
@@ -1285,6 +1340,7 @@ def cmd_say(a):
         if not raw.strip() and front_bundle_id() in COPY_ON_SELECT_TERMINALS:
             raw = saved
         if not raw.strip():
+            say_log("没有选中文字:Cmd+C 没复制到内容")
             return notify("没有选中文字")
     else:
         raw = a.text if a.text is not None else sys.stdin.read()
@@ -1387,6 +1443,7 @@ def main():
     mode = sp.add_mutually_exclusive_group()
     mode.add_argument("--save", action="store_true", help="按键工作流第 1 步:结束上一次朗读,存下剪贴板文字并清空")
     mode.add_argument("--clipboard", action="store_true", help="按键工作流最后一步:朗读刚复制的文字并还原剪贴板")
+    mode.add_argument("--check", action="store_true", help="检查朗读要用的 ffmpeg、依赖与 API Key(工作台用来模拟按键环境)")
     mode.add_argument("--install", action="store_true", help="生成 ~/.local/bin/bailian-say 并打印按键 / 快捷键配置")
     sp.set_defaults(func=cmd_say)
 
