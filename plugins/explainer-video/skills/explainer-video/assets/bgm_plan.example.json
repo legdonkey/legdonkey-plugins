@@ -1,0 +1,75 @@
+{
+  "total": 272.65,
+  "style": "A minor, 92 BPM, instrumental background music for a tech explainer narration, no vocals, understated, clear mid-range, light bass, no sub bass",
+  "seed": 20251025,
+  "target_i": -20,
+  "recap": [
+    4.18,
+    12.18
+  ],
+  "impact": 261.59,
+  "sections": [
+    {
+      "start": 0.0,
+      "key": "open",
+      "name": "开场",
+      "prompts": [
+        "cinematic ambient intro, cold ethereal synth pads, soft felt piano notes, spacious reverb, no drums"
+      ],
+      "target_lu": -4.0
+    },
+    {
+      "start": 12.18,
+      "key": "ch1",
+      "name": "第1章",
+      "prompts": [
+        "warm minimal electronic, soft mid-range plucked synths and felt piano chords, gentle light rhythm, calm",
+        "warm minimal electronic, soft plucked synth pattern, felt piano chords, light soft percussion, gentle groove"
+      ],
+      "target_lu": -2.5
+    },
+    {
+      "start": 89.06,
+      "key": "ch2",
+      "name": "第2章",
+      "prompts": [
+        "brighter minimal electronic, clear mid-range arpeggiated synth, soft plucks, light steady groove with soft kick and shaker, light bass",
+        "bright minimal electronic, mid-range synth arpeggio, plucks, steady groove with soft kick and hi-hats, light bass, a bit more energy"
+      ],
+      "target_lu": -1.0
+    },
+    {
+      "start": 178.67,
+      "key": "ch3",
+      "name": "第3章",
+      "prompts": [
+        "cinematic electronic, interlocking mid-range arpeggios, steady drums, light bass, tension slowly building",
+        "cinematic electronic, mid-range arpeggios, steady drums, rising synth pads, light bass, building tension",
+        "cinematic electronic build, driving drums, layered rising synths and strings in the mid register, light bass, strong forward momentum",
+        "intense cinematic electronic, driving drums, layered swelling synths and strings in the mid register, light bass, high tension"
+      ],
+      "target_lu": [
+        -0.5,
+        1.5
+      ]
+    },
+    {
+      "start": 253.47,
+      "key": "sum",
+      "name": "总结",
+      "prompts": [
+        "cinematic electronic build-up, bright swelling synth chords and strings in the mid register, driving drums, rising energy, anticipation"
+      ],
+      "target_lu": 2.0
+    },
+    {
+      "start": 261.59,
+      "key": "outro",
+      "name": "收尾",
+      "prompts": [
+        "cinematic ambient outro, cold ethereal synth pads, soft felt piano notes, spacious reverb, no drums, gentle resolution"
+      ],
+      "target_lu": -4.0
+    }
+  ]
+}

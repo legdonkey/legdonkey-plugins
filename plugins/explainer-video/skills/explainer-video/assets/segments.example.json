@@ -1,0 +1,7 @@
+[
+  {"scene": "s00-标题", "chapter": 0, "display": "你问了三个问题，我们一个一个讲清楚。"},
+  {"scene": "s01-Q1 引入", "chapter": 1, "display": "先看第一个：ste-zh 和 plain-chinese。", "spoken": "先看第一个：S T E Z H，和 plain chinese。"},
+  {"scene": "s01-Q1 引入", "chapter": 1, "display": "它们都借鉴了航空业的 ASD-STE100，要求一句一事、一词一义。", "spoken": "它们都借鉴了航空业的 A S D, S T E 一百，要求一句一事、一词一义。"},
+  {"scene": "s02-ste-zh", "chapter": 1, "display": "它有 25 条规则，状态只许用 10 个固定词。", "spoken": "它有二十五条规则，状态只许用十个固定词。"},
+  {"scene": "s16-收尾", "chapter": 0, "display": "三个问题，就讲到这里。"}
+]

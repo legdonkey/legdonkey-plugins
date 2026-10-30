@@ -1,0 +1,23 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "overlap": 0.6,
+  "palette": {
+    "ground": "#06070b",
+    "surface": "#0e1118",
+    "surface-2": "#151a24",
+    "line": "rgba(255, 255, 255, 0.09)",
+    "ink": "#f3f5f9",
+    "ink-2": "#9aa3b5",
+    "ink-3": "#5b6475",
+    "ok": "#5ee6a8",
+    "bad": "#ff6b6b"
+  },
+  "chapters": [
+    { "num": "01", "label": "写作规范", "color": "#ffb547" },
+    { "num": "02", "label": "画图技能", "color": "#46d3ea" },
+    { "num": "03", "label": "视频项目", "color": "#a88bff" }
+  ],
+  "captions": { "size": 38, "bottom": 112, "maxWidth": 1500 }
+}

@@ -1,7 +1,6 @@
 ---
 name: bailian-tts
 description: 把中文(及方言、多语种)文案合成自然语音,模型跟随工作台默认设置(百炼 qwen-audio-3.1-tts-flash / qwen-audio-3.1-tts-next,或 ElevenLabs Eleven v4 / v4 Turbo),不要自行切换模型;支持试听音色、单段生成 wav、按脚本批量生成并输出字幕(SRT)与拼接音轨,以及用自己的录音复刻音色(仅百炼 Flash)。Flash 还可用自然语言指令控制语气/情感/语速/角色,并在文本里嵌入 [excited]、[laughing] 等情感与拟声标签。当用户想用阿里/百炼/Qwen-Audio/DashScope/ElevenLabs 做语音合成、TTS、配音、旁白、朗读、文字转语音,给视频/PPT/课件加配音,要带情感或方言的配音,试听音色,把多段文案批量转成 wav 并对齐字幕,或复刻自己的声音时,使用本技能。不要每次现写 SDK 代码。
-disable-model-invocation: true
 ---
 
 # 语音合成工作台（百炼 Flash / Next、Eleven v4）

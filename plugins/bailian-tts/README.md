@@ -50,7 +50,7 @@ codex plugin add bailian-tts@legdonkey
 pi install git:github.com/legdonkey/legdonkey-plugins
 ```
 
-装完重启对应客户端（Pi 会话内可用 `/reload`）。触发名：**Claude Code** 用 `/bailian-tts`（插件命名空间下 `/bailian-tts:bailian-tts`）；**Codex** 用 `$bailian-tts`；**Pi** 用 `/skill:bailian-tts`。**不会自动调用**——CC 与 Pi 都读 frontmatter 的 `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`，只能由你手动点名。Pi 下用 `pi update` 跟进新版本。
+装完重启对应客户端（Pi 会话内可用 `/reload`）。触发名：**Claude Code** 用 `/bailian-tts`（插件命名空间下 `/bailian-tts:bailian-tts`）；**Codex** 用 `$bailian-tts`；**Pi** 用 `/skill:bailian-tts`。也可以不点名，直接说「帮我配一段音」，模型会自动调用。Pi 下用 `pi update` 跟进新版本。
 
 ## 运行环境
 
@@ -73,7 +73,7 @@ API key 读取顺序是环境变量 `DASHSCOPE_API_KEY`，然后是 `~/.dashscop
 
 ## 用法
 
-手动触发后，告诉模型你要合成的文案、想要的语气和用途。典型流程是：
+触发后，告诉模型你要合成的文案、想要的语气和用途。典型流程是：
 
 0. 第一次用时会先打开配音工作台的「开始」页，按页面和助手的引导创建并保存 API Key；
 1. 说一句「帮我选个音色」，会打开工作台的「选音色」，在浏览器里用同一句话逐个试听，满意的收藏或设为默认（之后不指定音色就默认用收藏的第 1 个）；也可以用 `voices --gender 女 --scene 新闻播报` 之类的条件在命令行缩小范围、`fav add` 收藏；
@@ -124,7 +124,7 @@ plugins/bailian-tts/
 ├── .codex-plugin/plugin.json       # Codex 插件清单（skills 指向 ./skills/）
 ├── assets/                         # README 配图（src/ 为可编辑源，由根 assets/build-svg.sh 生成）
 └── skills/bailian-tts/
-    ├── SKILL.md                    # 入口（禁自动调用，只手动点名才跑）
+    ├── SKILL.md                    # 入口（可自动调用）
     ├── agents/openai.yaml          # Codex 专属元数据
     ├── scripts/run.py              # 标准库启动器与环境初始化，不常驻
     ├── scripts/requirements.txt    # 固定 Python 依赖版本

@@ -7,7 +7,7 @@
   <a href="https://agentskills.io"><img src="https://img.shields.io/badge/Agent%20Skills-Compatible-1F6FEB" alt="Agent Skills Compatible"></a>
 </p>
 
-> 两个跨 **Claude Code**、**Codex** 与 **Pi** 的独立插件：CC 与 Codex 走同一个 `legdonkey` 市场、按需各装各的，Pi 把整个仓库作为一个包安装。底层是开放标准 [skill](https://agentskills.io)，都**只在手动点名时运行、不会自动调用**。
+> 三个跨 **Claude Code**、**Codex** 与 **Pi** 的插件：CC 与 Codex 走同一个 `legdonkey` 市场、按需各装各的，Pi 把整个仓库作为一个包安装。底层是开放标准 [skill](https://agentskills.io)。bailian-tts 与 explainer-video 会被模型自动调用；privatize-fork 有副作用，只在手动点名时运行。
 
 ## 插件
 
@@ -27,11 +27,15 @@
 
 用阿里百炼 `qwen-audio-3.1-tts-flash` 把文案合成自然语音：自然语言指令和文本内 `[excited]`、`[laughing]` 等标签控制语气，支持方言与多语种音色；能先试听再生成，按脚本批量输出分段 `wav`、拼接音轨和 SRT 字幕，也能复刻自己的声音。**→ [详细说明](plugins/bailian-tts/README.md)**
 
+### [explainer-video](plugins/explainer-video/) — 中文讲解视频
+
+把一个话题做成 1080p 讲解片：bailian-tts 配音、Whisper 对时、写分镜，子代理并行用 HyperFrames（HTML+GSAP）搭场景，本地 MusicGen 生成 BGM，闪避混音、响度标准化后渲染质检。**依赖 bailian-tts**。**→ [详细说明](plugins/explainer-video/README.md)**
+
 ## 安装
 
-两个插件在同一个市场，CC 与 Codex 都能装，命令行与桌面端图形界面都行。装完重启对应客户端即可。
+三个插件在同一个市场，CC 与 Codex 都能装，命令行与桌面端图形界面都行。装完重启对应客户端即可。
 
-> **想一键装两边？** 跑 `./install-plugins.sh`，它用各自 CLI 把两个插件装进 Claude Code 与 Codex 的本地共享插件层；同一台机器上的 Codex CLI 与 Desktop 共用这类 marketplace、安装缓存和启用状态。OpenAI 公共目录则按 CLI/Desktop 各自的投影管理。需本机有 `claude` / `codex` CLI。
+> **想一键装两边？** 跑 `./install-plugins.sh`，它用各自 CLI 把全部插件装进 Claude Code 与 Codex 的本地共享插件层；同一台机器上的 Codex CLI 与 Desktop 共用这类 marketplace、安装缓存和启用状态。OpenAI 公共目录则按 CLI/Desktop 各自的投影管理。需本机有 `claude` / `codex` CLI。
 
 ### ① Claude Code —— 插件市场
 
@@ -41,6 +45,7 @@
 /plugin marketplace add legdonkey/legdonkey-plugins
 /plugin install privatize-fork@legdonkey
 /plugin install bailian-tts@legdonkey      # 按需，可只装一个
+/plugin install explainer-video@legdonkey  # 需同时装 bailian-tts
 ```
 
 之后用 `/plugin marketplace update` 拉取更新。
@@ -49,7 +54,7 @@
 
 ![Claude Code 添加插件市场](assets/install-claude-gui.png)
 
-> 插件方式的 skill 触发名带命名空间：`/privatize-fork:privatize-fork`、`/bailian-tts:bailian-tts`。
+> 插件方式的 skill 触发名带命名空间：`/privatize-fork:privatize-fork`、`/bailian-tts:bailian-tts`、`/explainer-video:explainer-video`。
 
 ### ② Codex —— 插件市场
 
@@ -59,13 +64,14 @@
 codex plugin marketplace add legdonkey/legdonkey-plugins --ref main
 codex plugin add privatize-fork@legdonkey
 codex plugin add bailian-tts@legdonkey      # 按需，可只装一个
+codex plugin add explainer-video@legdonkey  # 需同时装 bailian-tts
 ```
 
 **桌面端图形界面**：设置 →「添加插件市场」，来源填 `legdonkey/legdonkey-plugins`、Git 引用 `main`（稀疏路径留空），点「添加市场」；再到插件列表按需安装。
 
 ![Codex 添加插件市场](assets/install-codex-gui.png)
 
-> 两个插件分别在 `plugins/privatize-fork`、`plugins/bailian-tts` 子目录（标准布局），任意 Codex 版本都能装。
+> 插件分别在 `plugins/<插件名>` 子目录（标准布局），任意 Codex 版本都能装。
 
 ### ③ Pi —— Pi 包
 
@@ -73,9 +79,9 @@ codex plugin add bailian-tts@legdonkey      # 按需，可只装一个
 pi install git:github.com/legdonkey/legdonkey-plugins
 ```
 
-仓库根的 `package.json` 用 `pi.skills` 向 Pi 暴露两个技能，一次安装就都有了。触发名 `/skill:privatize-fork`、`/skill:bailian-tts`，用 `pi update` 更新。
+仓库根的 `package.json` 用 `pi.skills` 向 Pi 暴露全部三个技能，一次安装就都有了。触发名 `/skill:privatize-fork`、`/skill:bailian-tts`、`/skill:explainer-video`，用 `pi update` 更新。
 
-> **不会自动调用**：CC 与 Pi 靠 frontmatter `disable-model-invocation: true`，Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false`——都只能由你手动触发。
+> **自动调用开关**：privatize-fork 在 CC 与 Pi 靠 frontmatter `disable-model-invocation: true`、在 Codex 靠 `agents/openai.yaml` 的 `allow_implicit_invocation: false` 禁止自动调用；另外两个不设，模型按描述自动调用。
 
 ### 本地开发安装（从 clone 下来的目录装）
 
@@ -89,6 +95,7 @@ pi install git:github.com/legdonkey/legdonkey-plugins
 claude plugin marketplace add <仓库路径>
 claude plugin install privatize-fork@legdonkey
 claude plugin install bailian-tts@legdonkey
+claude plugin install explainer-video@legdonkey
 ```
 
 本地目录市场直接读源码目录（`claude plugin list` 里的 `Read from` 是仓库下的 `plugins/<插件名>`），改完重启 Claude Code 即生效。只想临时试某个插件、不写进配置：`claude --plugin-dir <仓库路径>/plugins/privatize-fork`，仅对本次会话有效。
@@ -99,6 +106,7 @@ claude plugin install bailian-tts@legdonkey
 codex plugin marketplace add <仓库路径>
 codex plugin add privatize-fork@legdonkey
 codex plugin add bailian-tts@legdonkey
+codex plugin add explainer-video@legdonkey
 ```
 
 Codex 安装时会把插件复制到 `~/.codex/plugins/cache/legdonkey/<插件名>/<版本>/`，**改了源码不会自动同步**：用 `codex plugin remove <插件名>@legdonkey` 再 `codex plugin add` 重装，或升版本号后重装。用完换回 GitHub 市场：`codex plugin marketplace remove legdonkey`。
@@ -114,9 +122,9 @@ Pi 直接引用这个目录（`pi list` 显示本地路径），改完在会话�
 ## 仓库结构
 
 ```text
-package.json                                   # Pi 包入口（pi.skills 列出两个插件的技能）
-.claude-plugin/marketplace.json                # CC 市场清单（列出 2 个插件）
-.agents/plugins/marketplace.json               # Codex 市场清单（列出 2 个插件）
+package.json                                   # Pi 包入口（pi.skills 列出三个插件的技能）
+.claude-plugin/marketplace.json                # CC 市场清单（列出 3 个插件）
+.agents/plugins/marketplace.json               # Codex 市场清单（列出 3 个插件）
 plugins/
 ├── privatize-fork/                            # 插件①：开源 fork 私有化
 │   ├── .claude-plugin/plugin.json             #   CC 插件清单
@@ -124,13 +132,18 @@ plugins/
 │   ├── assets/                                #   该插件 README 配图（banner / features）
 │   ├── README.md                              #   插件详细说明
 │   └── skills/privatize-fork/                 #   技能本体（SKILL.md + scripts + references）
-└── bailian-tts/                               # 插件②：阿里百炼 Qwen-Audio 配音
+├── bailian-tts/                               # 插件②：阿里百炼 Qwen-Audio 配音
+│   ├── .claude-plugin/plugin.json             #   CC 插件清单
+│   ├── .codex-plugin/plugin.json              #   Codex 插件清单
+│   ├── assets/                                #   该插件 README 配图（banner）
+│   ├── README.md                              #   插件详细说明
+│   └── skills/bailian-tts/                    #   技能本体（SKILL.md + scripts + references）
+└── explainer-video/                           # 插件③：中文讲解视频（依赖 bailian-tts）
     ├── .claude-plugin/plugin.json             #   CC 插件清单
     ├── .codex-plugin/plugin.json              #   Codex 插件清单
-    ├── assets/                                #   该插件 README 配图（banner）
     ├── README.md                              #   插件详细说明
-    └── skills/bailian-tts/                    #   技能本体（SKILL.md + scripts + references）
-install-plugins.sh                             # 一键把两个插件装进 CC + Codex
+    └── skills/explainer-video/                #   技能本体（SKILL.md + scripts + references + assets）
+install-plugins.sh                             # 一键把全部插件装进 CC + Codex
 assets/                                        # 共享配图：安装截图 + build-svg.sh（生成各插件 SVG）
 README.md                                      # 本文件（仓库总览 / 导航）
 ```
