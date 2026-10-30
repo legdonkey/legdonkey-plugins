@@ -736,7 +736,8 @@ def cmd_ui(a):
             voice = {"voice": vid, "name": describe(vid)}
         return {"wrapper": say_wrapper_status(), "openlogi": openlogi_status(), "workflow": OPENLOGI_WORKFLOW,
                 "script": SHORTCUT_SCRIPT, "voice": voice["voice"], "voice_name": voice["name"],
-                "env": say_env_check(), "trigger": last_trigger(), "log": say_log_tail(), "log_path": tilde(SAY_LOG)}
+                "env": say_env_check(), "trigger": last_trigger(), "log": say_log_tail(), "log_path": tilde(SAY_LOG),
+                "hotkey": dict(hotkey_status(), trigger=last_trigger(HOTKEY_TRIGGER))}
 
     def say_install(q, body, ctype):
         write_say_wrapper()
@@ -748,6 +749,18 @@ def cmd_ui(a):
         backup = openlogi_bind(d["device"], d["button"])
         log["openlogi"] = f"{d['button']}(备份 {backup})"
         return dict(say_state(q, body, ctype), backup=tilde(backup))
+
+    def say_hotkey(q, body, ctype):
+        d = json.loads(body)
+        if d.get("action") == "settings":
+            subprocess.run(["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"])
+            return {"ok": True}
+        try:
+            hotkey_install(d.get("key")) if d.get("action") == "install" else hotkey_remove()
+        except subprocess.CalledProcessError as e:
+            return {"error": "签名快捷键小助手失败:" + (e.stderr or b"").decode(errors="replace")[-300:]}
+        log["hotkey"] = f"{d.get('action')} {d.get('key', '')}".strip()
+        return say_state(q, body, ctype)
 
     def say_try(q, body, ctype):
         text = json.loads(body).get("text", "").strip()
@@ -772,7 +785,7 @@ def cmd_ui(a):
         return {"ok": True}
 
     ui.serve("配音工作台", {("GET", "/say-state"): say_state, ("POST", "/say-install"): say_install,
-                          ("POST", "/say-bind"): say_bind, ("POST", "/say-try"): say_try, ("POST", "/say-stop"): say_stop,
+                          ("POST", "/say-bind"): say_bind, ("POST", "/say-hotkey"): say_hotkey, ("POST", "/say-try"): say_try, ("POST", "/say-stop"): say_stop,
                           ("GET", "/state"): state, ("POST", "/settings"): settings_save, ("POST", "/key"): key, ("GET", "/key"): key_get,
                           ("GET", "/mine"): mine, ("GET", "/eleven-voices"): eleven_voices,
                           ("POST", "/eleven-key"): eleven_key, ("POST", "/eleven-fav"): eleven_fav,
@@ -923,6 +936,7 @@ SAY_CLIP = os.path.join(SAY_DIR, "clipboard.txt")
 SAY_LOG = os.path.expanduser("~/Library/Logs/bailian-tts-say.log")
 SAY_WRAPPER = os.path.expanduser("~/.local/bin/bailian-say")
 SAY_TRIGGER = "按键触发"
+HOTKEY_TRIGGER = "快捷键触发"
 AGENT_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"  # OpenLogi 后台进程、快捷指令运行命令时的 PATH
 SAY_FIRST, SAY_SIZE = 80, 180  # 首段短一些,尽快开口;后续每段约 180 字
 
@@ -1133,6 +1147,17 @@ OPENLOGI_WORKFLOW = ('{ Workflow = [ { RunShellCommand = "$HOME/.local/bin/baili
                      '{ Delay = { millis = 120 } }, { PressKey = "Cmd+C" }, { Delay = { millis = 200 } }, '
                      '{ RunShellCommand = "$HOME/.local/bin/bailian-say --clipboard >/dev/null 2>&1 &" } ] }')
 SHORTCUT_SCRIPT = "$HOME/.local/bin/bailian-say"
+# 键盘快捷键:后台小助手用系统级接口注册 ⌃⌥⌘<字母>,按下后走鼠标中键同一流程(见 hotkey_helper.swift)
+HOTKEY_LABEL = "com.legdonkey.bailian-tts.hotkey"
+HOTKEY_APP = os.path.expanduser("~/Library/Application Support/bailian-tts/百炼朗读助手.app")
+HOTKEY_BIN = os.path.join(HOTKEY_APP, "Contents", "MacOS", "bailian-hotkey")
+HOTKEY_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hotkey_helper.swift")
+HOTKEY_AGENT = os.path.expanduser(f"~/Library/LaunchAgents/{HOTKEY_LABEL}.plist")
+HOTKEY_STATUS = os.path.join(SAY_DIR, "hotkey-status.json")
+HOTKEY_ERR = os.path.expanduser("~/Library/Logs/bailian-tts-hotkey.log")
+# macOS 虚拟键码(kVK_ANSI_*),与键盘布局的物理位置对应
+KEYCODES = dict(zip("asdfhgzxcvbqweryt", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17]),
+                o=31, u=32, i=34, p=35, l=37, j=38, k=40, n=45, m=46)
 
 
 def write_say_wrapper():
@@ -1251,6 +1276,106 @@ def openlogi_bind(dev_id, button):
     return backup
 
 
+def _pbs_status():
+    """系统服务快捷键表(defaults 域 pbs 的 NSServicesStatus);域不存在时为空。只读,用来避开已占用的组合。"""
+    import plistlib
+    r = subprocess.run(["defaults", "export", "pbs", "-"], capture_output=True)
+    return plistlib.loads(r.stdout).get("NSServicesStatus", {}) if r.returncode == 0 and r.stdout else {}
+
+
+def _launchctl(*a):
+    return subprocess.run(["launchctl", *a], capture_output=True, text=True)
+
+
+def hotkey_status():
+    """全局快捷键:是否装好、在不在运行、绑的哪个字母、有没有辅助功能权限(小助手每 2 秒写一次状态文件)。"""
+    import plistlib
+    if not os.path.isfile(HOTKEY_AGENT):
+        return {"installed": False, "running": False, "key": "", "label": "", "trusted": False}
+    key = next((k for k, c in KEYCODES.items()
+                if str(c) == plistlib.load(open(HOTKEY_AGENT, "rb"))["ProgramArguments"][1]), "")
+    running = "state = running" in _launchctl("print", f"gui/{os.getuid()}/{HOTKEY_LABEL}").stdout
+    try:
+        st = json.load(open(HOTKEY_STATUS))
+    except (OSError, ValueError):
+        st = {}
+    err = open(HOTKEY_ERR, encoding="utf-8").read().strip().split("\n")[-1] if os.path.isfile(HOTKEY_ERR) else ""
+    return {"installed": True, "running": running, "key": key, "label": f"⌃⌥⌘{key.upper()}",
+            "registered": st.get("registered", False), "trusted": st.get("trusted", False),
+            "error": "" if running else err}
+
+
+def _hotkey_build():
+    """源码变了才重新编译:临时签名的程序一重编,系统就当成新程序,要重新开辅助功能权限。"""
+    import hashlib, plistlib, shutil
+    digest = hashlib.sha256(open(HOTKEY_SRC, "rb").read()).hexdigest()
+    stamp = os.path.join(HOTKEY_APP, "Contents", "Resources", "source.sha256")
+    if os.path.isfile(HOTKEY_BIN) and os.path.isfile(stamp) and open(stamp).read() == digest:
+        return
+    if not shutil.which("swiftc") or subprocess.run(["xcode-select", "-p"], capture_output=True).returncode:
+        sys.exit("需要先安装 Command Line Tools:在「终端」里运行 xcode-select --install,装好后再点一键配置")
+    tmp = HOTKEY_APP + ".bailian-tmp"
+    shutil.rmtree(tmp, ignore_errors=True)
+    os.makedirs(os.path.join(tmp, "Contents", "MacOS"))
+    os.makedirs(os.path.join(tmp, "Contents", "Resources"))
+    r = subprocess.run(["swiftc", "-swift-version", "5", "-O", "-o", os.path.join(tmp, "Contents", "MacOS", "bailian-hotkey"),
+                        HOTKEY_SRC], capture_output=True, text=True)
+    if r.returncode:
+        shutil.rmtree(tmp, ignore_errors=True)
+        sys.exit("编译快捷键小助手失败:" + (r.stderr or r.stdout).strip()[-300:])
+    with open(os.path.join(tmp, "Contents", "Info.plist"), "wb") as f:
+        plistlib.dump({"CFBundleIdentifier": HOTKEY_LABEL, "CFBundleName": "百炼朗读助手", "CFBundleDisplayName": "百炼朗读助手",
+                       "CFBundleExecutable": "bailian-hotkey", "CFBundlePackageType": "APPL", "LSUIElement": True}, f)
+    open(os.path.join(tmp, "Contents", "Resources", "source.sha256"), "w").write(digest)
+    subprocess.run(["codesign", "--force", "-s", "-", "--identifier", HOTKEY_LABEL, tmp], check=True, capture_output=True)
+    shutil.rmtree(HOTKEY_APP, ignore_errors=True)
+    os.replace(tmp, HOTKEY_APP)
+
+
+def hotkey_install(letter):
+    """编译(需要时)并以 LaunchAgent 启动小助手,开机自动运行;已被系统服务占用的组合不用。"""
+    import plistlib
+    letter = (letter or "").lower()
+    if letter not in KEYCODES:
+        sys.exit("快捷键只能选一个英文字母")
+    taken = [k.split(" - ")[1] if k.count(" - ") >= 2 else k for k, v in _pbs_status().items()
+             if isinstance(v, dict) and v.get("key_equivalent") == "@~^" + letter]
+    if taken:
+        # 快捷指令做的服务在表里只记 UUID,换成快捷指令的名字
+        names = subprocess.run(["shortcuts", "list", "--show-identifiers"], capture_output=True, text=True).stdout
+        m = re.search(rf"^(.*) \({re.escape(taken[0])}\)$", names, re.M)
+        sys.exit(f"⌃⌥⌘{letter.upper()} 已经给了「{m.group(1) if m else taken[0]}」,换一个字母")
+    write_say_wrapper()  # 小助手要用 --save --hotkey,入口必须指向当前这份插件
+    _hotkey_build()
+    os.makedirs(SAY_DIR, exist_ok=True)
+    for f in (HOTKEY_STATUS, HOTKEY_ERR):
+        if os.path.exists(f):
+            os.remove(f)
+    os.makedirs(os.path.dirname(HOTKEY_AGENT), exist_ok=True)
+    with open(HOTKEY_AGENT, "wb") as f:
+        plistlib.dump({"Label": HOTKEY_LABEL, "ProgramArguments": [HOTKEY_BIN, str(KEYCODES[letter]), HOTKEY_STATUS],
+                       "RunAtLoad": True, "ProcessType": "Interactive", "StandardErrorPath": HOTKEY_ERR}, f)
+    domain = f"gui/{os.getuid()}"
+    _launchctl("bootout", f"{domain}/{HOTKEY_LABEL}")
+    r = _launchctl("bootstrap", domain, HOTKEY_AGENT)
+    if r.returncode:
+        sys.exit("启动快捷键小助手失败:" + r.stderr.strip()[-300:])
+    for _ in range(20):  # 等小助手写出第一份状态
+        if os.path.exists(HOTKEY_STATUS) or os.path.exists(HOTKEY_ERR) and os.path.getsize(HOTKEY_ERR):
+            break
+        time.sleep(0.1)
+
+
+def hotkey_remove():
+    """停掉并删除小助手与开机启动项。系统设置「辅助功能」里留下的条目需要用户自己删。"""
+    import shutil
+    _launchctl("bootout", f"gui/{os.getuid()}/{HOTKEY_LABEL}")
+    for f in (HOTKEY_AGENT, HOTKEY_STATUS):
+        if os.path.exists(f):
+            os.remove(f)
+    shutil.rmtree(HOTKEY_APP, ignore_errors=True)
+
+
 def agent_env():
     """模拟鼠标按键触发时的环境:系统默认的短 PATH,没有终端里设置的 API key 等环境变量。"""
     return dict({k: os.environ[k] for k in ("HOME", "USER", "LOGNAME", "TMPDIR") if k in os.environ}, PATH=AGENT_PATH)
@@ -1274,13 +1399,13 @@ def say_log(line):
         f.write(f"\n--- {time.strftime('%F %T')} {line}\n")
 
 
-def last_trigger():
-    """日志里最近一次鼠标按键触发的时间;没有就返回空字符串。"""
+def last_trigger(marker=SAY_TRIGGER):
+    """日志里最近一次鼠标按键(或快捷键)触发的时间;没有就返回空字符串。"""
     try:
         lines = open(SAY_LOG, encoding="utf-8").read().split("\n")
     except FileNotFoundError:
         return ""
-    hit = next((l for l in reversed(lines) if l.startswith("--- ") and SAY_TRIGGER in l), "")
+    hit = next((l for l in reversed(lines) if l.startswith("--- ") and l.endswith(" " + marker)), "")
     return hit[4:23]
 
 
@@ -1309,7 +1434,8 @@ def install_say():
     print("任选一种触发方式(也可以在工作台的「选中朗读」页面里配置,鼠标按键可确认后自动写入):\n")
     print("① 鼠标按键(OpenLogi,~/.config/openlogi/config.toml 设备的 bindings 段,改后重开 OpenLogi):")
     print(f"MiddleClick = {OPENLOGI_WORKFLOW}\n")
-    print("② 键盘快捷键(「快捷指令」):设置 → 高级 → 允许运行脚本;新建快捷指令,勾选「用作快速操作」,接收「文本」;")
+    print("② 键盘快捷键:在工作台「选中朗读」→「键盘快捷键」一键配置(装一个后台小助手注册 ⌃⌥⌘S 等全局快捷键,需开一次辅助功能权限)。")
+    print("   手动配置时用「快捷指令」:设置 → 高级 → 允许运行脚本;新建快捷指令,勾选「用作快速操作」,接收「文本」;")
     print(f"   添加「运行 Shell 脚本」,传递输入选「作为 stdin」,内容为:{SHORTCUT_SCRIPT}")
     print("   再到 系统设置 → 键盘 → 键盘快捷键 → 服务 里给它设快捷键。")
 
@@ -1329,7 +1455,7 @@ def cmd_say(a):
     # 只还原纯文字,图片等其它剪贴板内容不保留。Cmd+C 没复制到内容且前台是选中即复制的终端时,
     # 改读 --save 存下的文字。
     if a.save:
-        say_log(SAY_TRIGGER)
+        say_log(HOTKEY_TRIGGER if a.hotkey else SAY_TRIGGER)
         stop_previous_say()
         open(SAY_CLIP, "w", encoding="utf-8").write(pb_paste())
         return pb_copy("")
@@ -1441,6 +1567,7 @@ def main():
     sp.add_argument("--text", help="要朗读的文本(默认从 stdin 读)")
     sp.add_argument("--max", type=int, help="覆盖当前模型的朗读字数配置(未配置时 1500,超出优先在句末截断)")
     mode = sp.add_mutually_exclusive_group()
+    sp.add_argument("--hotkey", action="store_true", help="与 --save 连用:由全局快捷键小助手触发,日志记为「快捷键触发」")
     mode.add_argument("--save", action="store_true", help="按键工作流第 1 步:结束上一次朗读,存下剪贴板文字并清空")
     mode.add_argument("--clipboard", action="store_true", help="按键工作流最后一步:朗读刚复制的文字并还原剪贴板")
     mode.add_argument("--check", action="store_true", help="检查朗读要用的 ffmpeg、依赖与 API Key(工作台用来模拟按键环境)")
