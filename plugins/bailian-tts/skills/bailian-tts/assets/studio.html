@@ -866,7 +866,7 @@
           <div class="way" id="sWayKeys" hidden>
             <p class="now"><span class="mark na" id="sHkMark">未配置</span><span id="sHkNow"></span></p>
             <div id="sHkPerm" hidden>
-              <p class="now"><span class="mark warn">还差权限</span><span>模拟 Cmd+C 复制选中的文字需要「辅助功能」权限：打开设置，在列表里把「百炼朗读助手」的开关打开，再回来点「已打开，刷新」。</span></p>
+              <p class="now"><span class="mark warn">还差权限</span><span>模拟 Cmd+C 复制选中的文字需要「辅助功能」权限：打开设置，在列表里把「百炼朗读助手」的开关打开，再回来点「已打开，刷新」。开关本来就是开着的（插件升级后重装过小助手），先选中它点「−」删掉，再点「+」重新添加 <code>~/Library/Application Support/bailian-tts/百炼朗读助手.app</code>。</span></p>
               <div class="actions"><button class="compact primary" id="sHkSettings">打开辅助功能设置</button><button class="linkish" id="sHkRecheck">已打开，刷新</button></div>
             </div>
             <p class="now" id="sHkHitRow"><span class="mark na" id="sHkHitMark"></span><span id="sHkHitText"></span></p>
@@ -878,6 +878,18 @@
                 <button class="linkish" id="sHkRemove">移除快捷键</button>
               </div>
               <p class="hint">会在本机编译并启动一个后台小助手「百炼朗读助手」，开机自动运行，不在 Dock 显示。它直接向系统注册快捷键，在 Orca、终端等任何 App 里都有效；按下后和鼠标中键一样：复制选中的文字再朗读，会临时借用剪贴板。第一次需要在系统设置里给它开「辅助功能」权限。编译要用 Command Line Tools，没装时会提示安装命令。</p>
+            </details>
+            <details class="fix" id="sHkManual">
+              <summary>装不了 Command Line Tools？改用快捷指令手动配置</summary>
+              <ol class="steps">
+                <li><b>允许运行脚本</b><span>打开「快捷指令」App → 设置 → 高级，勾选「允许运行脚本」。</span></li>
+                <li><b>新建快速操作</b><span>新建快捷指令，在右侧详细信息里勾选「用作快速操作」，接收「文本」。</span></li>
+                <li><b>添加「运行 Shell 脚本」</b><span>「传递输入」选「作为 stdin」，脚本内容填下面这一行：</span>
+                  <div class="copyrow" style="margin-top:10px"><code class="vid" id="sScript"></code><button class="compact" id="sScriptCopy">复制</button></div></li>
+                <li><b>绑定快捷键</b><span>系统设置 → 键盘 → 键盘快捷键 → 服务，找到这个快捷指令设一个快捷键。</span></li>
+              </ol>
+              <p class="hint">这种方式靠前台 App 转交选中的文字，只在文本编辑、备忘录等原生 App 里可靠；Orca 等 Electron 应用和部分终端里时灵时不灵，页面也检测不到它是否配好。</p>
+              <p class="msg" id="sScMsg" role="status" aria-live="polite"></p>
             </details>
             <p class="msg" id="sHkMsg" role="status" aria-live="polite"></p>
           </div>
@@ -1806,8 +1818,9 @@ const Say = (() => {
   let st = null, way = null;
 
   async function load() {
-    const r = await get("/say-state").catch(() => null);
-    if (r) render(r);
+    const r = await get("/say-state").catch(offline);
+    if (r.error) { msg($("sInstMsg"), `读取状态失败：${r.error}`, "err"); return; }
+    render(r);
   }
   function render(r) {
     st = r;
@@ -1840,6 +1853,7 @@ const Say = (() => {
                      ...(hk.installed && hk.running && !hk.trusted ? [`${hk.label}（还差辅助功能权限）`] : [])];
     const [rk, rw, rt] = kind === "na" || kind === "fail" ? ["na", "还差一步", "先完成第 1 步：安装朗读程序。"]
       : env && !env.ok ? ["fail", "缺东西", "按键运行环境不完整，见第 1 步。"]
+      : hk.installed && !hk.running && !keys.length ? ["fail", "快捷键没在运行", "快捷键小助手没在运行，到第 2 步「键盘快捷键」点「重新配置」。"]
       : keys.length ? ["pass", "已就绪", `选中文字后按${keys.map((k) => /[⌃⌥⌘]/.test(k) ? `${k}（${keyWords(k)}）` : k).join(" 或 ")}。`]
       : pending.length ? ["warn", "还没收到按键", `已绑定${pending.join("、")}，选中文字按一下试试。`]
       : ["na", "还差一步", "朗读程序已装好。再绑定一个鼠标按键或快捷键（第 2 步）。"];
@@ -1858,6 +1872,7 @@ const Say = (() => {
       if (devs.some((d) => d.id === keepDev)) $("sOlDev").value = keepDev;
       renderBtns(keepBtn);
     }
+    $("sScript").textContent = r.script;
     $("sVoice").textContent = `用默认音色 ${r.voice_name || Voices.nameOf(r.voice)}`;
     $("sTry").disabled = !w.installed;
     const log = r.log.filter((l) => l.trim());
@@ -1881,6 +1896,7 @@ const Say = (() => {
     $("sOlNow").textContent = isSay ? "" : `这个键现在：${cur || "鼠标默认动作"}`;
     $("sOlHitRow").hidden = !isSay;
     // 已绑定:修复操作收进「按了没反应」;未绑定:直接给主按钮
+    if ($("sOlFix").classList.contains("bare") && isSay) $("sOlFix").open = false;  // 刚写入:修复操作收起
     $("sOlFix").classList.toggle("bare", !isSay);
     if (!isSay) $("sOlFix").open = true;
     $("sOlFixText").hidden = !isSay;
@@ -1905,8 +1921,10 @@ const Say = (() => {
     if (!$("sHkKey").options.length)
       $("sHkKey").replaceChildren(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((c) => new Option(c, c.toLowerCase())));
     $("sHkKey").value = on && !$("sHkKey").dataset.touched ? hk.key : keep;
-    $("sHkFix").classList.toggle("bare", !on);
-    if (!on) $("sHkFix").open = true;
+    const bare = !on || !hk.running, fix = $("sHkFix");
+    if (fix.classList.contains("bare") && !bare) fix.open = false;  // 刚配好:修复操作收起
+    fix.classList.toggle("bare", bare);
+    if (bare) fix.open = true;
     $("sHkInstall").textContent = on ? "重新配置" : "一键配置";
     $("sHkRemove").hidden = !on;
   }
@@ -1943,6 +1961,7 @@ const Say = (() => {
     msg($("sOlMsg"), `已写入。原配置备份在 ${r.backup}。在菜单栏退出 OpenLogi 再打开后，选中文字按${btnName(b)}试试。`, "ok");
   });
   $("sOlCopy").addEventListener("click", () => copy(`${$("sOlBtn").value || "MiddleClick"} = ${st.workflow}`, $("sOlMsg"), "配置片段，粘贴到 config.toml 里鼠标的 bindings 段"));
+  $("sScriptCopy").addEventListener("click", () => copy(st.script, $("sScMsg"), "脚本内容"));
   $("sHkKey").addEventListener("change", () => { $("sHkKey").dataset.touched = "1"; });
   $("sHkInstall").addEventListener("click", async () => {
     const k = $("sHkKey").value, label = `⌃⌥⌘${k.toUpperCase()}`;
@@ -1954,7 +1973,9 @@ const Say = (() => {
     if (r.error) { msg($("sHkMsg"), r.error, "err"); return; }
     delete $("sHkKey").dataset.touched;
     render(r);
-    msg($("sHkMsg"), r.hotkey.trusted ? `已配置 ${label}，现在就能用：在任意 App 里选中文字按一下。` : `已启动小助手。按上面的提示开好「辅助功能」权限后就能用。`, r.hotkey.running ? "ok" : "err");
+    const hk = r.hotkey;
+    if (!hk.running) msg($("sHkMsg"), `小助手没能启动：${hk.error || "原因未知"}。换一个字母再试，或展开最下面的朗读记录看看。`, "err");
+    else msg($("sHkMsg"), hk.trusted ? `已配置 ${label}，现在就能用：在任意 App 里选中文字按一下。` : "已启动小助手。按上面的提示开好「辅助功能」权限后就能用。", "ok");
   });
   $("sHkSettings").addEventListener("click", () => post("/say-hotkey", { action: "settings" }).catch(() => {}));
   $("sHkRecheck").addEventListener("click", load);

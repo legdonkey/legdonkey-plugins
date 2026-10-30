@@ -633,7 +633,7 @@ def cmd_ui(a):
     """本地配音工作台:「开始」(配置 API key、功能介绍)、「选音色」、「声音复刻」、「选中朗读」(仅 macOS)四栏在同一个页面。
     还没配置 key 时总是先打开「开始」页。"""
     ui = LocalUI("studio.html")
-    created, takes, log = [], {}, {"key_saved": False, "say_installed": False, "openlogi": ""}  # takes:(音色, 句子, 指令) → (音频地址, 时长),本次会话内不重复合成
+    created, takes, log = [], {}, {"key_saved": False, "say_installed": False, "openlogi": "", "hotkey": ""}  # takes:(音色, 句子, 指令) → (音频地址, 时长),本次会话内不重复合成
     page = a.page if key_status()["configured"] or (load_settings()["model"] in eleven.MODELS and eleven.key_status()["configured"]) else "home"
 
     def state(q, body, ctype):
@@ -734,10 +734,11 @@ def cmd_ui(a):
         else:
             vid = default_voice()[0]
             voice = {"voice": vid, "name": describe(vid)}
+        trig = last_triggers()
         return {"wrapper": say_wrapper_status(), "openlogi": openlogi_status(), "workflow": OPENLOGI_WORKFLOW,
                 "script": SHORTCUT_SCRIPT, "voice": voice["voice"], "voice_name": voice["name"],
-                "env": say_env_check(), "trigger": last_trigger(), "log": say_log_tail(), "log_path": tilde(SAY_LOG),
-                "hotkey": dict(hotkey_status(), trigger=last_trigger(HOTKEY_TRIGGER))}
+                "env": say_env_check(), "trigger": trig[SAY_TRIGGER], "log": say_log_tail(), "log_path": tilde(SAY_LOG),
+                "hotkey": dict(hotkey_status(), trigger=trig[HOTKEY_TRIGGER])}
 
     def say_install(q, body, ctype):
         write_say_wrapper()
@@ -755,6 +756,8 @@ def cmd_ui(a):
         if d.get("action") == "settings":
             subprocess.run(["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"])
             return {"ok": True}
+        if d.get("action") not in ("install", "remove"):
+            return {"error": f"未知操作:{d.get('action')}"}
         try:
             hotkey_install(d.get("key")) if d.get("action") == "install" else hotkey_remove()
         except subprocess.CalledProcessError as e:
@@ -795,9 +798,13 @@ def cmd_ui(a):
     print("API key:" + (f"已配置 {st['masked']}" + (",本次新保存" if log["key_saved"] else "") if st["configured"] else "未配置"))
     print("本次创建的音色:" + (" ".join(created) if created else "无"))
     print(f"本次试听 {len({k[0] for k in takes})} 个音色,合成 {len(takes)} 次")
-    if log["say_installed"] or log["openlogi"]:
+    if log["say_installed"] or log["openlogi"] or log["hotkey"]:
+        hk = hotkey_status()
         print("选中朗读:" + ("已安装 ~/.local/bin/bailian-say" if log["say_installed"] else "")
-              + (f";OpenLogi 已绑定 {log['openlogi']},重开 OpenLogi 后生效" if log["openlogi"] else ""))
+              + (f";OpenLogi 已绑定 {log['openlogi']},重开 OpenLogi 后生效" if log["openlogi"] else "")
+              + ((f";全局快捷键 {hk['label']}" + ("" if hk["running"] else "(小助手没在运行)")
+                  + ("" if hk["trusted"] else ",还差辅助功能权限") if hk["installed"] else ";全局快捷键已移除")
+                 if log["hotkey"] else ""))
     print_favorites_summary()
 
 
@@ -1292,15 +1299,19 @@ def hotkey_status():
     import plistlib
     if not os.path.isfile(HOTKEY_AGENT):
         return {"installed": False, "running": False, "key": "", "label": "", "trusted": False}
-    key = next((k for k, c in KEYCODES.items()
-                if str(c) == plistlib.load(open(HOTKEY_AGENT, "rb"))["ProgramArguments"][1]), "")
+    try:
+        with open(HOTKEY_AGENT, "rb") as f:
+            arg = str(plistlib.load(f)["ProgramArguments"][1])
+    except Exception:  # 启动项被改坏也要能显示状态、能移除
+        arg = ""
+    key = next((k for k, c in KEYCODES.items() if str(c) == arg), "")
     running = "state = running" in _launchctl("print", f"gui/{os.getuid()}/{HOTKEY_LABEL}").stdout
     try:
         st = json.load(open(HOTKEY_STATUS))
     except (OSError, ValueError):
         st = {}
     err = open(HOTKEY_ERR, encoding="utf-8").read().strip().split("\n")[-1] if os.path.isfile(HOTKEY_ERR) else ""
-    return {"installed": True, "running": running, "key": key, "label": f"⌃⌥⌘{key.upper()}",
+    return {"installed": True, "running": running, "key": key, "label": f"⌃⌥⌘{key.upper()}" if key else "",
             "registered": st.get("registered", False), "trusted": st.get("trusted", False),
             "error": "" if running else err}
 
@@ -1338,8 +1349,9 @@ def hotkey_install(letter):
     letter = (letter or "").lower()
     if letter not in KEYCODES:
         sys.exit("快捷键只能选一个英文字母")
+    combo = lambda e: (frozenset(c for c in e if c in "@~^$"), e.lstrip("@~^$").lower())  # 修饰键顺序不固定
     taken = [k.split(" - ")[1] if k.count(" - ") >= 2 else k for k, v in _pbs_status().items()
-             if isinstance(v, dict) and v.get("key_equivalent") == "@~^" + letter]
+             if isinstance(v, dict) and combo(v.get("key_equivalent", "")) == combo("@~^" + letter)]
     if taken:
         # 快捷指令做的服务在表里只记 UUID,换成快捷指令的名字
         names = subprocess.run(["shortcuts", "list", "--show-identifiers"], capture_output=True, text=True).stdout
@@ -1357,7 +1369,14 @@ def hotkey_install(letter):
                        "RunAtLoad": True, "ProcessType": "Interactive", "StandardErrorPath": HOTKEY_ERR}, f)
     domain = f"gui/{os.getuid()}"
     _launchctl("bootout", f"{domain}/{HOTKEY_LABEL}")
+    for _ in range(30):  # bootout 返回时 launchd 可能还在拆旧服务,紧接着 bootstrap 会失败
+        if _launchctl("print", f"{domain}/{HOTKEY_LABEL}").returncode:
+            break
+        time.sleep(0.1)
     r = _launchctl("bootstrap", domain, HOTKEY_AGENT)
+    if r.returncode:
+        time.sleep(0.5)
+        r = _launchctl("bootstrap", domain, HOTKEY_AGENT)
     if r.returncode:
         sys.exit("启动快捷键小助手失败:" + r.stderr.strip()[-300:])
     for _ in range(20):  # 等小助手写出第一份状态
@@ -1399,14 +1418,20 @@ def say_log(line):
         f.write(f"\n--- {time.strftime('%F %T')} {line}\n")
 
 
-def last_trigger(marker=SAY_TRIGGER):
-    """日志里最近一次鼠标按键(或快捷键)触发的时间;没有就返回空字符串。"""
+def last_triggers():
+    """日志里最近一次鼠标按键、快捷键触发的时间,读一遍日志同时取出;没有的为空字符串。"""
+    found = {SAY_TRIGGER: "", HOTKEY_TRIGGER: ""}
     try:
         lines = open(SAY_LOG, encoding="utf-8").read().split("\n")
     except FileNotFoundError:
-        return ""
-    hit = next((l for l in reversed(lines) if l.startswith("--- ") and l.endswith(" " + marker)), "")
-    return hit[4:23]
+        return found
+    for l in reversed(lines):
+        for marker in found:
+            if not found[marker] and l.startswith("--- ") and l.endswith(" " + marker):
+                found[marker] = l[4:23]
+        if all(found.values()):
+            break
+    return found
 
 
 def say_check():

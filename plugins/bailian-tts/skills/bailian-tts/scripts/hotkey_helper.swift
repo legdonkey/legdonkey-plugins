@@ -22,14 +22,24 @@ func writeStatus(_ s: [String: Bool]) {
     }
 }
 
-func runSay(_ a: [String], wait: Bool) {
+/// 返回 true 表示启动成功(wait 时还要求正常退出);失败原因写到 stderr,即 LaunchAgent 的日志
+@discardableResult
+func runSay(_ a: [String], wait: Bool) -> Bool {
     let p = Process()
     p.executableURL = URL(fileURLWithPath: say)
     p.arguments = a
     p.standardOutput = FileHandle.nullDevice
-    p.standardError = FileHandle.nullDevice
-    do { try p.run() } catch { return }
-    if wait { p.waitUntilExit() }
+    p.standardError = FileHandle.nullDevice  // bailian-say 每次都往 stderr 打模型信息,不进小助手日志
+    do { try p.run() } catch {
+        FileHandle.standardError.write("启动 \(say) 失败:\(error)\n".data(using: .utf8)!)
+        return false
+    }
+    guard wait else { return true }
+    p.waitUntilExit()
+    if p.terminationStatus != 0 {
+        FileHandle.standardError.write("bailian-say \(a.joined(separator: " ")) 失败,退出码 \(p.terminationStatus)\n".data(using: .utf8)!)
+    }
+    return p.terminationStatus == 0
 }
 
 func pressCopy() {
@@ -51,7 +61,8 @@ func trigger() {
             usleep(50_000)
             n += 1
         }
-        runSay(["--save", "--hotkey"], wait: true)
+        // --save 没成功(如入口落到不认识 --hotkey 的旧版插件)就停下,免得 --clipboard 拿旧存档覆盖剪贴板
+        guard runSay(["--save", "--hotkey"], wait: true) else { return }
         usleep(120_000)
         pressCopy()
         usleep(200_000)
