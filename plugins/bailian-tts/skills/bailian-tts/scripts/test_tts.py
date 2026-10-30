@@ -130,9 +130,11 @@ class ModelTests(unittest.TestCase):
 
     def test_say_check_and_last_trigger(self):
         with tempfile.TemporaryDirectory() as root, patch.object(tts, "SAY_LOG", root + "/say.log"):
-            self.assertEqual(tts.last_trigger(), "")
-            Path(tts.SAY_LOG).write_text("\n--- 2026-10-30 10:00:00 按键触发\n\n--- 2026-10-30 10:00:01 qwen 3 字\n")
-            self.assertEqual(tts.last_trigger(), "2026-10-30 10:00:00")
+            self.assertEqual(tts.last_triggers(), {"按键触发": "", "快捷键触发": ""})
+            Path(tts.SAY_LOG).write_text("\n--- 2026-10-30 10:00:00 按键触发\n\n--- 2026-10-30 10:00:01 qwen 3 字\n"
+                                         "\n--- 2026-10-30 10:00:05 快捷键触发\n\n--- 2026-10-30 10:00:06 按键触发\n")
+            # 两种来源分开记:「快捷键触发」不能被当成鼠标的「按键触发」
+            self.assertEqual(tts.last_triggers(), {"按键触发": "2026-10-30 10:00:06", "快捷键触发": "2026-10-30 10:00:05"})
         with patch.object(tts, "load_settings", return_value={"model": tts.MODEL}), patch.object(tts, "deps_status", return_value={"ffmpeg": False, "dashscope": True}), patch.object(tts, "key_status", return_value={"configured": True}), patch.dict(os.environ, {"PATH": "/usr/bin"}):
             with self.assertRaises(SystemExit) as e:
                 tts.say_check()
@@ -223,6 +225,43 @@ class ModelTests(unittest.TestCase):
             self.assertEqual(speak.call_args.args[0], ["甲" * 1000 + "。"])
             self.assertEqual(args.synth_settings, settings)
             check.assert_not_called()
+
+
+class HotkeyTests(unittest.TestCase):
+    """全局快捷键小助手:只测本地判断,不编译、不碰 launchctl。"""
+
+    def test_status_survives_broken_agent_plist(self):
+        with tempfile.TemporaryDirectory() as root, patch.object(tts, "HOTKEY_AGENT", root + "/agent.plist"), \
+                patch.object(tts, "HOTKEY_STATUS", root + "/status.json"), patch.object(tts, "HOTKEY_ERR", root + "/err.log"), \
+                patch.object(tts, "_launchctl", return_value=SimpleNamespace(stdout="", returncode=113)):
+            self.assertFalse(tts.hotkey_status()["installed"])
+            Path(tts.HOTKEY_AGENT).write_text("不是 plist")
+            st = tts.hotkey_status()  # 启动项坏了也要返回状态,页面才能显示「移除」
+            self.assertEqual((st["installed"], st["running"], st["key"], st["label"]), (True, False, "", ""))
+
+    def test_status_reads_key_from_agent(self):
+        import plistlib
+        with tempfile.TemporaryDirectory() as root, patch.object(tts, "HOTKEY_AGENT", root + "/agent.plist"), \
+                patch.object(tts, "HOTKEY_STATUS", root + "/status.json"), patch.object(tts, "HOTKEY_ERR", root + "/err.log"), \
+                patch.object(tts, "_launchctl", return_value=SimpleNamespace(stdout="state = running", returncode=0)):
+            Path(tts.HOTKEY_AGENT).write_bytes(plistlib.dumps({"ProgramArguments": ["bin", str(tts.KEYCODES["s"]), "st"]}))
+            Path(tts.HOTKEY_STATUS).write_text('{"registered": true, "trusted": true}')
+            st = tts.hotkey_status()
+            self.assertEqual((st["key"], st["label"], st["running"], st["trusted"]), ("s", "⌃⌥⌘S", True, True))
+
+    def test_install_rejects_bad_letter_and_taken_combo(self):
+        with self.assertRaises(SystemExit):
+            tts.hotkey_install("1")
+        # 修饰键顺序不同也算同一个组合
+        with patch.object(tts, "_pbs_status", return_value={"(null) - 切换 - runWorkflowAsService": {"key_equivalent": "^~@d"}}), \
+                patch.object(tts, "write_say_wrapper") as wrapper, self.assertRaises(SystemExit) as e:
+            tts.hotkey_install("d")
+        self.assertIn("切换", str(e.exception.code))
+        wrapper.assert_not_called()
+
+    def test_keycodes_cover_alphabet(self):
+        self.assertEqual(sorted(tts.KEYCODES), list("abcdefghijklmnopqrstuvwxyz"))
+        self.assertEqual(len(set(tts.KEYCODES.values())), 26)
 
 
 if __name__ == "__main__":

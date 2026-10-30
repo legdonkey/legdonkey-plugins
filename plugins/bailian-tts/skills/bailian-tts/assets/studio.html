@@ -364,20 +364,48 @@
 
   /* ================= 选中朗读 ================= */
   #pg-say { max-width: 980px; }
-  #pg-say [data-gated] > .verdict { border-bottom: 1px solid var(--line); margin-bottom: 8px; }
-  .way { padding: 20px 0 24px; border-bottom: 1px solid var(--line); }
-  .way:last-child { border-bottom: 0; }
-  .way h3 { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 16px; font-weight: 400; letter-spacing: .04em; margin: 0 0 12px; }
-  .way .pick { display: flex; gap: 12px; flex-wrap: wrap; margin: 4px 0 12px; }
+  #pg-say [data-gated] > .verdict { border-bottom: 1px solid var(--line); }
+  /* 总结论:一行告诉用户现在能不能用 */
+  #pg-say .ready { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin: 18px 0 0; font-size: 15px; }
+  #pg-say .ready > span { margin: 0; font-size: 15px; color: var(--ivory); }  /* 盖过 .verdict span 的块级说明样式 */
+  #pg-say .ready > .mark { display: inline-flex; flex: none; font-size: 14px; }
+  #pg-say .ready > .mark.pass { color: var(--ok); } #pg-say .ready > .mark.warn { color: var(--warn); } #pg-say .ready > .mark.fail { color: var(--bad); } #pg-say .ready > .mark.na { color: var(--ash); }
+  .say-steps .msg:empty { display: none; }
+  /* 三步:序号圆在左栏,同一套 22px 香槟金描边 */
+  .say-steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
+  .say-steps > li { counter-increment: s; position: relative; padding: 32px 0 32px 40px; border-bottom: 1px solid var(--line); }
+  .say-steps > li:last-child { border-bottom: 0; }
+  .say-steps > li::before {
+    content: counter(s); position: absolute; left: 0; top: 34px; width: 22px; height: 22px; border-radius: 50%;
+    border: 1px solid var(--champagne); color: var(--champagne); font-size: 12px; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .say-steps h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; font-size: 19px; font-weight: 300; letter-spacing: .12em; margin: 0 0 14px; }
+  .say-steps h2 > span { font-size: 14px; letter-spacing: .04em; color: var(--ash); }
+  .say-steps .rows li:first-child { padding-top: 6px; }
+  .say-steps .rows li:last-child { padding-bottom: 0; }
+  .say-steps .tabs { margin: 6px 0 20px; }
+  .way .pick { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; }
   .way .pick select { width: auto; min-width: 200px; }
-  .way .now { font-size: 14px; color: var(--ash); margin: 0 0 16px; }
-  .way .now code { font: 13px/1.6 var(--mono); color: var(--ivory); word-break: break-all; }
-  .way ol.steps { margin-top: 4px; }
+  .way .pick.combo { align-items: center; font-size: 15px; letter-spacing: .04em; }
+  .way .pick.combo select { min-width: 96px; }
+  .way .now { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; font-size: 14px; color: var(--ash); margin: 0 0 10px; }
+  .way .now .mark { flex: none; }
+  .way code { font: 13px/1.6 var(--mono); color: var(--ivory); word-break: break-all; }
   .way ol.steps > li { padding-bottom: 14px; }
+  /* 已绑定时修复操作收起;未绑定时展开且不显示摘要行 */
+  details.fix { margin-top: 18px; }
+  details.fix > summary, details.say-log > summary { cursor: pointer; color: var(--ash); font-size: 14px; text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 4px; width: fit-content; }
+  details.fix.bare > summary { display: none; }
+  details.fix .actions { margin: 4px 0 4px; }
+  details.fix[open]:not(.bare) > summary { margin-bottom: 12px; }
+  @media (hover: hover) { details.fix > summary:hover, details.say-log > summary:hover { color: var(--ivory); } }
   .copyrow { display: flex; gap: 12px; align-items: stretch; }
   .copyrow code.vid { flex: 1; min-width: 0; }
-  #pg-say .keypanel { margin-top: 32px; }
+  #pg-say .keypanel .block { padding: 24px 28px; }
   #pg-say textarea { resize: vertical; min-height: 84px; line-height: 1.7; }
+  details.say-log { margin-top: 8px; padding-top: 24px; border-top: 1px solid var(--line); }
+  details.say-log[open] > summary { margin-bottom: 4px; }
+  details.say-log .hint { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; margin: 8px 0 12px; }
   pre.log {
     margin: 0; padding: 12px 14px; max-height: 14em; overflow: auto; background: var(--inset); border: 1px solid var(--line); border-radius: 8px;
     font: 13px/1.6 var(--mono); color: var(--ash); white-space: pre-wrap; word-break: break-all;
@@ -404,6 +432,8 @@
     .keypanel .paste { flex-direction: column; }
     .rows li { grid-template-columns: 1fr; }
     .copyrow { flex-direction: column; }
+    .say-steps > li { padding-left: 34px; }
+    #pg-say .keypanel .block { padding: 18px; }
     /* 选音色 */
     #pg-voices { margin-top: 0; }
     #pg-voices .studio { grid-template-columns: 1fr; gap: 28px; }
@@ -793,68 +823,99 @@
       <a class="btn primary" href="#home">去配置 API Key</a>
     </div>
     <div data-gated>
-      <div class="verdict"><b>选中文字，按一下就读</b><span id="sLead">在任意 App 里选中文字，按鼠标按键或快捷键，就用默认音色读出来；再按一次立即停止。代码块和 Markdown 符号会自动略过，按顶部为当前模型保存的字数上限截断，整段生成后播放。</span></div>
+      <div class="verdict"><b>选中文字，按一下就读</b><span id="sLead">在任意 App 里选中文字，按鼠标按键或快捷键，用默认音色读出来；再按一次立即停止。</span>
+        <p class="ready" role="status" aria-live="polite"><span class="mark na" id="sReadyMark">检查中</span><span id="sReadyText"></span></p></div>
 
-      <section class="home-sec" aria-labelledby="sInstTitle">
-        <h2 id="sInstTitle">朗读入口</h2>
-        <ul class="rows"><li><div><b>bailian-say</b><p id="sWrapText">鼠标按键和快捷键都通过它来朗读。</p></div>
-          <div class="actions"><span class="mark na" id="sWrapMark">未安装</span><button class="compact primary" id="sInstall">安装</button></div></li>
-          <li><div><b>按键运行环境</b><p id="sEnvText">先安装朗读入口。</p></div>
-          <div class="actions"><span class="mark na" id="sEnvMark">未检查</span></div></li></ul>
-        <p class="msg" id="sInstMsg" role="status" aria-live="polite"></p>
-      </section>
+      <ol class="say-steps">
+        <li aria-labelledby="sInstTitle">
+          <h2 id="sInstTitle">安装朗读程序</h2>
+          <ul class="rows"><li><div><b>bailian-say</b><p id="sWrapText">鼠标按键和快捷键都通过它来朗读。</p></div>
+            <div class="actions"><span class="mark na" id="sWrapMark">未安装</span><button class="compact primary" id="sInstall">安装</button></div></li>
+            <li><div><b>按键运行环境</b><p id="sEnvText">先安装朗读程序。</p></div>
+            <div class="actions"><span class="mark na" id="sEnvMark">未检查</span></div></li></ul>
+          <p class="msg" id="sInstMsg" role="status" aria-live="polite"></p>
+        </li>
 
-      <section class="home-sec" aria-labelledby="sWayTitle">
-        <h2 id="sWayTitle">选一种触发方式</h2>
-        <div class="way">
-          <h3>鼠标按键 · OpenLogi<span class="mark na" id="sOlMark">未配置</span></h3>
-          <div id="sOlNone" hidden><p class="now">没找到 OpenLogi 的配置文件 <code>~/.config/openlogi/config.toml</code>。装好 OpenLogi 并连上鼠标后刷新这一页；用别的鼠标软件时，把下面的工作流照着配进去：先运行 <code>bailian-say --save</code>，按 Cmd+C，再运行 <code>bailian-say --clipboard</code>。</p></div>
-          <div id="sOl">
-            <div class="pick">
-              <select id="sOlDev" aria-label="鼠标"></select>
-              <select id="sOlBtn" aria-label="按键"></select>
-            </div>
-            <p class="now">这个键现在：<code id="sOlNow"></code></p>
-            <p class="now" id="sOlHitRow"><span class="mark na" id="sOlHitMark"></span> <span id="sOlHitText"></span></p>
-            <div class="actions">
-              <button class="primary" id="sOlWrite">改为选中朗读</button>
-              <button class="linkish" id="sOlCopy">只复制配置片段</button>
-            </div>
-            <p class="hint">修改前会把整份 OpenLogi 配置备份在同一目录；只改这一个键，其余设置不动。改完在菜单栏退出 OpenLogi 再打开即可生效。朗读时会临时借用剪贴板，结束后还原其中的文字。</p>
+        <li aria-labelledby="sWayTitle">
+          <h2 id="sWayTitle">绑定一个按键<span>鼠标按键和键盘快捷键，配好一种就够</span></h2>
+          <div class="tabs" role="group" aria-label="触发方式">
+            <button class="tab" data-way="mouse" aria-pressed="true">鼠标按键 · OpenLogi</button>
+            <button class="tab" data-way="keys" aria-pressed="false">键盘快捷键</button>
           </div>
-          <p class="msg" id="sOlMsg" role="status" aria-live="polite"></p>
-        </div>
-        <div class="way">
-          <h3>键盘快捷键 · 快捷指令</h3>
-          <ol class="steps">
-            <li><b>允许运行脚本</b><span>打开「快捷指令」App → 设置 → 高级，勾选「允许运行脚本」。</span></li>
-            <li><b>新建快速操作</b><span>新建快捷指令，在右侧详细信息里勾选「用作快速操作」，接收「文本」。</span></li>
-            <li><b>添加「运行 Shell 脚本」</b><span>「传递输入」选「作为 stdin」，脚本内容填下面这一行：</span>
-              <div class="copyrow" style="margin-top:10px"><code class="vid" id="sScript"></code><button class="compact" id="sScriptCopy">复制</button></div></li>
-            <li><b>绑定快捷键</b><span>系统设置 → 键盘 → 键盘快捷键 → 服务，找到这个快捷指令设一个快捷键。</span></li>
-          </ol>
-          <p class="msg" id="sScMsg" role="status" aria-live="polite"></p>
-        </div>
-      </section>
-
-      <article class="keypanel" aria-labelledby="sTryTitle">
-        <div class="card-head"><b id="sTryTitle">试一下</b><span id="sVoice"></span></div>
-        <div class="block">
-          <textarea id="sTryText" aria-label="要朗读的文字">选中这段文字，按一下鼠标按键，就能听到它被读出来。再按一次，立即停下。</textarea>
-          <div class="actions" style="margin-top:14px">
-            <button class="primary" id="sTry"><svg><use href="#i-listen"/></svg><span>朗读</span></button>
-            <button id="sStop"><svg><use href="#i-stop"/></svg><span>停止</span></button>
+          <div class="way" id="sWayMouse">
+            <div id="sOlNone" hidden><p class="now">没找到 OpenLogi 的配置文件 <code>~/.config/openlogi/config.toml</code>。装好 OpenLogi 并连上鼠标后刷新这一页；用别的鼠标软件时，把下面的工作流照着配进去：先运行 <code>bailian-say --save</code>，按 Cmd+C，再运行 <code>bailian-say --clipboard</code>。也可以改用键盘快捷键。</p></div>
+            <div id="sOl">
+              <div class="pick">
+                <select id="sOlDev" aria-label="鼠标"></select>
+                <select id="sOlBtn" aria-label="按键"></select>
+              </div>
+              <p class="now"><span class="mark na" id="sOlNowMark"></span><span id="sOlNow"></span></p>
+              <p class="now" id="sOlHitRow"><span class="mark na" id="sOlHitMark"></span><span id="sOlHitText"></span></p>
+              <details class="fix" id="sOlFix">
+                <summary>按了没反应，或刚升级过插件？</summary>
+                <p class="hint" id="sOlFixText">「重新写入」会把这个键恢复成最新的朗读设置。</p>
+                <div class="actions">
+                  <button class="primary" id="sOlWrite">改为选中朗读</button>
+                  <button class="linkish" id="sOlCopy">手动配置：复制这一行</button>
+                </div>
+                <p class="hint">写入前会把整份 OpenLogi 配置备份在同一目录，只改这一个键。改完在菜单栏退出 OpenLogi 再打开才生效。朗读时会临时借用剪贴板，结束后还原其中的文字。</p>
+              </details>
+            </div>
+            <p class="msg" id="sOlMsg" role="status" aria-live="polite"></p>
           </div>
-          <p class="hint">和按键触发走同一条路：通过 bailian-say 合成并在这台电脑上播放，按次计费。</p>
-          <p class="msg" id="sTryMsg" role="status" aria-live="polite"></p>
-        </div>
-      </article>
+          <div class="way" id="sWayKeys" hidden>
+            <p class="now"><span class="mark na" id="sHkMark">未配置</span><span id="sHkNow"></span></p>
+            <div id="sHkPerm" hidden>
+              <p class="now"><span class="mark warn">还差权限</span><span>模拟 Cmd+C 复制选中的文字需要「辅助功能」权限：打开设置，在列表里把「百炼朗读助手」的开关打开，再回来点「已打开，刷新」。开关本来就是开着的（插件升级后重装过小助手），先选中它点「−」删掉，再点「+」重新添加 <code>~/Library/Application Support/bailian-tts/百炼朗读助手.app</code>。</span></p>
+              <div class="actions"><button class="compact primary" id="sHkSettings">打开辅助功能设置</button><button class="linkish" id="sHkRecheck">已打开，刷新</button></div>
+            </div>
+            <p class="now" id="sHkHitRow"><span class="mark na" id="sHkHitMark"></span><span id="sHkHitText"></span></p>
+            <details class="fix" id="sHkFix">
+              <summary>想换快捷键，或要移除？</summary>
+              <div class="pick combo"><span>Control ⌃ + Option ⌥ + Command ⌘ +</span><select id="sHkKey" aria-label="快捷键字母"></select></div>
+              <div class="actions">
+                <button class="primary" id="sHkInstall">一键配置</button>
+                <button class="linkish" id="sHkRemove">移除快捷键</button>
+              </div>
+              <p class="hint">会在本机编译并启动一个后台小助手「百炼朗读助手」，开机自动运行，不在 Dock 显示。它直接向系统注册快捷键，在 Orca、终端等任何 App 里都有效；按下后和鼠标中键一样：复制选中的文字再朗读，会临时借用剪贴板。第一次需要在系统设置里给它开「辅助功能」权限。编译要用 Command Line Tools，没装时会提示安装命令。</p>
+            </details>
+            <details class="fix" id="sHkManual">
+              <summary>装不了 Command Line Tools？改用快捷指令手动配置</summary>
+              <ol class="steps">
+                <li><b>允许运行脚本</b><span>打开「快捷指令」App → 设置 → 高级，勾选「允许运行脚本」。</span></li>
+                <li><b>新建快速操作</b><span>新建快捷指令，在右侧详细信息里勾选「用作快速操作」，接收「文本」。</span></li>
+                <li><b>添加「运行 Shell 脚本」</b><span>「传递输入」选「作为 stdin」，脚本内容填下面这一行：</span>
+                  <div class="copyrow" style="margin-top:10px"><code class="vid" id="sScript"></code><button class="compact" id="sScriptCopy">复制</button></div></li>
+                <li><b>绑定快捷键</b><span>系统设置 → 键盘 → 键盘快捷键 → 服务，找到这个快捷指令设一个快捷键。</span></li>
+              </ol>
+              <p class="hint">这种方式靠前台 App 转交选中的文字，只在文本编辑、备忘录等原生 App 里可靠；Orca 等 Electron 应用和部分终端里时灵时不灵，页面也检测不到它是否配好。</p>
+              <p class="msg" id="sScMsg" role="status" aria-live="polite"></p>
+            </details>
+            <p class="msg" id="sHkMsg" role="status" aria-live="polite"></p>
+          </div>
+        </li>
 
-      <section class="home-sec" aria-labelledby="sLogTitle">
-        <h2 id="sLogTitle" style="display:flex;justify-content:space-between;align-items:baseline">朗读记录<button class="linkish" id="sLogRefresh">刷新</button></h2>
-        <p class="hint" style="margin:0 0 12px">按了没出声时，看最后几行有没有报错。<span id="sLogPath"></span></p>
+        <li aria-labelledby="sTryTitle">
+          <h2 id="sTryTitle">试一下<span id="sVoice"></span></h2>
+          <div class="keypanel">
+            <div class="block">
+              <textarea id="sTryText" aria-label="要朗读的文字">选中这段文字，按一下鼠标按键，就能听到它被读出来。再按一次，立即停下。</textarea>
+              <div class="actions" style="margin-top:14px">
+                <button class="primary" id="sTry"><svg><use href="#i-listen"/></svg><span>朗读</span></button>
+                <button id="sStop"><svg><use href="#i-stop"/></svg><span>停止</span></button>
+              </div>
+              <p class="hint">和按键触发走同一条路：通过 bailian-say 合成并在这台电脑上播放，按次计费。代码块和 Markdown 符号会自动略过；超过顶部为当前模型设的字数上限会截断，整段生成后播放。</p>
+              <p class="msg" id="sTryMsg" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </li>
+      </ol>
+
+      <details class="say-log" id="sLogBox">
+        <summary>没出声？看朗读记录</summary>
+        <p class="hint">最后几行有没有报错。<span id="sLogPath"></span> <button class="linkish" id="sLogRefresh">刷新</button></p>
         <pre class="log" id="sLog"></pre>
-      </section>
+      </details>
     </div>
   </section>
 
@@ -1754,11 +1815,12 @@ const Say = (() => {
   const BTN = { MiddleClick: "中键（按下滚轮）", GestureButton: "手势键（拇指）", HapticPanel: "触感面板",
                 DpiToggle: "滚轮模式切换键", BackButton: "后退键", ForwardButton: "前进键" };
   const btnName = (b) => BTN[b] || b;
-  let st = null;
+  let st = null, way = null;
 
   async function load() {
-    const r = await get("/say-state").catch(() => null);
-    if (r) render(r);
+    const r = await get("/say-state").catch(offline);
+    if (r.error) { msg($("sInstMsg"), `读取状态失败：${r.error}`, "err"); return; }
+    render(r);
   }
   function render(r) {
     st = r;
@@ -1773,7 +1835,7 @@ const Say = (() => {
     $("sInstall").textContent = !w.installed ? "安装" : "重新安装";
     $("sInstall").classList.toggle("primary", kind !== "pass");
     // 在按键触发的环境（系统默认的短 PATH）里检查 ffmpeg、依赖与 key
-    const env = r.env, [ek, ew, et] = !env ? ["na", "未检查", "先安装朗读入口。"]
+    const env = r.env, [ek, ew, et] = !env ? ["na", "未检查", "先安装朗读程序。"]
       : env.ok ? ["pass", "正常", "按鼠标键时的环境（系统默认 PATH）里找得到 ffmpeg、Python 依赖和 API Key。"]
       : ["fail", "缺东西", env.detail || "检查失败。"];
     $("sEnvMark").className = `mark ${ek}`; $("sEnvMark").textContent = ew; $("sEnvText").textContent = et;
@@ -1783,14 +1845,26 @@ const Say = (() => {
     $("sOl").hidden = !(ol.found && devs.length);
     if (ol.error) msg($("sOlMsg"), ol.error, "err");
     const bound = devs.flatMap((d) => Object.entries(d.bindings).filter(([, v]) => v.includes("bailian-say")).map(([b]) => btnName(b)));
-    $("sOlMark").className = `mark ${bound.length ? "pass" : "na"}`;
-    $("sOlMark").textContent = bound.length ? `已配置：${bound.join("、")}` : "未配置";
+    // 顶部总结论:按依赖顺序找第一个没完成的步骤
+    const hk = r.hotkey, hkOk = hk.installed && hk.running && hk.trusted;
+    const keys = [...(r.trigger ? bound.slice(0, 1) : []), ...(hkOk && hk.trigger ? [hk.label] : [])];
+    const pending = [...(bound.length && !r.trigger ? [`${bound[0]}（在菜单栏退出 OpenLogi 再打开后生效）`] : []),
+                     ...(hkOk && !hk.trigger ? [hk.label] : []),
+                     ...(hk.installed && hk.running && !hk.trusted ? [`${hk.label}（还差辅助功能权限）`] : [])];
+    const [rk, rw, rt] = kind === "na" || kind === "fail" ? ["na", "还差一步", "先完成第 1 步：安装朗读程序。"]
+      : env && !env.ok ? ["fail", "缺东西", "按键运行环境不完整，见第 1 步。"]
+      : hk.installed && !hk.running && !keys.length ? ["fail", "快捷键没在运行", "快捷键小助手没在运行，到第 2 步「键盘快捷键」点「重新配置」。"]
+      : keys.length ? ["pass", "已就绪", `选中文字后按${keys.map((k) => /[⌃⌥⌘]/.test(k) ? `${k}（${keyWords(k)}）` : k).join(" 或 ")}。`]
+      : pending.length ? ["warn", "还没收到按键", `已绑定${pending.join("、")}，选中文字按一下试试。`]
+      : ["na", "还差一步", "朗读程序已装好。再绑定一个鼠标按键或快捷键（第 2 步）。"];
+    $("sReadyMark").className = `mark ${rk}`; $("sReadyMark").textContent = rw; $("sReadyText").textContent = rt;
+    if (!way) setWay(bound.length || !hk.label && ol.found && devs.length ? "mouse" : "keys");
+    renderHotkey(hk);
     // 按键工作流第 1 步会记一笔日志：收到说明 OpenLogi 在运行、已加载配置、有辅助功能权限
-    $("sOlHitRow").hidden = !bound.length;
     $("sOlHitMark").className = `mark ${r.trigger ? "pass" : "warn"}`;
     $("sOlHitMark").textContent = r.trigger ? "收到按键" : "还没收到按键";
     $("sOlHitText").textContent = r.trigger ? `最近一次：${r.trigger}`
-      : `在菜单栏退出 OpenLogi 再打开，选中文字按一下${bound[0] || ""}，再点下方朗读记录的「刷新」。一直收不到：OpenLogi 没在运行、没重开，或没在系统设置里给它辅助功能权限。`;
+      : `在菜单栏退出 OpenLogi 再打开，选中文字按一下${bound[0] || ""}，再展开页面最下面的朗读记录点「刷新」。一直收不到：OpenLogi 没在运行、没重开，或没在系统设置里给它辅助功能权限。`;
     if (devs.length) {
       const keepDev = $("sOlDev").value, keepBtn = $("sOlBtn").value;
       $("sOlDev").replaceChildren(...devs.map((d) => new Option(d.name, d.id)));
@@ -1801,7 +1875,8 @@ const Say = (() => {
     $("sScript").textContent = r.script;
     $("sVoice").textContent = `用默认音色 ${r.voice_name || Voices.nameOf(r.voice)}`;
     $("sTry").disabled = !w.installed;
-    $("sLog").textContent = r.log.length ? r.log.join("\n") : "还没有朗读记录。";
+    const log = r.log.filter((l) => l.trim());
+    $("sLog").textContent = log.length ? log.join("\n") : "还没有朗读记录。";
     $("sLogPath").textContent = `完整日志：${r.log_path}`;
   }
   function device() { return (st.openlogi.devices || []).find((d) => d.id === $("sOlDev").value); }
@@ -1816,15 +1891,54 @@ const Say = (() => {
   function renderNow() {
     const d = device(), b = $("sOlBtn").value, cur = d.bindings[b];
     const isSay = (cur || "").includes("bailian-say");
-    $("sOlNow").textContent = cur ? (isSay ? "已经是选中朗读" : cur) : "未设置（使用鼠标默认动作）";
-    $("sOlWrite").textContent = isSay ? "重新写入选中朗读" : "改为选中朗读";
-    $("sOlWrite").classList.toggle("primary", !isSay);
+    $("sOlNowMark").className = `mark ${isSay ? "pass" : "na"}`;
+    $("sOlNowMark").textContent = isSay ? "已绑定选中朗读" : "未绑定";
+    $("sOlNow").textContent = isSay ? "" : `这个键现在：${cur || "鼠标默认动作"}`;
+    $("sOlHitRow").hidden = !isSay;
+    // 已绑定:修复操作收进「按了没反应」;未绑定:直接给主按钮
+    if ($("sOlFix").classList.contains("bare") && isSay) $("sOlFix").open = false;  // 刚写入:修复操作收起
+    $("sOlFix").classList.toggle("bare", !isSay);
+    if (!isSay) $("sOlFix").open = true;
+    $("sOlFixText").hidden = !isSay;
+    $("sOlWrite").textContent = isSay ? "重新写入" : "改为选中朗读";
+  }
+  // ⌃⌥⌘S → Control + Option + Command + S:符号不好认,句子里写键名
+  const keyWords = (label) => label.replace(/[⌃⌥⇧⌘]/g, (m) => ({ "⌃": "Control + ", "⌥": "Option + ", "⇧": "Shift + ", "⌘": "Command + " }[m]));
+  function renderHotkey(hk) {
+    const on = hk.installed, ok = on && hk.running && hk.trusted;
+    const [k, w] = !on ? ["na", "未配置"] : !hk.running ? ["fail", "没在运行"] : !hk.trusted ? ["warn", `已配置 ${hk.label}`] : ["pass", `已配置 ${hk.label}`];
+    $("sHkMark").className = `mark ${k}`; $("sHkMark").textContent = w;
+    $("sHkNow").textContent = !on ? "选一个快捷键，点「一键配置」。在 Orca、终端等任何 App 里都能用。"
+      : !hk.running ? (hk.error || "小助手没在运行，点「重新配置」再启动一次。")
+      : `选中文字后同时按 ${keyWords(hk.label)}，不按 Shift。`;
+    $("sHkPerm").hidden = !(on && hk.running && !hk.trusted);
+    $("sHkHitRow").hidden = !ok;
+    $("sHkHitMark").className = `mark ${hk.trigger ? "pass" : "warn"}`;
+    $("sHkHitMark").textContent = hk.trigger ? "收到快捷键" : "还没收到快捷键";
+    $("sHkHitText").textContent = hk.trigger ? `最近一次：${hk.trigger}`
+      : `在任意 App 里选中文字，同时按 ${keyWords(hk.label)}，再展开页面最下面的朗读记录点「刷新」。`;
+    const keep = $("sHkKey").value || hk.key || "s";
+    if (!$("sHkKey").options.length)
+      $("sHkKey").replaceChildren(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((c) => new Option(c, c.toLowerCase())));
+    $("sHkKey").value = on && !$("sHkKey").dataset.touched ? hk.key : keep;
+    const bare = !on || !hk.running, fix = $("sHkFix");
+    if (fix.classList.contains("bare") && !bare) fix.open = false;  // 刚配好:修复操作收起
+    fix.classList.toggle("bare", bare);
+    if (bare) fix.open = true;
+    $("sHkInstall").textContent = on ? "重新配置" : "一键配置";
+    $("sHkRemove").hidden = !on;
+  }
+  function setWay(w) {
+    way = w;
+    document.querySelectorAll("#pg-say .tab").forEach((t) => t.setAttribute("aria-pressed", t.dataset.way === w));
+    $("sWayMouse").hidden = w !== "mouse"; $("sWayKeys").hidden = w !== "keys";
   }
   async function copy(text, el, what) {
     try { await navigator.clipboard.writeText(text); msg(el, `已复制${what}。`, "ok"); }
     catch { msg(el, "浏览器不让复制，请手动选中复制。", "err"); }
   }
 
+  document.querySelectorAll("#pg-say .tab").forEach((t) => t.addEventListener("click", () => setWay(t.dataset.way)));
   $("sOlDev").addEventListener("change", () => renderBtns());
   $("sOlBtn").addEventListener("change", renderNow);
   $("sInstall").addEventListener("click", async () => {
@@ -1836,7 +1950,7 @@ const Say = (() => {
   });
   $("sOlWrite").addEventListener("click", async () => {
     const d = device(), b = $("sOlBtn").value, cur = d.bindings[b];
-    if (!st.wrapper.installed) { msg($("sOlMsg"), "先在上面安装朗读入口。", "err"); return; }
+    if (!st.wrapper.installed) { msg($("sOlMsg"), "先完成第 1 步：安装朗读程序。", "err"); return; }
     const was = cur ? (cur.includes("bailian-say") ? "已有的选中朗读设置" : cur) : "鼠标默认动作";
     if (!confirm(`把「${d.name}」的${btnName(b)}改为选中朗读？\n\n原来的动作：${was}\n\n修改前会备份整份 OpenLogi 配置，只改这一个键。`)) return;
     $("sOlWrite").disabled = true;
@@ -1848,12 +1962,36 @@ const Say = (() => {
   });
   $("sOlCopy").addEventListener("click", () => copy(`${$("sOlBtn").value || "MiddleClick"} = ${st.workflow}`, $("sOlMsg"), "配置片段，粘贴到 config.toml 里鼠标的 bindings 段"));
   $("sScriptCopy").addEventListener("click", () => copy(st.script, $("sScMsg"), "脚本内容"));
+  $("sHkKey").addEventListener("change", () => { $("sHkKey").dataset.touched = "1"; });
+  $("sHkInstall").addEventListener("click", async () => {
+    const k = $("sHkKey").value, label = `⌃⌥⌘${k.toUpperCase()}`;
+    if (!st.wrapper.installed) { msg($("sHkMsg"), "先完成第 1 步：安装朗读程序。", "err"); return; }
+    if (!confirm(`把 ${label}（${keyWords(label)}）设为选中朗读的全局快捷键？\n\n会在本机编译并安装后台小助手「百炼朗读助手」，开机自动运行。装好后系统会请你给它开「辅助功能」权限。`)) return;
+    $("sHkInstall").disabled = true;
+    const r = await post("/say-hotkey", { action: "install", key: k }).catch(offline);
+    $("sHkInstall").disabled = false;
+    if (r.error) { msg($("sHkMsg"), r.error, "err"); return; }
+    delete $("sHkKey").dataset.touched;
+    render(r);
+    const hk = r.hotkey;
+    if (!hk.running) msg($("sHkMsg"), `小助手没能启动：${hk.error || "原因未知"}。换一个字母再试，或展开最下面的朗读记录看看。`, "err");
+    else msg($("sHkMsg"), hk.trusted ? `已配置 ${label}，现在就能用：在任意 App 里选中文字按一下。` : "已启动小助手。按上面的提示开好「辅助功能」权限后就能用。", "ok");
+  });
+  $("sHkSettings").addEventListener("click", () => post("/say-hotkey", { action: "settings" }).catch(() => {}));
+  $("sHkRecheck").addEventListener("click", load);
+  $("sHkRemove").addEventListener("click", async () => {
+    if (!confirm("移除快捷键朗读？\n\n会停止并删除后台小助手「百炼朗读助手」和它的开机启动项。系统设置「辅助功能」里的条目需要你自己删。")) return;
+    const r = await post("/say-hotkey", { action: "remove" }).catch(offline);
+    if (r.error) { msg($("sHkMsg"), r.error, "err"); return; }
+    render(r);
+    msg($("sHkMsg"), "已移除。", "ok");
+  });
   $("sTry").addEventListener("click", async () => {
     const text = $("sTryText").value.trim();
     if (!text) { msg($("sTryMsg"), "先写一句要朗读的话。", "err"); return; }
     const r = await post("/say-try", { text }).catch(offline);
     if (r.error) { msg($("sTryMsg"), r.error, "err"); return; }
-    msg($("sTryMsg"), "已开始朗读，通常 1～2 秒后出声。没有声音就看下面的朗读记录。", "ok");
+    msg($("sTryMsg"), "已开始朗读，通常 1～2 秒后出声。没有声音就展开最下面的「没出声？看朗读记录」。", "ok");
     setTimeout(load, 4000);
   });
   $("sStop").addEventListener("click", async () => { await post("/say-stop").catch(() => {}); msg($("sTryMsg"), "已停止。"); });
