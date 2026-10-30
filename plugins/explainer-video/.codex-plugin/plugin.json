@@ -1,0 +1,37 @@
+{
+  "name": "explainer-video",
+  "version": "1.0.0",
+  "description": "制作带旁白、字幕、BGM、音效和高级动效的中文讲解视频（MP4）：百炼 TTS 配音、Whisper 对时、分镜、子代理并行用 HyperFrames 搭场景、本地 MusicGen 生成 BGM、闪避混音与响度标准化、渲染质检。依赖 bailian-tts 插件。跨 Claude Code、Codex 与 Pi。",
+  "author": {
+    "name": "legdonkey",
+    "url": "https://github.com/legdonkey"
+  },
+  "homepage": "https://github.com/legdonkey/legdonkey-plugins",
+  "repository": "https://github.com/legdonkey/legdonkey-plugins",
+  "keywords": [
+    "video",
+    "explainer",
+    "hyperframes",
+    "gsap",
+    "tts",
+    "musicgen",
+    "subtitles"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "explainer-video",
+    "shortDescription": "把话题做成带配音、字幕、BGM 和动效的中文讲解视频",
+    "longDescription": "旁白是全片时钟：先用 bailian-tts 配音并用 Whisper 拿到精确时间轴，再写分镜、由子代理并行用 HyperFrames（HTML+GSAP 逐帧确定性渲染）搭场景，本地 MusicGen 生成 BGM，闪避混音并标准化到 −16 LUFS，最后渲染质检出 1080p MP4。需先安装 bailian-tts 插件。",
+    "developerName": "legdonkey",
+    "category": "Media",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Network"
+    ],
+    "defaultPrompt": [
+      "用 explainer-video 把这篇文章做成 3 分钟讲解视频",
+      "做一条竖版讲解片，对比这两个方案"
+    ]
+  }
+}

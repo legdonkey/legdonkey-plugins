@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "bailian-tts",
     "shortDescription": "用阿里百炼 Qwen-Audio-TTS 生成配音、字幕和复刻音色",
-    "longDescription": "用 qwen-audio-3.1-tts-flash 把文案合成自然语音：任意自然语言指令控制语气、语速与方言，文本内嵌 [excited]、[laughing] 等标签；可试听音色、单段生成 wav、按脚本批量生成并输出 SRT 字幕与拼接音轨，也能用自己的录音复刻音色。只在手动点名时运行。",
+    "longDescription": "用 qwen-audio-3.1-tts-flash 把文案合成自然语音：任意自然语言指令控制语气、语速与方言，文本内嵌 [excited]、[laughing] 等标签；可试听音色、单段生成 wav、按脚本批量生成并输出 SRT 字幕与拼接音轨，也能用自己的录音复刻音色。",
     "developerName": "legdonkey",
     "category": "Media",
     "capabilities": [

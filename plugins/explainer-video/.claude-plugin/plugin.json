@@ -1,0 +1,8 @@
+{
+  "name": "explainer-video",
+  "description": "制作带旁白、字幕、BGM、音效和高级动效的中文讲解视频（MP4）：百炼 TTS 配音、Whisper 对时、分镜、子代理并行用 HyperFrames 搭场景、本地 MusicGen 生成 BGM、闪避混音与响度标准化、渲染质检。依赖 bailian-tts 插件。跨 Claude Code、Codex 与 Pi。",
+  "version": "1.0.0",
+  "author": { "name": "legdonkey" },
+  "homepage": "https://github.com/legdonkey/legdonkey-plugins",
+  "repository": "https://github.com/legdonkey/legdonkey-plugins"
+}

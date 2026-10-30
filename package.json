@@ -1,7 +1,7 @@
 {
   "name": "legdonkey-plugins",
   "private": true,
-  "description": "legdonkey 插件市场的 Pi 包入口：向 Pi 暴露 privatize-fork 与 bailian-tts 技能",
+  "description": "legdonkey 插件市场的 Pi 包入口：向 Pi 暴露 privatize-fork、bailian-tts 与 explainer-video 技能",
   "repository": {
     "type": "git",
     "url": "https://github.com/legdonkey/legdonkey-plugins.git"
@@ -10,10 +10,11 @@
     "pi-package",
     "agent-skills",
     "tts",
-    "fork"
+    "fork",
+    "video"
   ],
   "pi": {
-    "skills": ["./plugins/privatize-fork/skills", "./plugins/bailian-tts/skills"],
+    "skills": ["./plugins/privatize-fork/skills", "./plugins/bailian-tts/skills", "./plugins/explainer-video/skills"],
     "extensions": [],
     "prompts": [],
     "themes": []

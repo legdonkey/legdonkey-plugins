@@ -1,7 +1,7 @@
 {
   "name": "legdonkey",
   "owner": { "name": "legdonkey" },
-  "description": "legdonkey 的 Claude Code 工具集市，收录两个独立插件：privatize-fork（开源 fork 一次性私有化脚手架）与 bailian-tts（阿里百炼 Qwen-Audio 配音）。",
+  "description": "legdonkey 的 Claude Code 工具集市，收录三个插件：privatize-fork（开源 fork 一次性私有化脚手架）、bailian-tts（阿里百炼 Qwen-Audio 配音）与 explainer-video（中文讲解视频，依赖 bailian-tts）。",
   "plugins": [
     {
       "name": "privatize-fork",
@@ -14,6 +14,12 @@
       "source": "./plugins/bailian-tts",
       "description": "阿里百炼 Qwen-Audio-3.1-TTS 语音合成：自然语言指令与文本内情感标签控制语气、方言与多语种音色、按脚本批量生成配音与字幕、复刻自己的声音。跨 Claude Code、Codex 与 Pi。",
       "version": "2.10.0"
+    },
+    {
+      "name": "explainer-video",
+      "source": "./plugins/explainer-video",
+      "description": "制作带旁白、字幕、BGM、音效和高级动效的中文讲解视频（MP4）：百炼 TTS 配音、Whisper 对时、分镜、子代理并行用 HyperFrames 搭场景、本地 MusicGen 生成 BGM、闪避混音与响度标准化、渲染质检。依赖 bailian-tts 插件。跨 Claude Code、Codex 与 Pi。",
+      "version": "1.0.0"
     }
   ]
 }

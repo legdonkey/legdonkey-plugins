@@ -1,0 +1,5 @@
+# Codex 专属元数据（Claude Code 会忽略本文件）。
+interface:
+  display_name: "explainer-video"
+  short_description: "把话题做成带配音、字幕、BGM 和动效的中文讲解视频"
+  default_prompt: "用 $explainer-video 把这篇文章做成讲解视频。"
