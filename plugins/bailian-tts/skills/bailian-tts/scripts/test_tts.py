@@ -226,6 +226,25 @@ class ModelTests(unittest.TestCase):
             self.assertEqual(args.synth_settings, settings)
             check.assert_not_called()
 
+    def test_clipboard_closes_stdout_after_restoring(self):
+        # 快捷键小助手靠 stdout 关闭判断剪贴板已还原,所以必须先还原、再关、再合成
+        args = SimpleNamespace(install=False, check=False, save=False, clipboard=True, text=None,
+                               max=1500, voice=None, instruct=None, emotion=None)
+        order = []
+        stdout, stderr = sys.stdout, sys.stderr
+        with tempfile.TemporaryDirectory() as root, patch.object(tts.sys, "platform", "darwin"), patch.object(tts, "SAY_DIR", root), \
+                patch.object(tts, "SAY_CLIP", root + "/clip.txt"), patch.object(tts, "SAY_LOG", root + "/say.log"), \
+                patch.object(tts, "pb_paste", return_value="选中的字"), patch.object(tts, "pb_copy", side_effect=lambda t: order.append(("copy", t))), \
+                patch.object(tts.os, "open", return_value=99), patch.object(tts.os, "dup2", side_effect=lambda a, b: order.append(("dup2", b))), \
+                patch.object(tts, "load_settings", return_value={"model": tts.NEXT_MODEL}), \
+                patch.object(tts, "speak_segments", side_effect=lambda *a: order.append(("speak",))):
+            Path(tts.SAY_CLIP).write_text("原剪贴板")
+            try:
+                tts.cmd_say(args)
+            finally:
+                sys.stdout, sys.stderr = stdout, stderr
+        self.assertEqual(order, [("copy", "原剪贴板"), ("dup2", 1), ("speak",)])
+
 
 class HotkeyTests(unittest.TestCase):
     """全局快捷键小助手:只测本地判断,不编译、不碰 launchctl。"""
@@ -254,6 +273,7 @@ class HotkeyTests(unittest.TestCase):
             tts.hotkey_install("1")
         # 修饰键顺序不同也算同一个组合
         with patch.object(tts, "_pbs_status", return_value={"(null) - 切换 - runWorkflowAsService": {"key_equivalent": "^~@d"}}), \
+                patch.object(tts.subprocess, "run", return_value=SimpleNamespace(stdout="")), \
                 patch.object(tts, "write_say_wrapper") as wrapper, self.assertRaises(SystemExit) as e:
             tts.hotkey_install("d")
         self.assertIn("切换", str(e.exception.code))

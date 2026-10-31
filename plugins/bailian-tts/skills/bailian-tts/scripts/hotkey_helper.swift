@@ -22,19 +22,27 @@ func writeStatus(_ s: [String: Bool]) {
     }
 }
 
-/// 返回 true 表示启动成功(wait 时还要求正常退出);失败原因写到 stderr,即 LaunchAgent 的日志
+/// 返回 true 表示启动成功(wait 时还要求正常退出);失败原因写到 stderr,即 LaunchAgent 的日志。
+/// wait 为 false 时等到它关掉 stdout(--clipboard 还原完剪贴板就关),合成与播放留在后台。
 @discardableResult
 func runSay(_ a: [String], wait: Bool) -> Bool {
     let p = Process()
     p.executableURL = URL(fileURLWithPath: say)
     p.arguments = a
-    p.standardOutput = FileHandle.nullDevice
+    let out = Pipe()
+    p.standardOutput = wait ? FileHandle.nullDevice : out
     p.standardError = FileHandle.nullDevice  // bailian-say 每次都往 stderr 打模型信息,不进小助手日志
     do { try p.run() } catch {
         FileHandle.standardError.write("启动 \(say) 失败:\(error)\n".data(using: .utf8)!)
         return false
     }
-    guard wait else { return true }
+    guard wait else {
+        // 连按时下一次的 --save 会清空剪贴板,必须等这一次还原完;卡住最多等 5 秒,免得快捷键从此失灵
+        let closed = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async { _ = out.fileHandleForReading.readDataToEndOfFile(); closed.signal() }
+        _ = closed.wait(timeout: .now() + 5)
+        return true
+    }
     p.waitUntilExit()
     if p.terminationStatus != 0 {
         FileHandle.standardError.write("bailian-say \(a.joined(separator: " ")) 失败,退出码 \(p.terminationStatus)\n".data(using: .utf8)!)
