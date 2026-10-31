@@ -1488,6 +1488,8 @@ def cmd_say(a):
         raw = pb_paste()
         saved = open(SAY_CLIP, encoding="utf-8").read() if os.path.exists(SAY_CLIP) else ""
         pb_copy(saved)
+        # 关掉 stdout,告诉快捷键小助手剪贴板已还原,可以处理下一次按键;之后的输出都写进日志
+        os.dup2(os.open(os.devnull, os.O_WRONLY), 1)
         if not raw.strip() and front_bundle_id() in COPY_ON_SELECT_TERMINALS:
             raw = saved
         if not raw.strip():
