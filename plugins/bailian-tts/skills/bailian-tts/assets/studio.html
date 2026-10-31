@@ -1910,7 +1910,7 @@ const Say = (() => {
     $("sHkMark").className = `mark ${k}`; $("sHkMark").textContent = w;
     $("sHkNow").textContent = !on ? "选一个快捷键，点「一键配置」。在 Orca、终端等任何 App 里都能用。"
       : !hk.running ? (hk.error || "小助手没在运行，点「重新配置」再启动一次。")
-      : `选中文字后同时按 ${keyWords(hk.label)}，不按 Shift。`;
+      : `选中文字后同时按 ${keyWords(hk.label)}。`;
     $("sHkPerm").hidden = !(on && hk.running && !hk.trusted);
     $("sHkHitRow").hidden = !ok;
     $("sHkHitMark").className = `mark ${hk.trigger ? "pass" : "warn"}`;
