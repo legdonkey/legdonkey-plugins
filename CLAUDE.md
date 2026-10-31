@@ -47,10 +47,15 @@ for f in package.json .claude-plugin/marketplace.json .agents/plugins/marketplac
 done
 ```
 
+Claude Code 插件校验（本机装了 Claude Code 时）：
+1. 运行 `claude plugin validate .`，再对每个插件运行 `claude plugin validate plugins/<plugin>`。确认都显示 `Validation passed`。这一步检查清单字段和技能 frontmatter，不调用模型。
+2. 换到其它目录，对每个插件的每个技能运行 `claude -p --plugin-dir <仓库>/plugins/<plugin> "/<plugin>:<skill> 只回答你是否收到了技能说明文档"`。确认每次都回答「是」。`--plugin-dir` 只在这次会话里加载插件，不用清理。本机已装同名插件时，回答可能来自已装的那份。
+
 Codex 插件端到端校验（本机装了 Codex 时）：
-1. 运行 `codex plugin marketplace add . && codex plugin list --json --marketplace legdonkey --available`。
-2. 确认输出列出 `plugins/` 下的全部插件。
-3. 运行 `codex plugin marketplace remove legdonkey` 清理。
+1. 运行 `codex plugin marketplace list`，看本机是否已登记 `legdonkey`。
+2. 没登记时，运行 `codex plugin marketplace add .`；已登记时跳过这一步。
+3. 运行 `codex plugin list --json --marketplace legdonkey --available`，确认输出列出 `plugins/` 下的全部插件。
+4. 只有第 2 步做了 add 时，才运行 `codex plugin marketplace remove legdonkey` 清理。已登记的不要 remove：remove 会把从它装的插件一起卸载。
 
 Pi 包端到端校验（本机装了 Pi 时）：
 1. 运行 `pi install "$PWD"`。
