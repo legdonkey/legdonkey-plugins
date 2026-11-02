@@ -152,6 +152,13 @@
   /* ================= 开始 ================= */
   #pg-home { max-width: 980px; }
   #pg-home .verdict { border-bottom: 1px solid var(--line); margin-bottom: 32px; }
+  .promo { margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+  .promo > summary { cursor: pointer; padding: 8px 0; font-size: 19px; font-weight: 300; letter-spacing: .04em; }
+  .promo > summary::marker { color: var(--champagne); }
+  .promo[open] > summary { margin-bottom: 16px; }
+  .promo video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: var(--inset); border: 1px solid var(--line); border-radius: 8px; }
+  .promo .hint { margin: 12px 0 0; }
+  .promo .linkish { margin-left: 8px; }
   .keypanel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
   .keypanel ol.steps { padding: 4px 0 0; }
   .keypanel ol.steps > li:last-child { padding-bottom: 4px; }
@@ -537,6 +544,16 @@
   <!-- ================= 开始 ================= -->
   <section class="page" id="pg-home" aria-label="开始" hidden>
     <div class="verdict" id="hHero"><b id="hTitle">先配好 API Key</b><span id="hLead">bailian-tts 用阿里百炼的 qwen-audio-3.1-tts-flash 把文字读成接近真人的配音。第一次用，先花两分钟在百炼控制台创建一个 API Key。</span></div>
+
+    <details class="promo" id="hPromo">
+      <summary>一分钟了解百炼配音</summary>
+      <video id="hPromoVideo" controls playsinline preload="none" width="1280" height="720" aria-label="百炼配音宣传视频" aria-describedby="hPromoHint">
+        <track id="hPromoCaptions" kind="captions" srclang="zh" label="简体中文">
+        当前浏览器不支持视频播放，请使用下方的下载链接。
+      </video>
+      <p class="hint" id="hPromoHint">约 1 分钟，含真实音色试听。播放不会调用模型或消耗 API 额度。<a class="linkish" id="hPromoDownload" download="bailian-tts-promo.mp4">下载视频</a></p>
+      <p class="msg err" id="hPromoError" role="status" hidden>视频暂时无法播放。可下载后用本地播放器打开；文件缺失时，请更新插件后重新打开工作台。</p>
+    </details>
 
     <article class="keypanel" aria-labelledby="hKeyTitle">
       <div class="card-head"><b id="hKeyTitle">API Key</b><span class="mark na" id="hKeyMark">未配置</span></div>
@@ -948,6 +965,19 @@ const S = { key: { configured: false }, favorites: [], page: null, closed: false
 const PAGES = ["home", "voices", "clone", "say"];
 const isEleven = model => ["eleven_v4", "eleven_v4_turbo"].includes(model);
 
+// 展开后才加载本地视频素材，不让宣传片影响首次配置。
+const promoVideo = $("hPromoVideo");
+$("hPromo").addEventListener("toggle", () => {
+  if (!$("hPromo").open) { promoVideo.pause(); return; }
+  if (!promoVideo.getAttribute("src")) {
+    promoVideo.poster = `/promo/poster?t=${token}`;
+    $("hPromoCaptions").src = `/promo/captions?t=${token}`;
+    promoVideo.src = `/promo/video?t=${token}`;
+    $("hPromoDownload").href = promoVideo.src;
+  }
+});
+promoVideo.addEventListener("error", () => { $("hPromoError").hidden = false; });
+
 function setFavorites(favs) { S.favorites = favs; Voices.onFavorites(); barInfo(); }
 function setKey(k) {
   const was = S.key.configured;
@@ -979,7 +1009,7 @@ function route() {
   if (document.body.classList.contains("recording") && page !== "clone") { history.replaceState(null, "", "#clone"); return; }
   if (!PAGES.includes(page) || (page === "say" && S.platform !== "darwin")) page = S.key.configured ? "voices" : "home";
   if (page === S.page) return;
-  document.querySelectorAll("audio").forEach((a) => a.pause());
+  document.querySelectorAll("audio, video").forEach((a) => a.pause());
   S.page = page;
   PAGES.forEach((p) => { $(`pg-${p}`).hidden = p !== page; });
   document.querySelectorAll(".nav a").forEach((a) => {
@@ -994,7 +1024,7 @@ addEventListener("hashchange", route);
 
 $("finish").addEventListener("click", async () => {
   $("finish").disabled = true;
-  document.querySelectorAll("audio").forEach((a) => a.pause());
+  document.querySelectorAll("audio, video").forEach((a) => a.pause());
   await post("/done").catch(() => {});
   S.closed = true;
   const favs = S.favorites;

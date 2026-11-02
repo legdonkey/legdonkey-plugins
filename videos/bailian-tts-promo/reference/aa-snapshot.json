@@ -1,0 +1,15 @@
+{
+  "url": "https://artificialanalysis.ai/text-to-speech/leaderboard/provider-voice",
+  "checked": "2026-11-02",
+  "box": {
+    "x": 312.5,
+    "y": 320,
+    "width": 1280,
+    "height": 145.5
+  },
+  "text": [
+    "\t\nRange\n\t\nModel\n\t\nElo\n\t\nSamples\n\t\nArena Voices\n\t\nReleased\n\t\nPricing 1",
+    "1\t1-2\t\nEleven v4 Turbo\n\t\n1336\n±16\n95% interval 1320 to 1352\n\t2,277\t8 voices\tSept 2026\t$40.0 /1M chars",
+    "2\t1-2\t\nEleven v4\n\t\n1334\n±15\n95% interval 1319 to 1349\n\t2,553\t8 voices\tSept 2026\t$80.0 /1M chars"
+  ]
+}

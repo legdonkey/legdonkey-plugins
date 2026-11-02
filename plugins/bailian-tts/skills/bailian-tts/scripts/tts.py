@@ -505,7 +505,9 @@ class LocalUI:
 
     def __init__(self, asset):
         import itertools, secrets
-        self.page = open(os.path.join(os.path.dirname(__file__), "..", "assets", asset), "rb").read()
+        self.asset_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
+        with open(os.path.join(self.asset_dir, asset), "rb") as source:
+            self.page = source.read()
         self.token = secrets.token_urlsafe(16)
         self.audio, self._ids = {}, itertools.count()  # 页面并发请求时编号也不冲突
         self.workdir = tempfile.mkdtemp(prefix="bailian_ui_")
@@ -538,6 +540,59 @@ class LocalUI:
                 self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(data)))
                 self.end_headers(); self.wfile.write(data)
 
+            def media(self, filename, ctype, head=False):
+                try:
+                    source = open(os.path.join(ui.asset_dir, filename), "rb")
+                except FileNotFoundError:
+                    return self.send_error(404)
+                except OSError:
+                    return self.send_error(500)
+                with source:
+                    size = os.fstat(source.fileno()).st_size
+                    start, end, status = 0, size - 1, 200
+                    requested = self.headers.get("Range") if not head else None
+                    if requested:
+                        # shortcut: 只支持浏览器单段 Range；需要多段下载时再实现 multipart/byteranges。
+                        match = re.fullmatch(r"bytes=(\d{0,20})-(\d{0,20})", requested.strip())
+                        valid = bool(match and any(match.groups()))
+                        if valid:
+                            first, last = match.groups()
+                            if first:
+                                start = int(first)
+                                end = min(int(last), size - 1) if last else size - 1
+                            else:
+                                suffix = int(last)
+                                start = max(0, size - suffix)
+                                valid = suffix > 0
+                            valid = valid and 0 <= start <= end < size
+                        if not valid:
+                            self.send_response(416)
+                            self.send_header("Content-Range", f"bytes */{size}")
+                            self.send_header("Content-Length", "0")
+                            self.end_headers()
+                            return
+                        status = 206
+                    length = max(0, end - start + 1)
+                    self.send_response(status)
+                    self.send_header("Content-Type", ctype)
+                    self.send_header("Accept-Ranges", "bytes")
+                    self.send_header("Content-Length", str(length))
+                    if status == 206:
+                        self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+                    self.end_headers()
+                    if head:
+                        return
+                    source.seek(start)
+                    try:
+                        while length:
+                            block = source.read(min(length, 64 * 1024))
+                            if not block:
+                                break
+                            self.wfile.write(block)
+                            length -= len(block)
+                    except (BrokenPipeError, ConnectionResetError):
+                        pass  # 切页或拖动进度时，浏览器会主动取消旧请求。
+
             def handle_request(self, method):
                 u = urllib.parse.urlparse(self.path)
                 q = {k: v[0] for k, v in urllib.parse.parse_qs(u.query).items()}
@@ -547,6 +602,13 @@ class LocalUI:
                     return self.reply(ui.page, "text/html; charset=utf-8")
                 if method == "GET" and u.path == "/audio" and q.get("k") in ui.audio:
                     return self.reply(ui.audio[q["k"]], "audio/wav")
+                media = {
+                    "/promo/video": ("promo.mp4", "video/mp4"),
+                    "/promo/poster": ("promo-cover.webp", "image/webp"),
+                    "/promo/captions": ("promo.zh.vtt", "text/vtt; charset=utf-8"),
+                }
+                if method in ("GET", "HEAD") and u.path in media:
+                    return self.media(*media[u.path], head=method == "HEAD")
                 if method == "POST" and u.path == "/done":
                     self.reply({})
                     threading.Thread(target=server.shutdown, daemon=True).start()
@@ -565,6 +627,9 @@ class LocalUI:
 
             def do_GET(self):
                 self.handle_request("GET")
+
+            def do_HEAD(self):
+                self.handle_request("HEAD")
 
             def do_POST(self):
                 self.handle_request("POST")

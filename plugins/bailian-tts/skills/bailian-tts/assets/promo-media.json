@@ -1,0 +1,14 @@
+{
+  "source_project": "videos/bailian-tts-promo",
+  "source_video": "out/bailian-tts-promo-remake.mp4",
+  "poster": "成片结束前1.2秒抽帧，缩放到1280×720；非AI生成图片",
+  "music": {
+    "title": "House Vibez",
+    "artist": "Lily J",
+    "license": "Mixkit Stock Music Free License",
+    "url": "https://mixkit.co/license/#musicFree",
+    "limits": "仅随视频使用，不独立分发音乐；不用于电视/广播、游戏或CD/DVD"
+  },
+  "sfx": "原创短音效；木质扫声来自 Joao_Janz / Freesound 485279 / CC0-1.0",
+  "ranking_checked_at": "2026-11-02"
+}

@@ -1,0 +1,24 @@
+{
+  "name": "bailian-tts-promo",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio src/index.tsx",
+    "render": "remotion render src/index.tsx BailianPromo out/bailian-tts-promo-remake.mp4 --crf=18",
+    "render:nobgm": "remotion render src/index.tsx BailianPromo out/bailian-tts-promo-remake-nobgm.mp4 --crf=18 --props=props-nobgm.json",
+    "still": "remotion still src/index.tsx BailianPromo",
+    "test": "node scripts/check-timeline.ts",
+    "publish:ui": "python3 scripts/publish-ui.py"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.484",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "remotion": "4.0.484"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "typescript": "6.0.3"
+  }
+}
