@@ -1,0 +1,57 @@
+[
+  {
+    "name": "title-demote-to-label",
+    "summary": "大标题降格为节标签两式——A 大标题居中显影站稳一拍后连续缩小 0.3x 平移到左上角落成小节标签、内容区在其下生长；B 同套路但登场时带文本选中态高亮块扫入再撤掉",
+    "use": "章节开场（标题先当主角再让位给内容）；教程/功能演示片的小节交接；B 式给\"文字/编辑\"类产品加身份暗示",
+    "duration": "A ~3.7s（112f）/ B ~4.5s（134f）；demo 两式串播 246f",
+    "energy": "低中（版式变换型，氛围镜头）",
+    "intention": "章节标题的常规命运是\"出现→消失→内容登场\"，标题和内容互不认识。 本卡让标题**降格而不退场**：居中大字站稳一拍宣告主题，然后一次连续 补间缩到 0.3x 飞到左上角，落成这一节的栏目标签——它还在屏幕上， 只是从主角变成了门牌。观众获得免费的空间记忆：刚才那个大词就是 现在左上角那个小词，本节讲的就是它。内容骨架在降格进行中就开始 生长，交接零空档。",
+    "source": "references/shots/typography/title-demote-to-label.md",
+    "updatedAt": "2026-10-02T21:01:48.000Z",
+    "styles": [
+      {
+        "key": "title-demote-to-label",
+        "label": "title-demote-to-label",
+        "description": "大标题降格为节标签两式——A 大标题居中显影站稳一拍后连续缩小 0.3x 平移到左上角落成小节标签、内容区在其下生长；B 同套路但登场时带文本选中态高亮块扫入再撤掉",
+        "media": {
+          "url": "./media/title-demote-to-label.mp4?v=1790980736888",
+          "type": "mp4"
+        }
+      }
+    ],
+    "sourceUrl": "./source/title-demote-to-label.md",
+    "category": "typography",
+    "tags": [
+      "typography",
+      "transition"
+    ],
+    "addedAt": "2026-07-19T05:45:41.000Z"
+  },
+  {
+    "name": "voice-waveform-live",
+    "summary": "录音胶囊实时声纹——64 根细竖条随\"说话\"起伏，说话时中部高耸、停顿缩成点线，波形从右往左滚动；说→停→说→提交塌缩的完整表演",
+    "use": "语音输入/AI 助手\"正在听你说\"的功能镜头；无 UI 内容可展示但需要持续活性撑画面的段落",
+    "duration": "172f（~5.7s：入场 14f + 说 1.4s + 停 0.8s + 说 1.4s + 提交塌缩 / 收进气泡 0.8s + hold 0.7s）",
+    "energy": "中（功能性活性，不是炫技）",
+    "intention": "本卡是**功能性**声纹：\"正在听你说\"的实时回执。命门在因果： 波形跟\"用户说话\"跳、是产品功能本身，不是跟 BGM 跳的装饰包装。 说话时波形高耸、停顿时缩成一排点线、历史向左滚出——观众从波形的起伏读出\"它真的在听\"，一段 6s+ 的画面全靠这份 活性撑住，不需要任何别的内容。与 gauge-readout-moves 分工：仪表是 \"报一个数值\"的机械仪式，本卡是\"持续监听\"的生命体征，没有终值。",
+    "source": "references/shots/interaction/voice-waveform-live.md",
+    "updatedAt": "2026-10-02T21:01:48.000Z",
+    "styles": [
+      {
+        "key": "voice-waveform-live",
+        "label": "voice-waveform-live",
+        "description": "录音胶囊实时声纹——64 根细竖条随\"说话\"起伏，说话时中部高耸、停顿缩成点线，波形从右往左滚动；说→停→说→提交塌缩的完整表演",
+        "media": {
+          "url": "./media/voice-waveform-live.mp4?v=1790980736907",
+          "type": "mp4"
+        }
+      }
+    ],
+    "sourceUrl": "./source/voice-waveform-live.md",
+    "category": "interaction",
+    "tags": [
+      "interaction"
+    ],
+    "addedAt": "2026-07-19T05:45:41.000Z"
+  }
+]

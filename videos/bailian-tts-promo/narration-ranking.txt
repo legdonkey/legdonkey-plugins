@@ -1,0 +1,3 @@
+@voice xunanchuan_v3.1
+@instruct 清晰自信的产品宣传旁白，语速适中，强调两个模型名字与排名前二
+Eleven v4 Turbo 和 Eleven v4，位列 AA 原生音色榜前二。

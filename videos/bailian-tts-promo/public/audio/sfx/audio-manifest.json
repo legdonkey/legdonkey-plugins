@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "fs:485279",
+      "title": "Wooden Stick Swing 1_4",
+      "author": "Joao_Janz",
+      "duration_seconds": 0.556937,
+      "preview_url": "https://cdn.freesound.org/previews/485/485279_9961300-hq.mp3",
+      "downloads": 226,
+      "page_url": "https://freesound.org/people/Joao_Janz/sounds/485279/",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "license": "CC0-1.0",
+      "description": "Recorded and processed at 24bit 48kHz using the Tascam DR-40 Linear PCM Recorder.\n\nProcessing: Gain-staging and soft high and low frequency filtering. No EQ boost or cuts anywhere else. Also De-noised.",
+      "rating": 4.3,
+      "rating_count": 4,
+      "provider": "freesound",
+      "file": "fs-485279.mp3",
+      "sha256": "fb23762a33f158488408aeba269daf6e3285da2f6cd1f2e63bff476a0332a76f",
+      "download_url": "https://cdn.freesound.org/previews/485/485279_9961300-hq.mp3",
+      "download_kind": "mp3-preview-hq",
+      "is_preview": true,
+      "downloaded_at": "2026-11-02T12:37:21.535938+00:00",
+      "license_checked_at": "2026-11-02T12:37:21.535965+00:00",
+      "changes": [],
+      "analysis": {
+        "codec": "mp3",
+        "sample_rate": 48000,
+        "channels": 2,
+        "duration_seconds": 0.556937,
+        "sample_peak_dbfs": -17.27,
+        "rms_dbfs": -42.015,
+        "energy_window_seconds": 0.01,
+        "energy_peak_seconds": 0.065,
+        "active_start_seconds": 0.03,
+        "active_end_seconds": 0.19,
+        "activity_threshold_db_below_peak_rms": -40
+      }
+    }
+  ]
+}

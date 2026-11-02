@@ -1,0 +1,47 @@
+{
+  "provider": "freesound",
+  "query": "short cinematic impact",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:558238",
+      "title": "Distorted Impact Short.wav",
+      "author": "Rizzard",
+      "duration_seconds": 3.0,
+      "preview_url": "https://cdn.freesound.org/previews/558/558238_10825267-hq.mp3",
+      "downloads": 584,
+      "page_url": "https://freesound.org/people/Rizzard/sounds/558238/",
+      "license_label": "Creative Commons 0",
+      "description": "Distorted, short Impact.",
+      "rating": 4.8,
+      "rating_count": 8
+    },
+    {
+      "id": "fs:868788",
+      "title": "Stone_Drop_Metal_Can_PERC01",
+      "author": "SignatureSoundsOrg",
+      "duration_seconds": 0.687771,
+      "preview_url": "https://cdn.freesound.org/previews/868/868788_19205925-hq.mp3",
+      "downloads": 46,
+      "page_url": "https://freesound.org/people/SignatureSoundsOrg/sounds/868788/",
+      "license_label": "Creative Commons 0",
+      "description": "A short percussive recording of a stone dropping into a metal can, producing a sharp impact followed by a brief metallic rattle and resonant decay. The sound has a raw, industrial character with a natural clank and textured tonal ring. Perfect for percussion layers, Foley, experimental beats, industrial sound design, cinematic impacts and rhythmic sound effects. For more sounds like this, visit signaturesounds.org to explore more free samples, sound effects and the full Stone Drop Metal Can percussion pack. Visit signaturesounds.org for the full collection and more sounds.",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:868851",
+      "title": "Random_SFX_65",
+      "author": "SignatureSoundsOrg",
+      "duration_seconds": 2.03489,
+      "preview_url": "https://cdn.freesound.org/previews/868/868851_19205925-hq.mp3",
+      "downloads": 0,
+      "page_url": "https://freesound.org/people/SignatureSoundsOrg/sounds/868851/",
+      "license_label": "Creative Commons 0",
+      "description": "A collection of short, textured Foley sounds featuring rough scraping, brushing and swishing movements across a hard surface. Each variation produces a dry, scratchy character with subtle impacts and changes in rhythm, pressure and texture. These sounds also work well as experimental SFX, offering unusual organic textures that can be processed, reversed, stretched or layered to create abstract movements, unsettling atmospheres, mechanical details and unique sonic transitions. Perfect for film Foley, object movement, creature sound design, experimental percussion, transitions, cinematic textures and layered sound effects. For more sounds like this, visit signaturesounds.org to explore more free samples, sound effects and the full Random SFX sample pack. Visit signaturesounds.org for the full collection and more sounds.",
+      "rating": null,
+      "rating_count": null
+    }
+  ]
+}

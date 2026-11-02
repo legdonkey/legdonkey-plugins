@@ -1,0 +1,7 @@
+# 本机依赖、渲染中间产物和旧版归档不进入仓库
+node_modules/
+out/
+archive/
+__pycache__/
+# Mixkit 原音乐及处理后的音乐底轨不作为独立音频分发；许可见 README
+public/audio/bgm/

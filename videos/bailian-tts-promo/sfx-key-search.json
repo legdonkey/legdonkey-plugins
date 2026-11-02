@@ -1,0 +1,60 @@
+{
+  "provider": "freesound",
+  "query": "keyboard single key",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:766639",
+      "title": "Keyboard_Tactile_8",
+      "author": "StavSounds",
+      "duration_seconds": 0.218118,
+      "preview_url": "https://cdn.freesound.org/previews/766/766639_7862587-hq.mp3",
+      "downloads": 534,
+      "page_url": "https://freesound.org/people/StavSounds/sounds/766639/",
+      "license_label": "Creative Commons 0",
+      "description": "A single key press on a tactile mechanical keyboard.",
+      "rating": 4.5,
+      "rating_count": 13
+    },
+    {
+      "id": "fs:378085",
+      "title": "mechanical key hard.wav",
+      "author": "bigmonmulgrew",
+      "duration_seconds": 0.307914,
+      "preview_url": "https://cdn.freesound.org/previews/378/378085_6260145-hq.mp3",
+      "downloads": 1192,
+      "page_url": "https://freesound.org/people/bigmonmulgrew/sounds/378085/",
+      "license_label": "Creative Commons 0",
+      "description": "A hard Press on a mechanical Keyboard. A single keystroke pressed.",
+      "rating": 4.8,
+      "rating_count": 13
+    },
+    {
+      "id": "fs:491920",
+      "title": "BotonTeclado.wav",
+      "author": "cmilo1269",
+      "duration_seconds": 0.273401,
+      "preview_url": "https://cdn.freesound.org/previews/491/491920_10630312-hq.mp3",
+      "downloads": 73,
+      "page_url": "https://freesound.org/people/cmilo1269/sounds/491920/",
+      "license_label": "Creative Commons 0",
+      "description": "Sound when you press a single key on the keyboard.",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:622060",
+      "title": "button click",
+      "author": "rydra_wong",
+      "duration_seconds": 0.64068,
+      "preview_url": "https://cdn.freesound.org/previews/622/622060_13685159-hq.mp3",
+      "downloads": 1192,
+      "page_url": "https://freesound.org/people/rydra_wong/sounds/622060/",
+      "license_label": "Creative Commons 0",
+      "description": "chcka ^sound of a button being clicked could be used for a door opening, a compartment being activated, a toggle on a sci-fi spaceship, or just a single keyboard key being clicked made with a mechanical keyboard",
+      "rating": 4.4,
+      "rating_count": 14
+    }
+  ]
+}
