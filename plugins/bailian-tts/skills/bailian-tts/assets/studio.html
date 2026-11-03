@@ -244,6 +244,8 @@
   .row .name { font-size: 16px; white-space: nowrap; }
   .row .gender { font-size: 14px; color: var(--ash); }
   .row .trait { font-size: 14px; color: var(--ash); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #eList .voice-meta { grid-column: 1 / -1; font-size: 14px; color: var(--ash); overflow-wrap: anywhere; }
+  #eLanguage { white-space: pre-line; overflow-wrap: anywhere; }
   .row .side { display: flex; align-items: center; gap: 14px; font-size: 14px; color: var(--ash); font-variant-numeric: tabular-nums; }
   .row .take { min-width: 3.2em; text-align: right; color: var(--ivory); font-size: 15px; }
   .row .ord {
@@ -636,9 +638,10 @@
     <div class="studio" id="eStudio" hidden>
       <section id="eBrowser" aria-label="ElevenLabs 音色清单">
         <div class="tabs" id="eTabs" role="group" aria-label="ElevenLabs 音色范围"></div>
-        <div class="finder"><input type="search" id="eQ" placeholder="搜名字、特质或描述" aria-label="搜索 ElevenLabs 音色"><select id="eGender" aria-label="ElevenLabs 性别筛选"><option value="">全部性别</option><option value="male">男声</option><option value="female">女声</option></select></div>
+        <div class="finder"><input type="search" id="eQ" placeholder="搜名字、中文验证、语言或特质" aria-label="搜索 ElevenLabs 音色"><select id="eGender" aria-label="ElevenLabs 性别筛选"><option value="">全部性别</option><option value="male">男声</option><option value="female">女声</option></select></div>
         <div class="e-filter"><label><input type="checkbox" id="eFreeOnly"> 仅显示免费套餐可试</label></div>
         <select id="eScope" hidden><option value="favorites">已收藏</option><option value="all">全部</option><option value="free_plan">免费套餐可试</option><option value="paid_plan">API 需付费</option><option value="unknown">资格待确认</option></select>
+        <p class="hint">主要语言不限制朗读语种；中文验证按模型区分，无记录不代表不能读中文。Free 可试仍消耗额度。</p>
         <select id="eVoice" hidden aria-label="ElevenLabs 音色"></select>
         <ul class="list" id="eList" role="listbox" aria-label="ElevenLabs 音色" tabindex="0"></ul>
         <p class="keys"><kbd>↑</kbd> <kbd>↓</kbd> 换一个音色 · <kbd>回车</kbd> 试听</p>
@@ -652,7 +655,7 @@
         </div>
         <div class="block">
           <div class="ident"><h2 id="eName">请选择音色</h2><span id="eFavStatus" class="mark na"></span></div>
-          <p class="facts" id="eFacts"></p><p id="eAccess" class="note"></p>
+          <p class="facts" id="eFacts"></p><p id="eLanguage" class="note"></p><p id="eAccess" class="note"></p>
           <div class="deck"><div class="player empty" id="ePlayer"><button class="play" id="ePlay" aria-label="播放 ElevenLabs 试听"><svg><use href="#i-play"/></svg></button><div class="groove"><i></i></div><span class="time">0:00 / 0:00</span></div><button class="primary" id="eListen"><svg><use href="#i-listen"/></svg><span>试听</span></button></div>
           <audio id="eAudio" preload="auto" hidden></audio><p class="msg" id="eMsg" role="status" aria-live="polite"></p>
         </div>
@@ -1119,7 +1122,14 @@ const Eleven = (() => {
   let key = {}, favorites = [], voices = [], loaded = false, loading = false;
   const takes = new Map(), audio = $("eAudio");
   function keyInfo() { $("elevenKeyStatus").textContent = key.configured ? `已配置 ${key.masked}（${key.source === "env" ? "环境变量" : "本机文件"}）` : "尚未配置"; }
-  const accessText = v => ({free_plan: "免费套餐可试", paid_plan: "API 需付费", unknown: "资格待确认"}[v?.api_access] || "资格待确认");
+  const accessText = v => ({free_plan: "Free 套餐可试", paid_plan: "Free 不可用 · 需付费套餐", unknown: "套餐要求待确认"}[v?.api_access] || "套餐要求待确认");
+  const primaryLanguage = v => `主要语言：${v?.language_label||"待确认"}`;
+  function chineseText(v) {
+    const models = v?.chinese_verified_models;
+    if (!Array.isArray(models)) return "中文验证：待刷新";
+    if (models.includes(S.settings.model)) return "中文验证：当前模型有记录";
+    return models.length ? "中文验证：仅其他模型有记录" : "中文验证：无记录";
+  }
   function render() {
     const current = $("eVoice").value;
     const all = [...favorites.map(f=>voices.find(v=>v.voice===f.voice)||f), ...voices.filter(v => !favorites.some(f => f.voice === v.voice))];
@@ -1128,12 +1138,12 @@ const Eleven = (() => {
     $("eTabs").innerHTML = groups.map(([id,name,n])=>`<button class="tab" data-scope="${id}" aria-pressed="${id===scope}">${name}<b>${n}</b></button>`).join("");
     const list = all.filter(v=>scope === "all" || (scope === "favorites" ? favorites.some(f=>f.voice===v.voice) : (v.api_access||"unknown") === scope))
       .filter(v=>!$("eFreeOnly").checked || v.api_access === "free_plan")
-      .filter(v=>(!gender || v.gender===gender) && (!q || `${v.name} ${v.trait_zh||""} ${v.description||""} ${v.voice}`.toLowerCase().includes(q)));
-    $("eVoice").innerHTML = list.length ? list.map(v => `<option value="${esc(v.voice)}">[${accessText(v)}] ${esc(v.name)}${favorites[0]?.voice === v.voice ? " · 默认" : favorites.some(f=>f.voice===v.voice) ? " · 已收藏" : ""}</option>`).join("") : '<option value="">暂无符合条件的音色，请切换全部账号音色或取消免费筛选</option>';
+      .filter(v=>(!gender || v.gender===gender) && (!q || `${v.name} ${primaryLanguage(v)} ${chineseText(v)} ${(v.chinese_verified_models||[]).join(" ")} ${accessText(v)} ${v.trait_zh||""} ${v.description||""} ${v.voice}`.toLowerCase().includes(q)));
+    $("eVoice").innerHTML = list.length ? list.map(v => `<option value="${esc(v.voice)}">[${esc(primaryLanguage(v))}] [${esc(chineseText(v))}] [${accessText(v)}] ${esc(v.name)}${favorites[0]?.voice === v.voice ? " · 默认" : favorites.some(f=>f.voice===v.voice) ? " · 已收藏" : ""}</option>`).join("") : '<option value="">暂无符合条件的音色，请切换全部账号音色或取消免费筛选</option>';
     if (list.some(v => v.voice === current)) $("eVoice").value = current;
     $("eList").innerHTML = list.length ? list.map(v=>{
       const ord=favorites.findIndex(f=>f.voice===v.voice), take=takes.get(takeKey(v.voice));
-      return `<li class="row" role="option" id="er-${esc(v.voice)}" data-voice="${esc(v.voice)}" aria-selected="${v.voice===$("eVoice").value}"><div class="who"><span class="name">${esc(v.name.split(" - ")[0])}</span><span class="gender">${v.gender==="male"?"男":v.gender==="female"?"女":""}</span><span class="trait">${esc(v.trait_zh||"暂无中文描述")}</span></div><div class="side"><span class="take">${take?`${take.duration.toFixed(1)}s`:""}</span><span class="ord ${ord<0?"blank":""}" ${ord>=0?`aria-label="收藏第 ${ord+1} 位"`:'aria-hidden="true"'}>${ord>=0?ord+1:""}</span></div></li>`;
+      return `<li class="row" role="option" id="er-${esc(v.voice)}" data-voice="${esc(v.voice)}" aria-selected="${v.voice===$("eVoice").value}"><div class="who"><span class="name">${esc(v.name.split(" - ")[0])}</span><span class="gender">${v.gender==="male"?"男":v.gender==="female"?"女":v.gender==="neutral"?"中性":""}</span><span class="trait">${esc(v.trait_zh||"暂无中文描述")}</span></div><div class="side"><span class="take">${take?`${take.duration.toFixed(1)}s`:""}</span><span class="ord ${ord<0?"blank":""}" ${ord>=0?`aria-label="收藏第 ${ord+1} 位"`:'aria-hidden="true"'}>${ord>=0?ord+1:""}</span></div><div class="voice-meta">${esc(primaryLanguage(v))} · ${accessText(v)}<br>${esc(chineseText(v))}</div></li>`;
     }).join("") : '<li class="empty">暂无符合条件的音色。可切换「全部」、清除搜索或刷新账号音色。</li>';
     status(); barInfo();
   }
@@ -1148,9 +1158,10 @@ const Eleven = (() => {
     const id = $("eVoice").value, i = favorites.findIndex(v => v.voice === id);
     const v = voices.find(v=>v.voice===id)||favorites.find(v=>v.voice===id);
     $("eName").textContent = v ? v.name.split(" - ")[0] : "请选择音色";
-    $("eFacts").textContent = v ? v.trait_zh||"暂无中文描述" : "先在左侧选择音色；未配置 Key 时请展开顶部模型设置。";
+    $("eFacts").textContent = v ? `${primaryLanguage(v)} · ${v.trait_zh||"暂无中文描述"}` : "先在左侧选择音色；未配置 Key 时请展开顶部模型设置。";
+    $("eLanguage").textContent = v ? `${chineseText(v)}${v.chinese_verified_models?.length ? `\n验证模型：${v.chinese_verified_models.join("、")}` : ""}\n主要语言不限制朗读语种；其他模型的验证不代表当前模型已验证，无记录也不代表不能读中文。` : "";
     $("eId").textContent = id;
-    $("eAccess").textContent = v ? `${accessText(v)} · 生成仍消耗额度，以 API 返回为准。` : "";
+    $("eAccess").textContent = v ? `${accessText(v)}。仅为音色套餐资格标注，未核验账号套餐；模型权限与剩余额度以 API 返回为准，生成消耗额度。` : "";
     $("eFavStatus").className = `mark ${i===0?"pass":"na"}`;
     $("eFavStatus").textContent = i === 0 ? "默认音色 · 鼠标朗读使用此声音" : i > 0 ? `收藏第 ${i+1} 位` : "尚未收藏";
     $("eAdd").disabled = !id || i >= 0;

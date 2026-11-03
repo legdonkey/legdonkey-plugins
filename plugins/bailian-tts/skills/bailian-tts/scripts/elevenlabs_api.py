@@ -101,6 +101,25 @@ def api_access(voice):
     return "unknown"
 
 
+def language_label(voice):
+    """使用官网 language 标签；缺失时不从姓名或口音推断。"""
+    language = ((voice.get("labels") or {}).get("language") or "").strip().lower()
+    if not language:
+        return "语言待确认"
+    code = language.replace("_", "-").split("-")[0]
+    if code in ("zh", "cmn", "chinese", "mandarin"):
+        return "中文"
+    if code in ("en", "english"):
+        return "英语"
+    return f"其他语言（{language}）"
+
+
+def chinese_verified_models(voice):
+    """保留中文验证所属模型，不把旧模型验证当作当前模型验证。"""
+    return sorted({row["model_id"] for row in voice.get("verified_languages") or []
+                   if language_label({"labels": row}) == "中文" and row.get("model_id")})
+
+
 def list_voices(key=None):
     from urllib.parse import urlencode
     voices, token, seen = [], None, set()
@@ -113,7 +132,8 @@ def list_voices(key=None):
             if v["voice_id"] not in seen:
                 seen.add(v["voice_id"])
                 voices.append({"voice": v["voice_id"], "name": v.get("name", v["voice_id"]),
-                               "trait_zh": trait_zh(v.get("name") or ""),
+                               "trait_zh": trait_zh(v.get("name") or ""), "language_label": language_label(v),
+                               "chinese_verified_models": chinese_verified_models(v),
                                "api_access": api_access(v), "gender": (v.get("labels") or {}).get("gender", ""),
                                "description": v.get("description") or ""})
         if not data.get("has_more"):
