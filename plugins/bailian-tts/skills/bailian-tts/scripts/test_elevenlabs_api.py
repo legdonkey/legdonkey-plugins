@@ -63,6 +63,32 @@ class ElevenTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 eleven.synth(text, voice)
 
+    def test_official_language_labels(self):
+        for value, expected in [("zh", "中文"), ("zh-CN", "中文"), ("en", "英语"),
+                                ("en-US", "英语"), ("English", "英语"), ("ja", "其他语言（ja）"), (None, "语言待确认")]:
+            self.assertEqual(eleven.language_label({"labels": {"language": value}}), expected)
+        self.assertEqual(eleven.language_label({"name": "Chinese Mandarin", "labels": {"accent": "american"}}), "语言待确认")
+        with patch.object(eleven, "request", return_value={"voices": [{"voice_id": "a", "labels": {"language": "zh"}}]}):
+            self.assertEqual(eleven.list_voices()[0]["language_label"], "中文")
+
+    def test_chinese_verification_preserves_model_scope(self):
+        rows = [{"language": "zh", "model_id": "eleven_multilingual_v2"},
+                {"language": "zh-CN", "model_id": "eleven_v4_turbo"},
+                {"language": "zh", "model_id": "eleven_multilingual_v2"},
+                {"language": "en", "model_id": "eleven_v4"}, {"language": "zh"}]
+        expected = ["eleven_multilingual_v2", "eleven_v4_turbo"]
+        self.assertEqual(eleven.chinese_verified_models({"verified_languages": rows}), expected)
+        for value in ({}, {"verified_languages": None}, {"verified_languages": []}):
+            self.assertEqual(eleven.chinese_verified_models(value), [])
+        with patch.object(eleven, "request", return_value={"voices": [{"voice_id": "a", "labels": {"language": "en"}, "verified_languages": rows}]}):
+            voice = eleven.list_voices()[0]
+        self.assertEqual(voice["language_label"], "英语")
+        self.assertEqual(voice["chinese_verified_models"], expected)
+        self.assertNotIn("eleven_v4", voice["chinese_verified_models"])
+        eleven.save_favorites([{"voice": "a", "name": "A"}])
+        self.assertEqual(eleven.seed_favorites([voice])[0]["chinese_verified_models"], expected)
+        self.assertEqual(eleven.favorites()[0]["chinese_verified_models"], expected)
+
     def test_free_plan_api_eligibility(self):
         cases = [
             ({"category": "premade"}, "free_plan"),
