@@ -1,0 +1,10 @@
+{
+  "name": "gemini-video",
+  "description": "把本地视频交给 Gemini 审查：检查画面与旁白或字幕是否一致、字幕清晰度、操作步骤、转场与动效节奏；可设采样帧率、指定片段、画面分辨率和长视频 agentic 模式。需要 Gemini API key。跨 Claude Code、Codex 与 Pi。",
+  "version": "0.1.0",
+  "author": {
+    "name": "legdonkey"
+  },
+  "homepage": "https://github.com/legdonkey/legdonkey-plugins",
+  "repository": "https://github.com/legdonkey/legdonkey-plugins"
+}

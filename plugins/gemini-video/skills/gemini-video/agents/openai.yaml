@@ -1,0 +1,5 @@
+# Codex 专属元数据（Claude Code 会忽略本文件）。
+interface:
+  display_name: "gemini-video"
+  short_description: "用 Gemini 审查本地视频成片"
+  default_prompt: "用 $gemini-video 检查这个视频的字幕和转场。"

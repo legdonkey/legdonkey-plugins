@@ -1,7 +1,7 @@
 {
   "name": "legdonkey",
   "owner": { "name": "legdonkey" },
-  "description": "legdonkey 的 Claude Code 工具集市，收录三个插件：privatize-fork（开源 fork 一次性私有化脚手架）、bailian-tts（阿里百炼 Qwen-Audio 配音）与 explainer-video（中文讲解视频，依赖 bailian-tts）。",
+  "description": "legdonkey 的 Claude Code 工具集市，收录四个插件：privatize-fork（开源 fork 一次性私有化脚手架）、bailian-tts（阿里百炼 Qwen-Audio 配音）、explainer-video（中文讲解视频，依赖 bailian-tts）与 gemini-video（用 Gemini 审查本地视频）。",
   "plugins": [
     {
       "name": "privatize-fork",
@@ -20,6 +20,12 @@
       "source": "./plugins/explainer-video",
       "description": "制作带旁白、字幕、BGM、音效和高级动效的中文讲解视频（MP4）：百炼 TTS 配音、Whisper 对时、分镜、子代理并行用 HyperFrames 搭场景、本地 MusicGen 生成 BGM、闪避混音与响度标准化、渲染质检。依赖 bailian-tts 插件。跨 Claude Code、Codex 与 Pi。",
       "version": "1.0.0"
+    },
+    {
+      "name": "gemini-video",
+      "source": "./plugins/gemini-video",
+      "description": "把本地视频交给 Gemini 审查：检查画面与旁白或字幕是否一致、字幕清晰度、操作步骤、转场与动效节奏；可设采样帧率、指定片段、画面分辨率和长视频 agentic 模式。需要 Gemini API key。跨 Claude Code、Codex 与 Pi。",
+      "version": "0.1.0"
     }
   ]
 }
