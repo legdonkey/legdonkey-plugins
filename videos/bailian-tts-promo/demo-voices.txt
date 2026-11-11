@@ -1,9 +1,0 @@
-@voice xunanchuan_v3.1
-@instruct 沉稳清晰，像纪录片旁白，语速适中
-让想法，被听见。
-@voice yuxiaoyun_v3.1
-@instruct 年轻活泼，明亮有笑意，像轻快的产品广告
-[excited]让想法，被听见。
-@voice xuyuyuan_v3.1
-@instruct 成熟知性，温柔有质感，像品牌短片旁白
-让想法，被听见。
