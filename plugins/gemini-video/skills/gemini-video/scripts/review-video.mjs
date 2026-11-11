@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
 const DEFAULT_BASE = "https://generativelanguage.googleapis.com";
-const DEFAULT_MODEL = "gemini-4-argon";
+const DEFAULT_MODEL = "gemini-4-carbon";
 const MAX_BYTES = 2 * 1024 ** 3; // Files API 免费层的单文件上限。
 const MIME_BY_EXT = {
   ".mp4": "video/mp4", ".mov": "video/mov", ".webm": "video/webm", ".mpeg": "video/mpeg",

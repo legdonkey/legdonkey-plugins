@@ -27,7 +27,7 @@ node scripts/review-video.mjs <视频路径> --question "<审查问题>" [选项
 
 | 选项 | 作用 |
 |---|---|
-| `--model <id>` | 模型。默认 `gemini-4-argon`；也可以用环境变量 `GEMINI_VIDEO_MODEL` 指定 |
+| `--model <id>` | 模型。默认 `gemini-4-carbon`；也可以用环境变量 `GEMINI_VIDEO_MODEL` 指定 |
 | `--fps <数字>` | 采样帧率。不设时每秒 1 帧 |
 | `--start <秒>`、`--end <秒>` | 只分析这一段 |
 | `--resolution <档位>` | 每帧的画面分辨率：`low`、`medium`、`high`、`ultra_high` |

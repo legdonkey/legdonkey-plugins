@@ -60,7 +60,7 @@ test("完整流程：上传、等待、分析、删除", async () => {
   assert.equal(calls[1].body.length, 64);
   assert.equal(calls[0].headers["x-goog-api-key"], "test-key");
   assert.deepEqual(JSON.parse(calls[3].body.toString()), {
-    model: "gemini-4-argon",
+    model: "gemini-4-carbon",
     input: [
       { type: "video", uri: `${base}/v1beta/files/abc`, mime_type: "video/mp4", processing: { type: "static", fps: 5, start_offset: "2s", end_offset: "8s" }, resolution: "high" },
       { type: "text", text: "转场是否自然？" },
@@ -110,8 +110,8 @@ test("参数校验", () => {
   assert.throws(() => parseCli([video, "--question", "q", "--start", "5", "--end", "5"], {}), UsageError);
   assert.throws(() => parseCli([video, "--question", "q", "--mode", "agentic", "--fps", "2"], {}), UsageError);
   assert.throws(() => parseCli([video, "--question", "q", "--resolution", "4k"], {}), UsageError);
-  assert.equal(parseCli([video, "--question", "q"], { GEMINI_VIDEO_MODEL: "gemini-4-carbon" }).model, "gemini-4-carbon");
-  assert.equal(parseCli([video, "--question", "q", "--model", "m"], { GEMINI_VIDEO_MODEL: "gemini-4-carbon" }).model, "m");
+  assert.equal(parseCli([video, "--question", "q"], { GEMINI_VIDEO_MODEL: "gemini-4-argon" }).model, "gemini-4-argon");
+  assert.equal(parseCli([video, "--question", "q", "--model", "m"], { GEMINI_VIDEO_MODEL: "gemini-4-argon" }).model, "m");
 });
 
 test("请求体：默认不带 processing；agentic 用字符串", () => {
