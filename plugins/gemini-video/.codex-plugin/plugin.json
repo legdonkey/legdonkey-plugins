@@ -1,0 +1,35 @@
+{
+  "name": "gemini-video",
+  "version": "0.1.0",
+  "description": "把本地视频交给 Gemini 审查：检查画面与旁白或字幕是否一致、字幕清晰度、操作步骤、转场与动效节奏；可设采样帧率、指定片段、画面分辨率和长视频 agentic 模式。需要 Gemini API key。跨 Claude Code、Codex 与 Pi。",
+  "author": {
+    "name": "legdonkey",
+    "url": "https://github.com/legdonkey"
+  },
+  "homepage": "https://github.com/legdonkey/legdonkey-plugins",
+  "repository": "https://github.com/legdonkey/legdonkey-plugins",
+  "keywords": [
+    "gemini",
+    "video",
+    "video-understanding",
+    "review",
+    "qa"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "gemini-video",
+    "shortDescription": "用 Gemini 审查本地视频成片",
+    "longDescription": "把本地视频上传到 Gemini API 并按你的问题返回分析：画面与旁白是否一致、字幕是否清晰、步骤是否完整、转场是否自然。可设采样帧率、只看指定片段、提高画面分辨率，长视频可用 agentic 模式。分析后自动删除上传的文件。",
+    "developerName": "legdonkey",
+    "category": "Media",
+    "capabilities": [
+      "Read",
+      "Network"
+    ],
+    "defaultPrompt": [
+      "用 gemini-video 检查这个视频的字幕和转场",
+      "对照旁白稿审查 out/final.mp4",
+      "用高帧率复查 00:12 到 00:20 的转场"
+    ]
+  }
+}

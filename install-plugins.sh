@@ -2,7 +2,7 @@
 #
 # 一键把 legdonkey 市场里的插件装进 Claude Code 与 Codex。
 #
-# 收录插件：privatize-fork、bailian-tts、explainer-video（各 1 个技能；explainer-video 依赖 bailian-tts）。
+# 收录插件：privatize-fork、bailian-tts、explainer-video、gemini-video（各 1 个技能；explainer-video 依赖 bailian-tts）。
 # 每个平台的 CLI 与桌面端共享同一份配置（CC=~/.claude，Codex=~/.codex），
 # 所以每个平台用 CLI 装一次，就同时覆盖了它的命令行和桌面端。
 #
@@ -17,7 +17,7 @@ set -uo pipefail
 REPO="legdonkey/legdonkey-plugins"
 MARKETPLACE="legdonkey"
 REF="main"
-PLUGINS=(privatize-fork bailian-tts explainer-video)
+PLUGINS=(privatize-fork bailian-tts explainer-video gemini-video)
 
 ok=0
 fail=0
@@ -78,8 +78,8 @@ if [ "$fail" -gt 0 ]; then
   echo "有插件未就位，请按上面每条命令的输出排查后重跑。"
 fi
 echo "触发方式（重启对应客户端后生效；privatize-fork 只能手动触发，其余也会被自动调用）："
-[ "$did_cc" = 1 ] && echo "  Claude Code：/privatize-fork    /bailian-tts    /explainer-video"
-[ "$did_codex" = 1 ] && echo "  Codex：      \$privatize-fork   \$bailian-tts   \$explainer-video"
+[ "$did_cc" = 1 ] && echo "  Claude Code：/privatize-fork    /bailian-tts    /explainer-video    /gemini-video"
+[ "$did_codex" = 1 ] && echo "  Codex：      \$privatize-fork   \$bailian-tts   \$explainer-video   \$gemini-video"
 
 [ "$fail" -gt 0 ] && exit 1
 exit 0

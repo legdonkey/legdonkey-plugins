@@ -7,7 +7,7 @@
   <a href="https://agentskills.io"><img src="https://img.shields.io/badge/Agent%20Skills-Compatible-1F6FEB" alt="Agent Skills Compatible"></a>
 </p>
 
-> 三个跨 **Claude Code**、**Codex** 与 **Pi** 的插件：CC 与 Codex 走同一个 `legdonkey` 市场、按需各装各的，Pi 把整个仓库作为一个包安装。底层是开放标准 [skill](https://agentskills.io)。bailian-tts 与 explainer-video 会被模型自动调用；privatize-fork 有副作用，只在手动点名时运行。
+> 四个跨 **Claude Code**、**Codex** 与 **Pi** 的插件：CC 与 Codex 走同一个 `legdonkey` 市场、按需各装各的，Pi 把整个仓库作为一个包安装。底层是开放标准 [skill](https://agentskills.io)。bailian-tts、explainer-video 与 gemini-video 会被模型自动调用；privatize-fork 有副作用，只在手动点名时运行。
 
 ## 插件
 
@@ -31,9 +31,13 @@
 
 把一个话题做成 1080p 讲解片：bailian-tts 配音、Whisper 对时、写分镜，子代理并行用 HyperFrames（HTML+GSAP）搭场景，本地 MusicGen 生成 BGM，闪避混音、响度标准化后渲染质检。**依赖 bailian-tts**。**→ [详细说明](plugins/explainer-video/README.md)**
 
+### [gemini-video](plugins/gemini-video/) — 用 Gemini 审查本地视频
+
+把本地视频上传到 Gemini API，按你的问题返回分析：画面与旁白是否一致、字幕是否清晰、步骤是否完整、转场是否自然。可以设置采样帧率、只看指定片段、提高画面分辨率，长视频可用 agentic 模式；分析后自动删除上传的文件。需要自己的 Gemini API key。**→ [详细说明](plugins/gemini-video/README.md)**
+
 ## 安装
 
-三个插件在同一个市场，CC 与 Codex 都能装，命令行与桌面端图形界面都行。装完重启对应客户端即可。
+四个插件在同一个市场，CC 与 Codex 都能装，命令行与桌面端图形界面都行。装完重启对应客户端即可。
 
 > **想一键装两边？** 跑 `./install-plugins.sh`，它用各自 CLI 把全部插件装进 Claude Code 与 Codex 的本地共享插件层；同一台机器上的 Codex CLI 与 Desktop 共用这类 marketplace、安装缓存和启用状态。OpenAI 公共目录则按 CLI/Desktop 各自的投影管理。需本机有 `claude` / `codex` CLI。
 
