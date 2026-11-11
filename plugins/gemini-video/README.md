@@ -1,6 +1,6 @@
-# gemini-video：用 Gemini 审查本地视频
+# gemini-video：用 Gemini 审查视频
 
-Claude、GPT 等模型不能直接看视频。这个插件提供一个技能和一个脚本，把本地视频交给 Gemini，按你的问题返回分析。跨 Claude Code、Codex 与 Pi。
+Claude、GPT 等模型不能直接看视频。这个插件提供一个技能和一个脚本，把本地视频或公开的 YouTube 链接交给 Gemini，按你的问题返回分析。跨 Claude Code、Codex 与 Pi。
 
 ## 能做什么
 
@@ -27,13 +27,17 @@ node plugins/gemini-video/skills/gemini-video/scripts/review-video.mjs out/final
 # 高帧率复查 12 秒到 20 秒之间的转场
 node plugins/gemini-video/skills/gemini-video/scripts/review-video.mjs out/final.mp4 \
   --start 12 --end 20 --fps 10 --question "逐个描述这一段里的转场，指出生硬或闪烁的地方。"
+
+# 公开的 YouTube 视频：直接传链接，不上传文件
+node plugins/gemini-video/skills/gemini-video/scripts/review-video.mjs "https://www.youtube.com/watch?v=..." \
+  --question "用三句话概括这个视频，并列出关键时间点。"
 ```
 
 全部选项见 `--help`，按审查目的选参数的方法见 [SKILL.md](skills/gemini-video/SKILL.md)。
 
 ## 工作过程
 
-1. 脚本用 Files API 上传视频，等待 Gemini 处理完成。
+1. 脚本用 Files API 上传视频，等待 Gemini 处理完成。参数是 YouTube 链接时跳过这一步和第 4 步。
 2. 脚本调用 Interactions API，带上视频和你的问题。请求设置了 `store: false`，服务端不保存这次交互。
 3. 脚本输出回答，第一行写明模型、处理模式、帧率和片段范围。
 4. 脚本删除已上传的文件。删除失败时会说明，文件 48 小时后自动删除。
@@ -42,6 +46,7 @@ node plugins/gemini-video/skills/gemini-video/scripts/review-video.mjs out/final
 
 - 默认每秒采样 1 帧，短于 1 秒的转场和闪帧看不到。检查这类问题要截取片段并提高帧率。
 - 单个文件不超过 2 GiB。
+- YouTube 链接只支持公开视频。这项能力在 Gemini API 里是预览功能，价格和限流可能变化。
 - Gemini 给出的时间戳可能有一两秒偏差。
 - 音轨审查实测过一次：能发现数秒的静音和旁白缺失，句子时间戳误差在 1 秒以内。读错的字、短于 1 秒的声画错位、音量偏低没有测过。
 - 视频会发送到 Google。不要上传你无权外发的内容。

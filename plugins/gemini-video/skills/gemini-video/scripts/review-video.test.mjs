@@ -95,6 +95,21 @@ test("没有环境变量时从 key 文件读取", async () => {
   assert.equal(calls[0].headers["x-goog-api-key"], "file-key");
 });
 
+test("YouTube 链接：不上传、不删除，链接直接作为 uri", async () => {
+  calls = []; failInteraction = false;
+  const url = "https://www.youtube.com/watch?v=abc123";
+  const result = await reviewVideo(parseCli([url, "--question", "讲了什么？", "--start", "10", "--end", "40"], {}), env());
+  assert.equal(result.text, "00:03 转场生硬");
+  assert.equal(result.bytes, null);
+  assert.match(result.cleanup, /没有上传文件/);
+  assert.deepEqual(calls.map((c) => `${c.method} ${c.url}`), ["POST /v1beta/interactions"]);
+  assert.deepEqual(JSON.parse(calls[0].body.toString()).input[0], {
+    type: "video", uri: url, processing: { type: "static", start_offset: "10s", end_offset: "40s" },
+  });
+  assert.equal(parseCli(["https://youtu.be/abc123", "--question", "q"], {}).youtubeUrl, "https://youtu.be/abc123");
+  assert.equal(parseCli(["https://example.com/a.mp4", "--question", "q"], {}).youtubeUrl, undefined);
+});
+
 test("没有 key、文件不存在、扩展名不支持时在上传前报错", async () => {
   calls = [];
   await assert.rejects(reviewVideo(parseCli([video, "--question", "q"], {}), {}), UsageError);
