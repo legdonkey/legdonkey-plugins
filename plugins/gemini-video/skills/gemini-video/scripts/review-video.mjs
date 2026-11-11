@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 把本地视频上传到 Gemini API，按给定问题返回模型的分析。
+// 把本地视频上传到 Gemini API，或把公开的 YouTube 链接直接交给它，按给定问题返回模型的分析。
 // 只依赖 Node 标准库（Node 20 及以上）。API key 只从环境变量读取，不写入任何输出。
 
 import { openAsBlob } from "node:fs";
@@ -16,10 +16,13 @@ const MIME_BY_EXT = {
   ".mpg": "video/mpg", ".avi": "video/avi", ".wmv": "video/wmv", ".flv": "video/x-flv", ".3gp": "video/3gpp",
 };
 const RESOLUTIONS = ["low", "medium", "high", "ultra_high"];
+const YOUTUBE_URL = /^https?:\/\/((www|m)\.)?(youtube\.com|youtu\.be)\//i;
 
 export class UsageError extends Error {}
 
-const HELP = `用法：review-video.mjs <视频路径> (--question <文字> | --question-file <路径>) [选项]
+const HELP = `用法：review-video.mjs <视频路径 | YouTube 链接> (--question <文字> | --question-file <路径>) [选项]
+
+YouTube 链接只支持公开视频，直接交给 Gemini，不上传文件。
 
 选项：
   --model <id>          模型，默认 ${DEFAULT_MODEL}（也可用环境变量 GEMINI_VIDEO_MODEL）
@@ -62,14 +65,16 @@ export function parseCli(argv, env = process.env) {
   }
   const { values, positionals } = parsed;
   if (values.help) return { help: true };
-  if (positionals.length !== 1) throw new UsageError("需要且只需要一个视频路径。");
+  if (positionals.length !== 1) throw new UsageError("需要且只需要一个视频路径或 YouTube 链接。");
+  const youtube = YOUTUBE_URL.test(positionals[0]);
   if (Boolean(values.question) === Boolean(values["question-file"])) {
     throw new UsageError("--question 和 --question-file 必须提供其中一个。");
   }
   const mode = values.mode ?? "static";
   if (mode !== "static" && mode !== "agentic") throw new UsageError(`--mode 只能是 static 或 agentic，收到：${mode}`);
   const options = {
-    videoPath: resolve(positionals[0]),
+    videoPath: youtube ? undefined : resolve(positionals[0]),
+    youtubeUrl: youtube ? positionals[0] : undefined,
     question: values.question,
     questionFile: values["question-file"],
     model: values.model ?? env.GEMINI_VIDEO_MODEL ?? DEFAULT_MODEL,
@@ -95,7 +100,8 @@ export function parseCli(argv, env = process.env) {
 }
 
 export function buildInteractionBody(options, file, question) {
-  const video = { type: "video", uri: file.uri, mime_type: file.mimeType };
+  const video = { type: "video", uri: file.uri };
+  if (file.mimeType) video.mime_type = file.mimeType; // YouTube 链接没有 MIME 类型
   if (options.mode === "agentic") {
     video.processing = "agentic";
   } else if (options.fps !== undefined || options.start !== undefined || options.end !== undefined) {
@@ -189,21 +195,29 @@ export async function reviewVideo(options, env = process.env) {
   const base = (env.GEMINI_API_BASE ?? DEFAULT_BASE).replace(/\/+$/, "");
   const pollMs = Number(env.GEMINI_VIDEO_POLL_MS ?? 2000);
 
-  const mimeType = MIME_BY_EXT[extname(options.videoPath).toLowerCase()];
-  if (!mimeType) throw new UsageError(`不支持的视频扩展名：${extname(options.videoPath) || "（无）"}。支持：${Object.keys(MIME_BY_EXT).join(" ")}`);
-  const info = await stat(options.videoPath).catch(() => undefined);
-  if (!info?.isFile()) throw new UsageError(`找不到视频文件：${options.videoPath}`);
-  if (info.size === 0 || info.size > MAX_BYTES) throw new UsageError(`视频大小必须大于 0 且不超过 2 GiB，当前 ${info.size} 字节。`);
+  let mimeType;
+  let info;
+  if (!options.youtubeUrl) {
+    mimeType = MIME_BY_EXT[extname(options.videoPath).toLowerCase()];
+    if (!mimeType) throw new UsageError(`不支持的视频扩展名：${extname(options.videoPath) || "（无）"}。支持：${Object.keys(MIME_BY_EXT).join(" ")}`);
+    info = await stat(options.videoPath).catch(() => undefined);
+    if (!info?.isFile()) throw new UsageError(`找不到视频文件：${options.videoPath}`);
+    if (info.size === 0 || info.size > MAX_BYTES) throw new UsageError(`视频大小必须大于 0 且不超过 2 GiB，当前 ${info.size} 字节。`);
+  }
   const question = (options.question ?? await readFile(options.questionFile, "utf8")).trim();
   if (!question) throw new UsageError("审查问题不能为空。");
 
   const signal = AbortSignal.timeout(options.timeoutMs);
   let uploaded;
-  let cleanup = "未上传";
+  let cleanup = options.youtubeUrl ? "YouTube 链接，没有上传文件" : "未上传";
   try {
-    uploaded = await uploadVideo({ base, key, path: options.videoPath, size: info.size, mimeType, signal });
-    const file = await waitUntilActive({ base, key, file: uploaded, pollMs, signal });
-    const body = buildInteractionBody(options, { uri: file.uri ?? uploaded.uri, mimeType: file.mimeType ?? mimeType }, question);
+    let file = { uri: options.youtubeUrl };
+    if (!options.youtubeUrl) {
+      uploaded = await uploadVideo({ base, key, path: options.videoPath, size: info.size, mimeType, signal });
+      const active = await waitUntilActive({ base, key, file: uploaded, pollMs, signal });
+      file = { uri: active.uri ?? uploaded.uri, mimeType: active.mimeType ?? mimeType };
+    }
+    const body = buildInteractionBody(options, file, question);
     const interaction = await readJson(await fetch(`${base}/v1beta/interactions`, {
       method: "POST", signal,
       headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
@@ -214,7 +228,7 @@ export async function reviewVideo(options, env = process.env) {
     return {
       ok: true, text, model: options.model, mode: options.mode, fps: options.fps ?? null,
       start: options.start ?? null, end: options.end ?? null, resolution: options.resolution ?? null,
-      bytes: info.size, usage: interaction.usage ?? null,
+      bytes: info?.size ?? null, usage: interaction.usage ?? null,
       get cleanup() { return cleanup; },
     };
   } catch (error) {
