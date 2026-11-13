@@ -2,7 +2,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { AutoEffortSession } from '../types/index'
 import { FABLE_FINISH_PROMPT } from './policy-text'
 import type { Effort, SupportedModel } from './policy-text'
-import { cacheRebuilt, clampEffort, configOf, isContinue, isEffort, isUltra, JUDGES, judgeInput, retainedDecisions, supportedModel } from './core'
+import { cacheRebuilt, clampEffort, commandCompletions, configOf, isContinue, isEffort, isUltra, JUDGES, judgeInput, retainedDecisions, supportedModel } from './core'
 import type { Config, Decision, JudgeResult } from './core'
 import { classify } from './judge'
 import { runBench } from './bench'
@@ -124,7 +124,8 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     hint.terminal = e.surface === 'terminal'
     await load($, runtime)
-    await $.command.register({ name: 'auto-effort', description: '查看、切换或测评自动选档' })
+    await $.command.register({ name: 'auto-effort', description: '查看、切换或测评自动选档',
+      argumentHint: '[status|on|off|judge|floor|ceiling|max|test|bench]' })
     return next(e)
   })
 
@@ -334,6 +335,12 @@ export const register: Register = (on, options) => {
       } catch { if (!debugWarned) { debugWarned = true; $.ui.toast('请求摘要日志写入失败') } }
     }
     return next(e)
+  })
+
+  on('prompt.autocomplete', async ($, e, next) => {
+    const mine = commandCompletions(e)
+    if (!mine.length) return next(e)
+    return { suggestions: [...(await next(e)).suggestions, ...mine] }
   })
 
   on('command.run', { command: 'auto-effort' }, async ($, e) => {
