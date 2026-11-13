@@ -2,7 +2,8 @@
 #
 # 一键把 legdonkey 市场里的插件装进 Claude Code 与 Codex。
 #
-# 收录插件：privatize-fork、bailian-tts、explainer-video、gemini-video（各 1 个技能；explainer-video 依赖 bailian-tts）。
+# 收录插件：privatize-fork、bailian-tts、explainer-video、gemini-video（各 1 个技能；explainer-video 依赖 bailian-tts），
+# 以及只支持 Claude Code 的 auto-effort（函数钩子 mod，Codex 不装）。
 # 每个平台的 CLI 与桌面端共享同一份配置（CC=~/.claude，Codex=~/.codex），
 # 所以每个平台用 CLI 装一次，就同时覆盖了它的命令行和桌面端。
 #
@@ -18,6 +19,7 @@ REPO="legdonkey/legdonkey-plugins"
 MARKETPLACE="legdonkey"
 REF="main"
 PLUGINS=(privatize-fork bailian-tts explainer-video gemini-video)
+CC_ONLY_PLUGINS=(auto-effort)
 
 ok=0
 fail=0
@@ -48,7 +50,7 @@ if command -v claude >/dev/null 2>&1; then
   did_cc=1
   echo "Claude Code：添加市场 + 安装插件（覆盖 CLI + 桌面端）"
   claude plugin marketplace add "$REPO" || true
-  for p in "${PLUGINS[@]}"; do
+  for p in "${PLUGINS[@]}" "${CC_ONLY_PLUGINS[@]}"; do
     install_one claude install "$p"
   done
 else
@@ -78,7 +80,7 @@ if [ "$fail" -gt 0 ]; then
   echo "有插件未就位，请按上面每条命令的输出排查后重跑。"
 fi
 echo "触发方式（重启对应客户端后生效；privatize-fork 只能手动触发，其余也会被自动调用）："
-[ "$did_cc" = 1 ] && echo "  Claude Code：/privatize-fork    /bailian-tts    /explainer-video    /gemini-video"
+[ "$did_cc" = 1 ] && echo "  Claude Code：/privatize-fork    /bailian-tts    /explainer-video    /gemini-video    /auto-effort status"
 [ "$did_codex" = 1 ] && echo "  Codex：      \$privatize-fork   \$bailian-tts   \$explainer-video   \$gemini-video"
 
 [ "$fail" -gt 0 ] && exit 1

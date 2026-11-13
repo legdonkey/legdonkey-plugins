@@ -28,6 +28,13 @@ Codex 市场清单不写 version。
    - **不写死宿主路径。** 技能引用自己的文件时，用相对技能目录的路径，不写 `~/.claude/...` 或 `~/.codex/...`。
    - **为宿主专有能力写好退化方案。** Pi 核心没有提问弹窗、子代理和后台命令通知。提问弹窗和子代理可以由扩展提供。技能用到这些能力时，写明「有就用，没有就怎样」。例如：用普通消息提问；由主会话按顺序执行；用 `nohup … &` 启动后查日志。
 
+### 只支持 Claude Code 的 mod 插件
+
+`plugins/auto-effort` 是 CC 函数钩子 mod（`hooks/hooks.json` 用 `modules` 加载 TypeScript），没有技能，也不支持 Codex 和 Pi：
+- 不放 `.codex-plugin/plugin.json`，不加进 `.agents/plugins/marketplace.json` 和 `package.json` 的 `pi.skills`；版本号只改 CC 插件清单和 CC 市场清单 2 处。
+- 在 `install-plugins.sh` 里列在 `CC_ONLY_PLUGINS`。
+- 插件自己的维护规则和检查命令见 `plugins/auto-effort/AGENTS.md`（在插件目录里运行 `bash scripts/check.sh`）。
+
 ### package.json 是 Pi 包清单
 
 - `extensions`、`prompts`、`themes` 显式置空，这样 Pi 不会自动发现约定目录。

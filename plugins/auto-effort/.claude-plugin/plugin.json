@@ -1,0 +1,84 @@
+{
+  "name": "auto-effort",
+  "version": "0.1.0",
+  "description": "按每条用户消息自动选择 Claude Code 主会话的 effort，保留提示缓存。",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "enabled": {
+      "type": "boolean",
+      "title": "自动选档",
+      "default": true,
+      "description": "自动选档"
+    },
+    "judge": {
+      "type": "string",
+      "title": "判档器",
+      "options": [
+        "haiku",
+        "jev",
+        "d1-ultra",
+        "mammoth-27b",
+        "decider"
+      ],
+      "default": "haiku",
+      "description": "判档器"
+    },
+    "openrouterApiKey": {
+      "type": "string",
+      "title": "OpenRouter API key",
+      "sensitive": true,
+      "default": "",
+      "description": "OpenRouter API key"
+    },
+    "floor": {
+      "type": "string",
+      "title": "最低档位",
+      "options": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "default": "low",
+      "description": "最低档位"
+    },
+    "ceiling": {
+      "type": "string",
+      "title": "最高档位",
+      "options": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "default": "xhigh",
+      "description": "最高档位"
+    },
+    "allowMax": {
+      "type": "boolean",
+      "title": "允许 max",
+      "default": false,
+      "description": "允许 max"
+    },
+    "judgeTimeoutMs": {
+      "type": "number",
+      "title": "判档超时（毫秒）",
+      "default": 5000,
+      "description": "判档超时（毫秒）"
+    },
+    "fableFinishPrompt": {
+      "type": "boolean",
+      "title": "Fable 持续完成提示",
+      "default": false,
+      "description": "Fable 持续完成提示"
+    },
+    "debugLogPath": {
+      "type": "string",
+      "title": "请求摘要日志绝对路径",
+      "default": "",
+      "description": "请求摘要日志绝对路径"
+    }
+  }
+}

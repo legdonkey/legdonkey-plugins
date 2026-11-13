@@ -7,7 +7,7 @@
   <a href="https://agentskills.io"><img src="https://img.shields.io/badge/Agent%20Skills-Compatible-1F6FEB" alt="Agent Skills Compatible"></a>
 </p>
 
-> 四个跨 **Claude Code**、**Codex** 与 **Pi** 的插件：CC 与 Codex 走同一个 `legdonkey` 市场、按需各装各的，Pi 把整个仓库作为一个包安装。底层是开放标准 [skill](https://agentskills.io)。bailian-tts、explainer-video 与 gemini-video 会被模型自动调用；privatize-fork 有副作用，只在手动点名时运行。
+> 四个跨 **Claude Code**、**Codex** 与 **Pi** 的插件，外加一个只支持 Claude Code 的 mod（auto-effort）：CC 与 Codex 走同一个 `legdonkey` 市场、按需各装各的，Pi 把整个仓库作为一个包安装。底层是开放标准 [skill](https://agentskills.io)。bailian-tts、explainer-video 与 gemini-video 会被模型自动调用；privatize-fork 有副作用，只在手动点名时运行。
 
 ## 插件
 
@@ -35,9 +35,13 @@
 
 把本地视频上传到 Gemini API，按你的问题返回分析：画面与旁白是否一致、字幕是否清晰、步骤是否完整、转场是否自然。可以设置采样帧率、只看指定片段、提高画面分辨率，长视频可用 agentic 模式；分析后自动删除上传的文件。需要自己的 Gemini API key。**→ [详细说明](plugins/gemini-video/README.md)**
 
+### [auto-effort](plugins/auto-effort/) — Claude Code 逐轮自动选 effort（仅 CC）
+
+Claude Code 函数钩子 mod：每条用户消息由 Haiku 5.5（可选 OpenRouter System One）按官方指南选最低够用的 effort，逐轮切换 `claude-opus-5-5`、`claude-sonnet-5-5`、`claude-fable-5-2` 的档位，用逐消息 effort 保留提示缓存，支持 `--resume` 恢复。用 `/auto-effort` 查看状态、调整上下限或换判档器。**→ [详细说明](plugins/auto-effort/README.md)**
+
 ## 安装
 
-四个插件在同一个市场，CC 与 Codex 都能装，命令行与桌面端图形界面都行。装完重启对应客户端即可。
+前四个插件在同一个市场，CC 与 Codex 都能装，命令行与桌面端图形界面都行。装完重启对应客户端即可。
 
 > **想一键装两边？** 跑 `./install-plugins.sh`，它用各自 CLI 把全部插件装进 Claude Code 与 Codex 的本地共享插件层；同一台机器上的 Codex CLI 与 Desktop 共用这类 marketplace、安装缓存和启用状态。OpenAI 公共目录则按 CLI/Desktop 各自的投影管理。需本机有 `claude` / `codex` CLI。
 
@@ -50,6 +54,7 @@
 /plugin install privatize-fork@legdonkey
 /plugin install bailian-tts@legdonkey      # 按需，可只装一个
 /plugin install explainer-video@legdonkey  # 需同时装 bailian-tts
+/plugin install auto-effort@legdonkey      # 仅 CC，装完重启后用 /auto-effort status 确认
 ```
 
 之后用 `/plugin marketplace update` 拉取更新。
@@ -100,6 +105,7 @@ claude plugin marketplace add <仓库路径>
 claude plugin install privatize-fork@legdonkey
 claude plugin install bailian-tts@legdonkey
 claude plugin install explainer-video@legdonkey
+claude plugin install auto-effort@legdonkey
 ```
 
 本地目录市场直接读源码目录（`claude plugin list` 里的 `Read from` 是仓库下的 `plugins/<插件名>`），改完重启 Claude Code 即生效。只想临时试某个插件、不写进配置：`claude --plugin-dir <仓库路径>/plugins/privatize-fork`，仅对本次会话有效。
@@ -127,7 +133,7 @@ Pi 直接引用这个目录（`pi list` 显示本地路径），改完在会话�
 
 ```text
 package.json                                   # Pi 包入口（pi.skills 列出三个插件的技能）
-.claude-plugin/marketplace.json                # CC 市场清单（列出 3 个插件）
+.claude-plugin/marketplace.json                # CC 市场清单（含仅 CC 的 auto-effort）
 .agents/plugins/marketplace.json               # Codex 市场清单（列出 3 个插件）
 plugins/
 ├── privatize-fork/                            # 插件①：开源 fork 私有化
@@ -142,11 +148,16 @@ plugins/
 │   ├── assets/                                #   该插件 README 配图（banner）
 │   ├── README.md                              #   插件详细说明
 │   └── skills/bailian-tts/                    #   技能本体（SKILL.md + scripts + references）
-└── explainer-video/                           # 插件③：中文讲解视频（依赖 bailian-tts）
-    ├── .claude-plugin/plugin.json             #   CC 插件清单
-    ├── .codex-plugin/plugin.json              #   Codex 插件清单
-    ├── README.md                              #   插件详细说明
-    └── skills/explainer-video/                #   技能本体（SKILL.md + scripts + references + assets）
+├── explainer-video/                           # 插件③：中文讲解视频（依赖 bailian-tts）
+│   ├── .claude-plugin/plugin.json             #   CC 插件清单
+│   ├── .codex-plugin/plugin.json              #   Codex 插件清单
+│   ├── README.md                              #   插件详细说明
+│   └── skills/explainer-video/                #   技能本体（SKILL.md + scripts + references + assets）
+└── auto-effort/                               # 仅 CC 的函数钩子 mod（无技能、无 Codex/Pi 清单）
+    ├── .claude-plugin/plugin.json             #   CC 插件清单（含 userConfig）
+    ├── hooks/                                 #   hooks.json 用 modules 加载 register.ts
+    ├── bench/ scripts/ tests/                 #   判档测评、检查与端到端脚本、模拟测试
+    └── README.md                              #   插件详细说明
 install-plugins.sh                             # 一键把全部插件装进 CC + Codex
 assets/                                        # 共享配图：安装截图 + build-svg.sh（生成各插件 SVG）
 README.md                                      # 本文件（仓库总览 / 导航）
