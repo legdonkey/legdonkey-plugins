@@ -5,6 +5,7 @@ import type { Decision } from '../hooks/core'
 
 const MODEL = 'claude-opus-5-5'
 const USAGE = { input_tokens: 5, output_tokens: 5, cache_read_input_tokens: 10000, cache_creation_input_tokens: 100 }
+const COMPACT_MESSAGES = [{ role: 'user' as const, text: '压缩摘要', toolUses: [] }]
 
 function setup(on: On, model = MODEL, env: Record<string, string> = {}, entries: Record<string, unknown> = {}) {
   const clock = mock.clock(on, { now: 1794600000000 })
@@ -20,12 +21,14 @@ function setup(on: On, model = MODEL, env: Record<string, string> = {}, entries:
   let usage = { ...USAGE }
   let sessionId = 'test-session'
   let beforeStep = async () => {}
+  let skipCompact = false
   on('session.model', () => ({ value: model }))
   on('session.id', () => ({ value: sessionId }))
   on('session.messages', () => ({ value: [] }))
   on('command.register', () => ({ value: { command: 'auto-effort' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))
+  on('session.compact', (_, e) => skipCompact ? { skip: '测试跳过' } : { messages: e.messages })
   on('prompt.submit', (_, e) => ({ text: e.text }))
   on('turn.start', (_, e) => ({ turnId: e.turnId }))
   on('turn.complete', (_, e) => ({ text: e.answer, usage: e.usage }))
@@ -50,6 +53,8 @@ function setup(on: On, model = MODEL, env: Record<string, string> = {}, entries:
   })
   return { clock, calls, statuses, toasts, prompts, configWrites, tail: () => tail,
     sessionId: (id: string) => { sessionId = id },
+    model: (value: string) => { model = value },
+    skipCompact: () => { skipCompact = true },
     holdStep: (wait: () => Promise<void>) => { beforeStep = wait },
     answer: (text: string) => { classification = text }, delay: (ms: number) => { delay = ms }, usage: (u: typeof USAGE) => { usage = u } }
 }
@@ -374,18 +379,85 @@ test('不支持的模型清空状态栏', async ($, on) => {
   expect(await hint($, m)).toBe(undefined)
 })
 
-test('缓存重建两轮后暂停，同一轮只告警一次', async ($, on) => {
+test('读取减少两轮后暂停，每轮只计一次，on 恢复并清零', async ($, on) => {
   const m = setup(on)
   for (let i = 1; i <= 3; i++) {
     const id = `t${i}`
-    m.usage(i === 1 ? USAGE : { ...USAGE, cache_creation_input_tokens: 6000 })
+    m.usage({ ...USAGE, cache_read_input_tokens: 12000 - i * 2000 })
     await submit($, m.clock, '任务', id)
     await step($, id)
     await step($, id, 1)
     await complete($, id)
   }
-  expect(m.toasts.filter(t => t === '检测到缓存重建').length).toBe(2)
+  const warning = '检测到缓存读取减少，可能是切档导致缓存重建'
+  expect(m.toasts.filter(t => t === warning).length).toBe(2)
   expect((await report($)).paused).toMatch('两次缓存重建')
+  await $.command.run({ command: 'auto-effort', args: 'on', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  expect((await report($)).paused).toBe(null)
+  m.usage({ ...USAGE, cache_read_input_tokens: 4000 })
+  await submit($, m.clock, '恢复后的任务', 't4')
+  await step($, 't4')
+  expect(m.calls.at(-1)?.effort).toBe('high')
+  expect(m.toasts.filter(t => t === warning).length).toBe(3)
+  expect((await report($)).paused).toBe(null)
+})
+
+for (const reason of ['write', 'expired', 'compact', 'model', 'unsupported', 'clear', 'unrewritten'] as const)
+  test(`正常失效不计数：${reason}`, async ($, on) => {
+    const m = setup(on)
+    await submit($, m.clock, '任务')
+    await step($)
+    await complete($)
+    if (reason === 'expired') await m.clock.advance(5 * 60 * 1000 + 1)
+    if (reason === 'compact') await $.session.compact({ trigger: 'auto', messages: COMPACT_MESSAGES })
+    if (reason === 'model') m.model('claude-sonnet-5-5')
+    if (reason === 'unsupported') {
+      await step($, 'unsupported', 0, 'medium', undefined, 'claude-haiku-5-5')
+      await complete($, 'unsupported')
+    }
+    if (reason === 'clear') await $.session.end({ reason: 'clear', sessionId: 'test-session', resume: { id: 'test-session' } })
+    m.usage({ ...USAGE, cache_read_input_tokens: reason === 'write' ? 10000 : 5000, cache_creation_input_tokens: 20000 })
+    await submit($, m.clock, reason === 'unrewritten' ? 'ultrathink' : '下一项', 't2')
+    const model = reason === 'model' ? 'claude-sonnet-5-5' : MODEL
+    await step($, 't2', 0, 'medium', undefined, model)
+    m.usage({ ...USAGE, cache_read_input_tokens: reason === 'write' ? 12000 : 4000 })
+    await step($, 't2', 1, 'medium', undefined, model)
+    await complete($, 't2')
+    expect(m.toasts).toEqual([])
+    expect((await report($)).paused).toBe(null)
+    // 跳过失效轮后重新建立基线，下一轮仍能识别读取减少。
+    m.usage({ ...USAGE, cache_read_input_tokens: 3000 })
+    await submit($, m.clock, '继续任务', 't3')
+    await step($, 't3', 0, 'medium', undefined, model)
+    expect(m.toasts.length).toBe(1)
+  })
+
+for (const compact of ['child', 'precompute', 'skipped'] as const)
+  test(`未改变主会话的压缩不屏蔽缓存守护：${compact}`, async ($, on) => {
+    const m = setup(on)
+    if (compact === 'skipped') m.skipCompact()
+    await submit($, m.clock, '任务')
+    await step($)
+    await complete($)
+    await $.session.compact({ trigger: compact === 'precompute' ? 'precompute' : 'auto', messages: COMPACT_MESSAGES,
+      agentId: compact === 'child' ? 'child' : undefined })
+    m.usage({ ...USAGE, cache_read_input_tokens: 5000 })
+    await submit($, m.clock, '下一项', 't2')
+    await step($, 't2')
+    expect(m.toasts.length).toBe(1)
+  })
+
+test('请求结束间隔恰好 5 分钟仍判断，长响应不视为缓存过期', async ($, on) => {
+  const m = setup(on)
+  await submit($, m.clock, '任务')
+  await step($)
+  await complete($)
+  await m.clock.advance(5 * 60 * 1000)
+  m.usage({ ...USAGE, cache_read_input_tokens: 5000 })
+  m.holdStep(async () => { await m.clock.advance(5 * 60 * 1000 + 1) })
+  await submit($, m.clock, '下一项', 't2')
+  await step($, 't2')
+  expect(m.toasts.length).toBe(1)
 })
 
 test('OpenRouter HTTP 错误回退 Haiku 且不泄露原文', { options: { judge: 'jev', openrouterApiKey: 'fake-test-key' } }, async ($, on) => {

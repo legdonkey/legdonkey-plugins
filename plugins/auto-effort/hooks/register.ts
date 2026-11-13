@@ -7,6 +7,9 @@ import type { Config, Decision, JudgeResult } from './core'
 import { classify } from './judge'
 import { runBench } from './bench'
 
+// 缓存可能已过期；Claude Code 主会话实测用 1 小时 TTL，取 5 分钟是保守值。
+const CACHE_EXPIRY_GUARD_MS = 5 * 60 * 1000
+
 type Pending = {
   model: SupportedModel; midTurn: boolean; ultra: boolean; skip: boolean
   started: number; promise?: Promise<JudgeResult>; result?: JudgeResult; timer?: Timer; abort: AbortController
@@ -143,6 +146,17 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  on('session.compact', async ($, e, next) => {
+    const result = await next(e)
+    if (e.agentId === undefined && e.trigger !== 'precompute' && result.messages !== undefined) {
+      const s = await load($, runtime)
+      s.previousCacheRead = 0
+      s.latestCacheRead = 0
+      await saveSession($, s)
+    }
+    return result
+  })
+
   on('prompt.submit', async ($, e, next) => {
     const model = supportedModel(await $.session.model())
     if (!model) { show($, undefined); return next(e) }
@@ -202,9 +216,15 @@ export const register: Register = (on, options) => {
 
   on('turn.step', async function* ($, e, next) {
     if (e.agentId !== undefined) return yield* next(e)
-    const model = supportedModel(e.model)
-    if (!model) { show($, undefined); return yield* next(e) }
     const s = await load($, runtime)
+    const model = supportedModel(e.model)
+    if (!model) {
+      s.previousCacheRead = 0
+      s.latestCacheRead = 0
+      await saveSession($, s)
+      show($, undefined)
+      return yield* next(e)
+    }
     const environment = await providerPause($)
     // Claude Code 按模型保存档位，skill 和 ultrathink 只改本轮：只在同一模型的普通轮之间比较引擎档位。
     if (e.index === 0 && !s.skipTurn && !s.currentUltra) {
@@ -271,9 +291,15 @@ export const register: Register = (on, options) => {
       status($, s, config, environment, `🧠 ${s.lastFinal ?? 'medium'} · ${automatic ? `自动 · ${automatic.judge === 'haiku' ? 'Haiku' : automatic.judge} ${(automatic.ms / 1000).toFixed(1)}s` : `沿用（${reason}）`}`)
     } else status($, s, config, environment)
     s.rewritten ||= wanted !== undefined
+    const requestStartedAt = await $.clock.now()
+    if (s.previousRequestEndedAt === undefined
+      || requestStartedAt - s.previousRequestEndedAt > CACHE_EXPIRY_GUARD_MS
+      || s.previousRequestModel !== model) s.previousCacheRead = 0
     await saveSession($, s)
     const result = yield* next(wanted ? { ...e, effort: wanted } : e)
     if (runtime.state !== s) return result
+    s.previousRequestEndedAt = await $.clock.now()
+    s.previousRequestModel = model
     s.toolCalls += result.toolUses.length
     if (result.usage) {
       s.latestCacheRead = result.usage.cache_read_input_tokens
@@ -284,7 +310,7 @@ export const register: Register = (on, options) => {
       if (s.rewritten && !s.warnedThisTurn && cacheRebuilt(s.previousCacheRead, result.usage)) {
         s.warnedThisTurn = true
         s.cacheWarnings += 1
-        $.ui.toast('检测到缓存重建')
+        $.ui.toast('检测到缓存读取减少，可能是切档导致缓存重建')
         if (s.cacheWarnings >= 2) { s.paused = '检测到两次缓存重建，/auto-effort on 恢复'; status($, s, config, environment) }
       }
       if (decision) { decision.cacheRead = s.firstStepCache?.read; decision.cacheWrite = s.firstStepCache?.write }

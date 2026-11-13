@@ -16,6 +16,8 @@ export type AutoEffortSession = {
   rewritten: boolean
   warnedThisTurn: boolean
   previousCacheRead: number
+  previousRequestEndedAt?: number
+  previousRequestModel?: string
   latestCacheRead: number
   cacheWarnings: number
   suggested: boolean
