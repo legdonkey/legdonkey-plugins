@@ -1,0 +1,3575 @@
+{
+  "judge": "jev",
+  "summaries": [
+    {
+      "model": "claude-opus-5-5",
+      "total": 75,
+      "hits": 75,
+      "holdoutTotal": 20,
+      "holdoutHits": 20,
+      "low": 0,
+      "high": 0,
+      "invalid": 0,
+      "medianMs": 418
+    },
+    {
+      "model": "claude-fable-5-2",
+      "total": 75,
+      "hits": 71,
+      "holdoutTotal": 20,
+      "holdoutHits": 20,
+      "low": 3,
+      "high": 1,
+      "invalid": 0,
+      "medianMs": 409
+    },
+    {
+      "model": "claude-sonnet-5-5",
+      "total": 75,
+      "hits": 68,
+      "holdoutTotal": 20,
+      "holdoutHits": 18,
+      "low": 5,
+      "high": 2,
+      "invalid": 0,
+      "medianMs": 407
+    }
+  ],
+  "usage": {
+    "input_tokens": 7449,
+    "output_tokens": 635,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "rows": [
+    {
+      "id": "t01",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 714,
+      "judge": "jev"
+    },
+    {
+      "id": "t02",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "简单问答或机械任务",
+      "ms": 453,
+      "judge": "jev"
+    },
+    {
+      "id": "t03",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 431,
+      "judge": "jev"
+    },
+    {
+      "id": "t04",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 397,
+      "judge": "jev"
+    },
+    {
+      "id": "t05",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 413,
+      "judge": "jev"
+    },
+    {
+      "id": "t06",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 531,
+      "judge": "jev"
+    },
+    {
+      "id": "t07",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 540,
+      "judge": "jev"
+    },
+    {
+      "id": "t08",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.73,
+      "reason": "简单问答或机械任务",
+      "ms": 381,
+      "judge": "jev"
+    },
+    {
+      "id": "n01",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.91,
+      "reason": "常规工程与知识工作",
+      "ms": 403,
+      "judge": "jev"
+    },
+    {
+      "id": "n02",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.95,
+      "reason": "常规工程与知识工作",
+      "ms": 429,
+      "judge": "jev"
+    },
+    {
+      "id": "n03",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.95,
+      "reason": "常规工程与知识工作",
+      "ms": 409,
+      "judge": "jev"
+    },
+    {
+      "id": "n04",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.76,
+      "reason": "常规工程与知识工作",
+      "ms": 400,
+      "judge": "jev"
+    },
+    {
+      "id": "n05",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.94,
+      "reason": "常规工程与知识工作",
+      "ms": 394,
+      "judge": "jev"
+    },
+    {
+      "id": "n06",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.89,
+      "reason": "简单问答或机械任务",
+      "ms": 409,
+      "judge": "jev"
+    },
+    {
+      "id": "n07",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.84,
+      "reason": "常规工程与知识工作",
+      "ms": 429,
+      "judge": "jev"
+    },
+    {
+      "id": "n08",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.61,
+      "reason": "常规工程与知识工作",
+      "ms": 418,
+      "judge": "jev"
+    },
+    {
+      "id": "n09",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.87,
+      "reason": "简单问答或机械任务",
+      "ms": 399,
+      "judge": "jev"
+    },
+    {
+      "id": "n10",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.74,
+      "reason": "复杂任务或结果验证",
+      "ms": 418,
+      "judge": "jev"
+    },
+    {
+      "id": "b01",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "复杂任务或结果验证",
+      "ms": 411,
+      "judge": "jev"
+    },
+    {
+      "id": "b02",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.96,
+      "reason": "复杂任务或结果验证",
+      "ms": 427,
+      "judge": "jev"
+    },
+    {
+      "id": "b03",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "复杂任务或结果验证",
+      "ms": 422,
+      "judge": "jev"
+    },
+    {
+      "id": "b04",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.84,
+      "reason": "复杂任务或结果验证",
+      "ms": 406,
+      "judge": "jev"
+    },
+    {
+      "id": "b05",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.97,
+      "reason": "复杂任务或结果验证",
+      "ms": 404,
+      "judge": "jev"
+    },
+    {
+      "id": "b06",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "复杂任务或结果验证",
+      "ms": 439,
+      "judge": "jev"
+    },
+    {
+      "id": "s01",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.63,
+      "reason": "复杂任务或结果验证",
+      "ms": 418,
+      "judge": "jev"
+    },
+    {
+      "id": "s02",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.96,
+      "reason": "复杂任务或结果验证",
+      "ms": 409,
+      "judge": "jev"
+    },
+    {
+      "id": "s03",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.6,
+      "reason": "验证、测试或评审",
+      "ms": 2069,
+      "judge": "haiku"
+    },
+    {
+      "id": "s04",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.62,
+      "reason": "常规工程与知识工作",
+      "ms": 435,
+      "judge": "jev"
+    },
+    {
+      "id": "s05",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.85,
+      "reason": "复杂任务或结果验证",
+      "ms": 390,
+      "judge": "jev"
+    },
+    {
+      "id": "a01",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.9,
+      "reason": "常规工程与知识工作",
+      "ms": 418,
+      "judge": "jev"
+    },
+    {
+      "id": "a02",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.8,
+      "reason": "简单问答或机械任务",
+      "ms": 557,
+      "judge": "jev"
+    },
+    {
+      "id": "a03",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.52,
+      "reason": "复杂任务或结果验证",
+      "ms": 412,
+      "judge": "jev"
+    },
+    {
+      "id": "a04",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.73,
+      "reason": "简单问答或机械任务",
+      "ms": 406,
+      "judge": "jev"
+    },
+    {
+      "id": "a05",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.92,
+      "reason": "复杂任务或结果验证",
+      "ms": 452,
+      "judge": "jev"
+    },
+    {
+      "id": "a06",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "简单问答或机械任务",
+      "ms": 431,
+      "judge": "jev"
+    },
+    {
+      "id": "a07",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.59,
+      "reason": "复杂任务或结果验证",
+      "ms": 461,
+      "judge": "jev"
+    },
+    {
+      "id": "f01",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.67,
+      "reason": "复杂任务或结果验证",
+      "ms": 399,
+      "judge": "jev"
+    },
+    {
+      "id": "f02",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.86,
+      "reason": "简单问答或机械任务",
+      "ms": 437,
+      "judge": "jev"
+    },
+    {
+      "id": "f03",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.89,
+      "reason": "常规工程与知识工作",
+      "ms": 403,
+      "judge": "jev"
+    },
+    {
+      "id": "f04",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.7,
+      "reason": "复杂任务或结果验证",
+      "ms": 427,
+      "judge": "jev"
+    },
+    {
+      "id": "o01",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.93,
+      "reason": "常规工程与知识工作",
+      "ms": 401,
+      "judge": "jev"
+    },
+    {
+      "id": "o02",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.96,
+      "reason": "复杂任务或结果验证",
+      "ms": 398,
+      "judge": "jev"
+    },
+    {
+      "id": "o03",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "简单问答或机械任务",
+      "ms": 417,
+      "judge": "jev"
+    },
+    {
+      "id": "o04",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.96,
+      "reason": "复杂任务或结果验证",
+      "ms": 420,
+      "judge": "jev"
+    },
+    {
+      "id": "x01",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.87,
+      "reason": "常规工程与知识工作",
+      "ms": 391,
+      "judge": "jev"
+    },
+    {
+      "id": "x02",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.94,
+      "reason": "常规工程与知识工作",
+      "ms": 446,
+      "judge": "jev"
+    },
+    {
+      "id": "x03",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.9,
+      "reason": "简单问答或机械任务",
+      "ms": 425,
+      "judge": "jev"
+    },
+    {
+      "id": "x04",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.85,
+      "reason": "常规工程与知识工作",
+      "ms": 419,
+      "judge": "jev"
+    },
+    {
+      "id": "x05",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 413,
+      "judge": "jev"
+    },
+    {
+      "id": "m01",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.94,
+      "reason": "简单问答或机械任务",
+      "ms": 651,
+      "judge": "jev"
+    },
+    {
+      "id": "m02",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.6,
+      "reason": "简单问答或机械任务",
+      "ms": 1265,
+      "judge": "haiku"
+    },
+    {
+      "id": "m03",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.69,
+      "reason": "复杂任务或结果验证",
+      "ms": 415,
+      "judge": "jev"
+    },
+    {
+      "id": "h01",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 428,
+      "judge": "jev"
+    },
+    {
+      "id": "h02",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "简单问答或机械任务",
+      "ms": 482,
+      "judge": "jev"
+    },
+    {
+      "id": "h03",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 429,
+      "judge": "jev"
+    },
+    {
+      "id": "h04",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.94,
+      "reason": "常规工程与知识工作",
+      "ms": 398,
+      "judge": "jev"
+    },
+    {
+      "id": "h05",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.9,
+      "reason": "常规工程与知识工作",
+      "ms": 402,
+      "judge": "jev"
+    },
+    {
+      "id": "h06",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.66,
+      "reason": "常规工程与知识工作",
+      "ms": 462,
+      "judge": "jev"
+    },
+    {
+      "id": "h07",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.97,
+      "reason": "复杂任务或结果验证",
+      "ms": 396,
+      "judge": "jev"
+    },
+    {
+      "id": "h08",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.91,
+      "reason": "复杂任务或结果验证",
+      "ms": 432,
+      "judge": "jev"
+    },
+    {
+      "id": "h09",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.86,
+      "reason": "复杂任务或结果验证",
+      "ms": 412,
+      "judge": "jev"
+    },
+    {
+      "id": "h10",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.54,
+      "reason": "复杂任务或结果验证",
+      "ms": 410,
+      "judge": "jev"
+    },
+    {
+      "id": "h11",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 423,
+      "judge": "jev"
+    },
+    {
+      "id": "h12",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.9,
+      "reason": "常规工程与知识工作",
+      "ms": 421,
+      "judge": "jev"
+    },
+    {
+      "id": "h13",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.95,
+      "reason": "简单问答或机械任务",
+      "ms": 416,
+      "judge": "jev"
+    },
+    {
+      "id": "h14",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.94,
+      "reason": "复杂任务或结果验证",
+      "ms": 390,
+      "judge": "jev"
+    },
+    {
+      "id": "h15",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.78,
+      "reason": "复杂任务或结果验证",
+      "ms": 434,
+      "judge": "jev"
+    },
+    {
+      "id": "h16",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.95,
+      "reason": "常规工程与知识工作",
+      "ms": 408,
+      "judge": "jev"
+    },
+    {
+      "id": "h17",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "简单问答或机械任务",
+      "ms": 429,
+      "judge": "jev"
+    },
+    {
+      "id": "h18",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.96,
+      "reason": "常规工程与知识工作",
+      "ms": 438,
+      "judge": "jev"
+    },
+    {
+      "id": "h19",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.89,
+      "reason": "复杂任务或结果验证",
+      "ms": 422,
+      "judge": "jev"
+    },
+    {
+      "id": "h20",
+      "model": "claude-opus-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 458,
+      "judge": "jev"
+    },
+    {
+      "id": "a08",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.7,
+      "reason": "常规工程与知识工作",
+      "ms": 409,
+      "judge": "jev"
+    },
+    {
+      "id": "a09",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.73,
+      "reason": "常规工程与知识工作",
+      "ms": 405,
+      "judge": "jev"
+    },
+    {
+      "id": "a10",
+      "model": "claude-opus-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.9,
+      "reason": "常规工程与知识工作",
+      "ms": 416,
+      "judge": "jev"
+    },
+    {
+      "id": "t01",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 395,
+      "judge": "jev"
+    },
+    {
+      "id": "t02",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "简单问答或机械任务",
+      "ms": 409,
+      "judge": "jev"
+    },
+    {
+      "id": "t03",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 409,
+      "judge": "jev"
+    },
+    {
+      "id": "t04",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 454,
+      "judge": "jev"
+    },
+    {
+      "id": "t05",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 392,
+      "judge": "jev"
+    },
+    {
+      "id": "t06",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 409,
+      "judge": "jev"
+    },
+    {
+      "id": "t07",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "简单问答或机械任务",
+      "ms": 397,
+      "judge": "jev"
+    },
+    {
+      "id": "t08",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.77,
+      "reason": "简单问答或机械任务",
+      "ms": 420,
+      "judge": "jev"
+    },
+    {
+      "id": "n01",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.74,
+      "reason": "常规工程与知识工作",
+      "ms": 401,
+      "judge": "jev"
+    },
+    {
+      "id": "n02",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "常规工程与知识工作",
+      "ms": 409,
+      "judge": "jev"
+    },
+    {
+      "id": "n03",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.96,
+      "reason": "常规工程与知识工作",
+      "ms": 404,
+      "judge": "jev"
+    },
+    {
+      "id": "n04",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.85,
+      "reason": "常规工程与知识工作",
+      "ms": 397,
+      "judge": "jev"
+    },
+    {
+      "id": "n05",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.69,
+      "reason": "常规工程与知识工作",
+      "ms": 404,
+      "judge": "jev"
+    },
+    {
+      "id": "n06",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.9,
+      "reason": "简单问答或机械任务",
+      "ms": 402,
+      "judge": "jev"
+    },
+    {
+      "id": "n07",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.65,
+      "reason": "常规工程与知识工作",
+      "ms": 408,
+      "judge": "jev"
+    },
+    {
+      "id": "n08",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.6,
+      "reason": "简单问答或机械任务",
+      "ms": 417,
+      "judge": "jev"
+    },
+    {
+      "id": "n09",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.82,
+      "reason": "简单问答或机械任务",
+      "ms": 401,
+      "judge": "jev"
+    },
+    {
+      "id": "n10",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.61,
+      "reason": "常规工程与知识工作",
+      "ms": 417,
+      "judge": "jev"
+    },
+    {
+      "id": "b01",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.94,
+      "reason": "复杂任务或结果验证",
+      "ms": 417,
+      "judge": "jev"
+    },
+    {
+      "id": "b02",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.97,
+      "reason": "复杂任务或结果验证",
+      "ms": 396,
+      "judge": "jev"
+    },
+    {
+      "id": "b03",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.88,
+      "reason": "复杂任务或结果验证",
+      "ms": 399,
+      "judge": "jev"
+    },
+    {
+      "id": "b04",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.58,
+      "reason": "复杂任务或结果验证",
+      "ms": 514,
+      "judge": "jev"
+    },
+    {
+      "id": "b05",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.97,
+      "reason": "复杂任务或结果验证",
+      "ms": 424,
+      "judge": "jev"
+    },
+    {
+      "id": "b06",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.86,
+      "reason": "复杂任务或结果验证",
+      "ms": 398,
+      "judge": "jev"
+    },
+    {
+      "id": "s01",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.84,
+      "reason": "复杂任务或结果验证",
+      "ms": 415,
+      "judge": "jev"
+    },
+    {
+      "id": "s02",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.97,
+      "reason": "复杂任务或结果验证",
+      "ms": 410,
+      "judge": "jev"
+    },
+    {
+      "id": "s03",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.56,
+      "reason": "复杂任务或结果验证",
+      "ms": 415,
+      "judge": "jev"
+    },
+    {
+      "id": "s04",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.74,
+      "reason": "复杂任务或结果验证",
+      "ms": 494,
+      "judge": "jev"
+    },
+    {
+      "id": "s05",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "复杂任务或结果验证",
+      "ms": 435,
+      "judge": "jev"
+    },
+    {
+      "id": "a01",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.61,
+      "reason": "常规工程与知识工作",
+      "ms": 544,
+      "judge": "jev"
+    },
+    {
+      "id": "a02",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.82,
+      "reason": "简单问答或机械任务",
+      "ms": 440,
+      "judge": "jev"
+    },
+    {
+      "id": "a03",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.62,
+      "reason": "复杂任务或结果验证",
+      "ms": 439,
+      "judge": "jev"
+    },
+    {
+      "id": "a04",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.82,
+      "reason": "简单问答或机械任务",
+      "ms": 392,
+      "judge": "jev"
+    },
+    {
+      "id": "a05",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.92,
+      "reason": "复杂任务或结果验证",
+      "ms": 404,
+      "judge": "jev"
+    },
+    {
+      "id": "a06",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "简单问答或机械任务",
+      "ms": 415,
+      "judge": "jev"
+    },
+    {
+      "id": "a07",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.93,
+      "reason": "复杂任务或结果验证",
+      "ms": 406,
+      "judge": "jev"
+    },
+    {
+      "id": "f01",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.75,
+      "reason": "复杂任务或结果验证",
+      "ms": 423,
+      "judge": "jev"
+    },
+    {
+      "id": "f02",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.74,
+      "reason": "简单问答或机械任务",
+      "ms": 403,
+      "judge": "jev"
+    },
+    {
+      "id": "f03",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.73,
+      "reason": "常规工程与知识工作",
+      "ms": 406,
+      "judge": "jev"
+    },
+    {
+      "id": "f04",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.74,
+      "reason": "复杂任务或结果验证",
+      "ms": 414,
+      "judge": "jev"
+    },
+    {
+      "id": "o01",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.64,
+      "reason": "常规工程与知识工作",
+      "ms": 412,
+      "judge": "jev"
+    },
+    {
+      "id": "o02",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.96,
+      "reason": "复杂任务或结果验证",
+      "ms": 406,
+      "judge": "jev"
+    },
+    {
+      "id": "o03",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "简单问答或机械任务",
+      "ms": 390,
+      "judge": "jev"
+    },
+    {
+      "id": "o04",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.97,
+      "reason": "复杂任务或结果验证",
+      "ms": 839,
+      "judge": "jev"
+    },
+    {
+      "id": "x01",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.6,
+      "reason": "常规工程与知识工作",
+      "ms": 376,
+      "judge": "jev"
+    },
+    {
+      "id": "x02",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.84,
+      "reason": "复杂任务或结果验证",
+      "ms": 423,
+      "judge": "jev"
+    },
+    {
+      "id": "x03",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.89,
+      "reason": "简单问答或机械任务",
+      "ms": 443,
+      "judge": "jev"
+    },
+    {
+      "id": "x04",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.87,
+      "reason": "常规工程与知识工作",
+      "ms": 400,
+      "judge": "jev"
+    },
+    {
+      "id": "x05",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 401,
+      "judge": "jev"
+    },
+    {
+      "id": "m01",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.92,
+      "reason": "简单问答或机械任务",
+      "ms": 410,
+      "judge": "jev"
+    },
+    {
+      "id": "m02",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "medium",
+      "hit": false,
+      "direction": "high",
+      "confidence": 0.59,
+      "reason": "常规工程与知识工作",
+      "ms": 396,
+      "judge": "jev"
+    },
+    {
+      "id": "m03",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.87,
+      "reason": "复杂任务或结果验证",
+      "ms": 414,
+      "judge": "jev"
+    },
+    {
+      "id": "h01",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 421,
+      "judge": "jev"
+    },
+    {
+      "id": "h02",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "简单问答或机械任务",
+      "ms": 433,
+      "judge": "jev"
+    },
+    {
+      "id": "h03",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 427,
+      "judge": "jev"
+    },
+    {
+      "id": "h04",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.75,
+      "reason": "常规工程与知识工作",
+      "ms": 402,
+      "judge": "jev"
+    },
+    {
+      "id": "h05",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.89,
+      "reason": "常规工程与知识工作",
+      "ms": 405,
+      "judge": "jev"
+    },
+    {
+      "id": "h06",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.53,
+      "reason": "简单问答或机械任务",
+      "ms": 373,
+      "judge": "jev"
+    },
+    {
+      "id": "h07",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.95,
+      "reason": "复杂任务或结果验证",
+      "ms": 411,
+      "judge": "jev"
+    },
+    {
+      "id": "h08",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "复杂任务或结果验证",
+      "ms": 389,
+      "judge": "jev"
+    },
+    {
+      "id": "h09",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.84,
+      "reason": "复杂任务或结果验证",
+      "ms": 412,
+      "judge": "jev"
+    },
+    {
+      "id": "h10",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.8,
+      "reason": "复杂任务或结果验证",
+      "ms": 405,
+      "judge": "jev"
+    },
+    {
+      "id": "h11",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 424,
+      "judge": "jev"
+    },
+    {
+      "id": "h12",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.81,
+      "reason": "常规工程与知识工作",
+      "ms": 398,
+      "judge": "jev"
+    },
+    {
+      "id": "h13",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "简单问答或机械任务",
+      "ms": 449,
+      "judge": "jev"
+    },
+    {
+      "id": "h14",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "复杂任务或结果验证",
+      "ms": 401,
+      "judge": "jev"
+    },
+    {
+      "id": "h15",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.6,
+      "reason": "复杂任务或结果验证",
+      "ms": 428,
+      "judge": "jev"
+    },
+    {
+      "id": "h16",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "常规工程与知识工作",
+      "ms": 402,
+      "judge": "jev"
+    },
+    {
+      "id": "h17",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "简单问答或机械任务",
+      "ms": 397,
+      "judge": "jev"
+    },
+    {
+      "id": "h18",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.78,
+      "reason": "常规工程与知识工作",
+      "ms": 409,
+      "judge": "jev"
+    },
+    {
+      "id": "h19",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.83,
+      "reason": "复杂任务或结果验证",
+      "ms": 397,
+      "judge": "jev"
+    },
+    {
+      "id": "h20",
+      "model": "claude-fable-5-2",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 427,
+      "judge": "jev"
+    },
+    {
+      "id": "a08",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "medium",
+      "hit": false,
+      "direction": "low",
+      "confidence": 0.65,
+      "reason": "常规工程与知识工作",
+      "ms": 419,
+      "judge": "jev"
+    },
+    {
+      "id": "a09",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "medium",
+      "hit": false,
+      "direction": "low",
+      "confidence": 0.62,
+      "reason": "常规工程与知识工作",
+      "ms": 410,
+      "judge": "jev"
+    },
+    {
+      "id": "a10",
+      "model": "claude-fable-5-2",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "medium",
+      "hit": false,
+      "direction": "low",
+      "confidence": 0.78,
+      "reason": "常规工程与知识工作",
+      "ms": 405,
+      "judge": "jev"
+    },
+    {
+      "id": "t01",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 422,
+      "judge": "jev"
+    },
+    {
+      "id": "t02",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.87,
+      "reason": "简单问答或机械任务",
+      "ms": 1003,
+      "judge": "jev"
+    },
+    {
+      "id": "t03",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.96,
+      "reason": "简单问答或机械任务",
+      "ms": 413,
+      "judge": "jev"
+    },
+    {
+      "id": "t04",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 404,
+      "judge": "jev"
+    },
+    {
+      "id": "t05",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 400,
+      "judge": "jev"
+    },
+    {
+      "id": "t06",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 389,
+      "judge": "jev"
+    },
+    {
+      "id": "t07",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.82,
+      "reason": "简单问答或机械任务",
+      "ms": 402,
+      "judge": "jev"
+    },
+    {
+      "id": "t08",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.7,
+      "reason": "简单问答或机械任务",
+      "ms": 407,
+      "judge": "jev"
+    },
+    {
+      "id": "n01",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.95,
+      "reason": "常规工程与知识工作",
+      "ms": 414,
+      "judge": "jev"
+    },
+    {
+      "id": "n02",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.97,
+      "reason": "常规工程与知识工作",
+      "ms": 411,
+      "judge": "jev"
+    },
+    {
+      "id": "n03",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.66,
+      "reason": "简单问答或机械任务",
+      "ms": 411,
+      "judge": "jev"
+    },
+    {
+      "id": "n04",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.73,
+      "reason": "复杂任务或结果验证",
+      "ms": 392,
+      "judge": "jev"
+    },
+    {
+      "id": "n05",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.97,
+      "reason": "常规工程与知识工作",
+      "ms": 461,
+      "judge": "jev"
+    },
+    {
+      "id": "n06",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 384,
+      "judge": "jev"
+    },
+    {
+      "id": "n07",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.59,
+      "reason": "常规工程与知识工作",
+      "ms": 426,
+      "judge": "jev"
+    },
+    {
+      "id": "n08",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.74,
+      "reason": "常规工程与知识工作",
+      "ms": 418,
+      "judge": "jev"
+    },
+    {
+      "id": "n09",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 428,
+      "judge": "jev"
+    },
+    {
+      "id": "n10",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.78,
+      "reason": "复杂任务或结果验证",
+      "ms": 384,
+      "judge": "jev"
+    },
+    {
+      "id": "b01",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "xhigh",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.5,
+      "reason": "密集边界与系统验证",
+      "ms": 524,
+      "judge": "jev"
+    },
+    {
+      "id": "b02",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.85,
+      "reason": "复杂任务或结果验证",
+      "ms": 396,
+      "judge": "jev"
+    },
+    {
+      "id": "b03",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "xhigh",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.9,
+      "reason": "密集边界与系统验证",
+      "ms": 408,
+      "judge": "jev"
+    },
+    {
+      "id": "b04",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.86,
+      "reason": "复杂任务或结果验证",
+      "ms": 1010,
+      "judge": "jev"
+    },
+    {
+      "id": "b05",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.92,
+      "reason": "复杂任务或结果验证",
+      "ms": 404,
+      "judge": "jev"
+    },
+    {
+      "id": "b06",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.66,
+      "reason": "复杂任务或结果验证",
+      "ms": 398,
+      "judge": "jev"
+    },
+    {
+      "id": "s01",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.6,
+      "reason": "验证、测试或评审",
+      "ms": 2079,
+      "judge": "haiku"
+    },
+    {
+      "id": "s02",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "xhigh",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.6,
+      "reason": "密集边界与系统验证",
+      "ms": 1189,
+      "judge": "haiku"
+    },
+    {
+      "id": "s03",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.6,
+      "reason": "验证、测试或评审",
+      "ms": 1668,
+      "judge": "haiku"
+    },
+    {
+      "id": "s04",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.62,
+      "reason": "常规工程与知识工作",
+      "ms": 425,
+      "judge": "jev"
+    },
+    {
+      "id": "s05",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.91,
+      "reason": "复杂任务或结果验证",
+      "ms": 406,
+      "judge": "jev"
+    },
+    {
+      "id": "a01",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.95,
+      "reason": "常规工程与知识工作",
+      "ms": 426,
+      "judge": "jev"
+    },
+    {
+      "id": "a02",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.69,
+      "reason": "简单问答或机械任务",
+      "ms": 494,
+      "judge": "jev"
+    },
+    {
+      "id": "a03",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.62,
+      "reason": "常规工程与知识工作",
+      "ms": 438,
+      "judge": "jev"
+    },
+    {
+      "id": "a04",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.73,
+      "reason": "简单问答或机械任务",
+      "ms": 685,
+      "judge": "jev"
+    },
+    {
+      "id": "a05",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "xhigh",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.84,
+      "reason": "密集边界与系统验证",
+      "ms": 390,
+      "judge": "jev"
+    },
+    {
+      "id": "a06",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "简单问答或机械任务",
+      "ms": 393,
+      "judge": "jev"
+    },
+    {
+      "id": "a07",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.72,
+      "reason": "复杂任务或结果验证",
+      "ms": 398,
+      "judge": "jev"
+    },
+    {
+      "id": "f01",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.66,
+      "reason": "复杂任务或结果验证",
+      "ms": 392,
+      "judge": "jev"
+    },
+    {
+      "id": "f02",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "medium",
+      "hit": false,
+      "direction": "high",
+      "confidence": 0.63,
+      "reason": "常规工程与知识工作",
+      "ms": 394,
+      "judge": "jev"
+    },
+    {
+      "id": "f03",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "常规工程与知识工作",
+      "ms": 402,
+      "judge": "jev"
+    },
+    {
+      "id": "f04",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.84,
+      "reason": "复杂任务或结果验证",
+      "ms": 386,
+      "judge": "jev"
+    },
+    {
+      "id": "o01",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "常规工程与知识工作",
+      "ms": 422,
+      "judge": "jev"
+    },
+    {
+      "id": "o02",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.87,
+      "reason": "复杂任务或结果验证",
+      "ms": 412,
+      "judge": "jev"
+    },
+    {
+      "id": "o03",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.82,
+      "reason": "简单问答或机械任务",
+      "ms": 389,
+      "judge": "jev"
+    },
+    {
+      "id": "o04",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.89,
+      "reason": "复杂任务或结果验证",
+      "ms": 393,
+      "judge": "jev"
+    },
+    {
+      "id": "x01",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.79,
+      "reason": "常规工程与知识工作",
+      "ms": 434,
+      "judge": "jev"
+    },
+    {
+      "id": "x02",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.58,
+      "reason": "常规工程与知识工作",
+      "ms": 423,
+      "judge": "jev"
+    },
+    {
+      "id": "x03",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 397,
+      "judge": "jev"
+    },
+    {
+      "id": "x04",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "low",
+      "hit": false,
+      "direction": "low",
+      "confidence": 0.7,
+      "reason": "简单问答或机械任务",
+      "ms": 443,
+      "judge": "jev"
+    },
+    {
+      "id": "x05",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 450,
+      "judge": "jev"
+    },
+    {
+      "id": "m01",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.97,
+      "reason": "简单问答或机械任务",
+      "ms": 400,
+      "judge": "jev"
+    },
+    {
+      "id": "m02",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.7,
+      "reason": "简单问答或机械任务",
+      "ms": 631,
+      "judge": "jev"
+    },
+    {
+      "id": "m03",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.82,
+      "reason": "复杂任务或结果验证",
+      "ms": 458,
+      "judge": "jev"
+    },
+    {
+      "id": "h01",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 404,
+      "judge": "jev"
+    },
+    {
+      "id": "h02",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.77,
+      "reason": "简单问答或机械任务",
+      "ms": 418,
+      "judge": "jev"
+    },
+    {
+      "id": "h03",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 379,
+      "judge": "jev"
+    },
+    {
+      "id": "h04",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "medium"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.92,
+      "reason": "常规工程与知识工作",
+      "ms": 389,
+      "judge": "jev"
+    },
+    {
+      "id": "h05",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.76,
+      "reason": "复杂任务或结果验证",
+      "ms": 402,
+      "judge": "jev"
+    },
+    {
+      "id": "h06",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "low",
+        "medium"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.99,
+      "reason": "简单问答或机械任务",
+      "ms": 391,
+      "judge": "jev"
+    },
+    {
+      "id": "h07",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.93,
+      "reason": "复杂任务或结果验证",
+      "ms": 386,
+      "judge": "jev"
+    },
+    {
+      "id": "h08",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.66,
+      "reason": "复杂任务或结果验证",
+      "ms": 413,
+      "judge": "jev"
+    },
+    {
+      "id": "h09",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.61,
+      "reason": "复杂任务或结果验证",
+      "ms": 669,
+      "judge": "jev"
+    },
+    {
+      "id": "h10",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.51,
+      "reason": "常规工程与知识工作",
+      "ms": 388,
+      "judge": "jev"
+    },
+    {
+      "id": "h11",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 390,
+      "judge": "jev"
+    },
+    {
+      "id": "h12",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.94,
+      "reason": "常规工程与知识工作",
+      "ms": 393,
+      "judge": "jev"
+    },
+    {
+      "id": "h13",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.95,
+      "reason": "简单问答或机械任务",
+      "ms": 420,
+      "judge": "jev"
+    },
+    {
+      "id": "h14",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "xhigh",
+      "hit": false,
+      "direction": "high",
+      "confidence": 0.54,
+      "reason": "密集边界与系统验证",
+      "ms": 388,
+      "judge": "jev"
+    },
+    {
+      "id": "h15",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "high"
+      ],
+      "actual": "medium",
+      "hit": false,
+      "direction": "low",
+      "confidence": 0.78,
+      "reason": "常规工程与知识工作",
+      "ms": 395,
+      "judge": "jev"
+    },
+    {
+      "id": "h16",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.98,
+      "reason": "常规工程与知识工作",
+      "ms": 413,
+      "judge": "jev"
+    },
+    {
+      "id": "h17",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 406,
+      "judge": "jev"
+    },
+    {
+      "id": "h18",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "medium",
+        "high"
+      ],
+      "actual": "medium",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.94,
+      "reason": "常规工程与知识工作",
+      "ms": 392,
+      "judge": "jev"
+    },
+    {
+      "id": "h19",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "high",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 0.78,
+      "reason": "复杂任务或结果验证",
+      "ms": 404,
+      "judge": "jev"
+    },
+    {
+      "id": "h20",
+      "model": "claude-sonnet-5-5",
+      "holdout": true,
+      "expected": [
+        "low"
+      ],
+      "actual": "low",
+      "hit": true,
+      "direction": "hit",
+      "confidence": 1,
+      "reason": "简单问答或机械任务",
+      "ms": 415,
+      "judge": "jev"
+    },
+    {
+      "id": "a08",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "low",
+      "hit": false,
+      "direction": "low",
+      "confidence": 0.51,
+      "reason": "简单问答或机械任务",
+      "ms": 397,
+      "judge": "jev"
+    },
+    {
+      "id": "a09",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "low",
+      "hit": false,
+      "direction": "low",
+      "confidence": 0.53,
+      "reason": "简单问答或机械任务",
+      "ms": 453,
+      "judge": "jev"
+    },
+    {
+      "id": "a10",
+      "model": "claude-sonnet-5-5",
+      "holdout": false,
+      "expected": [
+        "high",
+        "xhigh"
+      ],
+      "actual": "medium",
+      "hit": false,
+      "direction": "low",
+      "confidence": 0.93,
+      "reason": "常规工程与知识工作",
+      "ms": 423,
+      "judge": "jev"
+    }
+  ]
+}

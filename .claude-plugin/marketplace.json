@@ -1,7 +1,9 @@
 {
   "name": "legdonkey",
-  "owner": { "name": "legdonkey" },
-  "description": "legdonkey 的 Claude Code 工具集市，收录四个插件：privatize-fork（开源 fork 一次性私有化脚手架）、bailian-tts（阿里百炼 Qwen-Audio 配音）、explainer-video（中文讲解视频，依赖 bailian-tts）与 gemini-video（用 Gemini 审查本地视频）。",
+  "owner": {
+    "name": "legdonkey"
+  },
+  "description": "legdonkey 的 Claude Code 工具集市，收录五个插件：privatize-fork（开源 fork 一次性私有化脚手架）、bailian-tts（阿里百炼 Qwen-Audio 配音）、explainer-video（中文讲解视频，依赖 bailian-tts）、gemini-video（用 Gemini 审查本地视频）与 auto-effort（Claude Code 逐轮自动选 effort，仅 CC）。",
   "plugins": [
     {
       "name": "privatize-fork",
@@ -26,6 +28,12 @@
       "source": "./plugins/gemini-video",
       "description": "把本地视频或公开的 YouTube 链接交给 Gemini 审查：检查画面与旁白或字幕是否一致、字幕清晰度、操作步骤、转场与动效节奏；可设采样帧率、指定片段、画面分辨率和长视频 agentic 模式。需要 Gemini API key。跨 Claude Code、Codex 与 Pi。",
       "version": "0.2.0"
+    },
+    {
+      "name": "auto-effort",
+      "source": "./plugins/auto-effort",
+      "description": "Claude Code mod：每条用户消息由 Haiku 5.5（或 OpenRouter System One）按官方指南判档，逐轮自动切换 Opus 5.5、Sonnet 5.5、Fable 5.2 的 effort，保留提示缓存，支持会话恢复。仅支持 Claude Code。",
+      "version": "0.1.0"
     }
   ]
 }

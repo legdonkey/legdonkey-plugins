@@ -1,0 +1,6 @@
+dev/probe-run/
+dev/probe-results/
+dev/e2e-run/
+.claude-plugin/types/
+.DS_Store
+dev/plugin-authoring/
