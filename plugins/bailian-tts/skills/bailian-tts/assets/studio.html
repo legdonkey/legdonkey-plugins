@@ -521,15 +521,15 @@
     <details>
       <summary id="modelSummary">全局配音默认模型</summary>
       <form id="modelForm">
-        <label>模型<select id="modelSelect"><option value="qwen-audio-3.1-tts-flash">Flash · 收藏音色</option><option value="qwen-audio-3.1-tts-plus">Plus · 高清音色与复刻</option><option value="qwen-audio-3.1-tts-next">Next · 文字描述声音</option><option value="eleven_v4">Eleven v4 · 固定音色</option><option value="eleven_v4_turbo">Eleven v4 Turbo · 低延迟</option></select></label>
+        <label>模型<select id="modelSelect"><option value="qwen-audio-3.1-tts-flash">qwen-audio-3.1-tts-flash · 收藏音色</option><option value="qwen-audio-3.1-tts-plus">qwen-audio-3.1-tts-plus · 高清音色与复刻</option><option value="qwen-audio-3.1-tts-next">qwen-audio-3.1-tts-next · 文字描述声音</option><option value="eleven_v4">eleven_v4 · Eleven v4 固定音色</option><option value="eleven_v4_turbo">eleven_v4_turbo · Eleven v4 Turbo 低延迟</option></select></label>
         <label>当前模型的朗读字数上限<input type="number" id="readMax" min="1" step="1" required aria-describedby="readMaxHint"></label>
         <p class="note" id="readMaxHint"></p>
         <p class="note">每个模型独立保存，初始为 1500 字。只影响中键、快捷键和「选中朗读」试读，UI 音色试听仍最多 200 字。超出时优先往前退到句末，仍整段生成后播放。</p>
         <div id="flashFields" hidden>
-          <p class="note">北京地域，沿用当前百炼 API Key。Flash 提供 68 个系统音色与独立声音复刻；收藏保存在 ~/.config/bailian-tts/favorites.txt，复刻音色仅供 Flash 使用。</p>
+          <p class="note">北京地域，沿用当前百炼 API Key。qwen-audio-3.1-tts-flash 提供 68 个系统音色与独立声音复刻；收藏保存在 ~/.config/bailian-tts/favorites.txt，复刻音色仅供本模型使用。</p>
         </div>
         <div id="plusFields" hidden>
-          <p class="note">北京地域，沿用当前百炼 API Key。Plus 官方提供 4 个多语种与方言旗舰系统音色（龙安欢、龙安灵心、龙安风悦、许南川），并支持抗噪能力更强的独立声音复刻；收藏保存在 ~/.config/bailian-tts/plus-favorites.txt，复刻音色与模型强绑定，不与 Flash 混用。</p>
+          <p class="note">北京地域，沿用当前百炼 API Key。qwen-audio-3.1-tts-plus 官方提供 4 个多语种与方言旗舰系统音色（龙安欢、龙安灵心、龙安风悦、许南川），并支持抗噪能力更强的独立声音复刻；收藏保存在 ~/.config/bailian-tts/plus-favorites.txt，复刻音色与模型强绑定，不与 qwen-audio-3.1-tts-flash 混用。</p>
         </div>
         <div id="nextFields" hidden>
           <label>业务空间 ID<input type="text" id="workspaceId" autocomplete="off" placeholder="例如：llm-xxxxxxxx"></label>
@@ -2096,7 +2096,13 @@ const Say = (() => {
   $("navSay").hidden = d.platform !== "darwin";
   S.settings = d.settings;
   S.elevenKey = d.eleven_key;
-  const modelName = {eleven_v4: "Eleven v4 · 固定音色", eleven_v4_turbo: "Eleven v4 Turbo · 低延迟", "qwen-audio-3.1-tts-next": "Next · 文字描述声音", "qwen-audio-3.1-tts-flash": "Flash · 收藏音色", "qwen-audio-3.1-tts-plus": "Plus · 高清音色与复刻"};
+  const modelName = {
+    "qwen-audio-3.1-tts-flash": "qwen-audio-3.1-tts-flash · 收藏音色",
+    "qwen-audio-3.1-tts-plus": "qwen-audio-3.1-tts-plus · 高清音色与复刻",
+    "qwen-audio-3.1-tts-next": "qwen-audio-3.1-tts-next · 文字描述声音",
+    eleven_v4: "eleven_v4 · Eleven v4 固定音色",
+    eleven_v4_turbo: "eleven_v4_turbo · Eleven v4 Turbo 低延迟",
+  };
   $("modelSummary").textContent = `默认模型：${modelName[d.settings.model]}（点击设置）`;
   $("modelSelect").value = d.settings.model;
   $("workspaceId").value = d.settings.workspace_id;
