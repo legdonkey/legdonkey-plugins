@@ -34,10 +34,20 @@ async function saveSession($: EngineInterface, state: AutoEffortSession): Promis
   await $.state.set({ plugin: 'auto-effort', key: 'session' }, state)
 }
 
+// 终端把状态接在提示行（「auto mode on」那一行）末尾；其他界面不画 PromptHint 的 tail，仍用独立状态行。
+const hint: { text?: string; terminal: boolean } = { terminal: true }
+
+function show($: EngineInterface, text: string | undefined): void {
+  if (!hint.terminal) { $.ui.status(text); return }
+  if (text === hint.text) return
+  hint.text = text
+  $.ui.invalidate('ui.render')
+}
+
 function status($: EngineInterface, state: AutoEffortSession, config: Config, environment?: string, detail?: string): void {
   if (detail) state.statusDetail = detail
   const paused = environment ?? state.paused ?? (!config.enabled ? '开关已关闭' : undefined)
-  $.ui.status(paused ? `⏸ 自动选档已暂停：${paused}` : state.statusDetail ?? `🧠 ${state.lastFinal ?? 'medium'} · 自动`)
+  show($, paused ? `⏸ 自动选档已暂停：${paused}` : state.statusDetail ?? `🧠 ${state.lastFinal ?? 'medium'} · 自动`)
 }
 
 type Runtime = {
@@ -103,7 +113,16 @@ export const register: Register = (on, options) => {
   let debugText: string | undefined
   let debugWarned = false
 
+  hint.text = undefined
+  hint.terminal = true
+
+  on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
+    if (!hint.text) return next(e)
+    return next({ ...e, props: { ...e.props, tail: `${e.props.tail ?? ''} · ${hint.text}` } })
+  })
+
   on('session.start', async ($, e, next) => {
+    hint.terminal = e.surface === 'terminal'
     await load($, runtime)
     await $.command.register({ name: 'auto-effort', description: '查看、切换或测评自动选档' })
     return next(e)
@@ -118,14 +137,14 @@ export const register: Register = (on, options) => {
       runtime.state = freshSession(await $.session.id())
       runtime.loading = undefined
       await saveSession($, runtime.state)
-      $.ui.status(undefined)
+      show($, undefined)
     }
     return next(e)
   })
 
   on('prompt.submit', async ($, e, next) => {
     const model = supportedModel(await $.session.model())
-    if (!model) { $.ui.status(undefined); return next(e) }
+    if (!model) { show($, undefined); return next(e) }
     const s = await load($, runtime)
     if (e.command || e.isMeta) {
       if (!e.turnId) { pending?.abort.abort(); pending?.timer?.cancel(); pending = undefined; s.skipTurn = true }
@@ -183,7 +202,7 @@ export const register: Register = (on, options) => {
   on('turn.step', async function* ($, e, next) {
     if (e.agentId !== undefined) return yield* next(e)
     const model = supportedModel(e.model)
-    if (!model) { $.ui.status(undefined); return yield* next(e) }
+    if (!model) { show($, undefined); return yield* next(e) }
     const s = await load($, runtime)
     const environment = await providerPause($)
     // Claude Code 按模型保存档位，skill 和 ultrathink 只改本轮：只在同一模型的普通轮之间比较引擎档位。

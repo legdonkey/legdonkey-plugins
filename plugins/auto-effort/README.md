@@ -26,7 +26,7 @@ claude plugin install auto-effort@legdonkey
 - Bedrock、Vertex/Agent Platform、Foundry、自定义 `ANTHROPIC_BASE_URL` 或设置 `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` 时暂停，状态栏说明「会重建缓存，已暂停」。官方 `https://api.anthropic.com` 地址不算自定义网关。
 - 改档轮出现缓存读取归零，或新建缓存超过上一轮读取量一半时，提示「检测到缓存重建」。同一会话累计两轮触发后暂停。
 
-状态栏示例：`🧠 high · 自动 · Haiku 0.8s`、`🧠 medium · 沿用（判档超时）`、`⏸ 自动选档已暂停：你手动改了档位，/auto-effort on 恢复`。
+终端里状态接在输入框下方提示行（`auto mode on` 那一行）的末尾，行宽不够时截断；桌面端等其他界面仍显示为插件独立状态行。状态示例：`🧠 high · 自动 · Haiku 0.8s`、`🧠 medium · 沿用（判档超时）`、`⏸ 自动选档已暂停：你手动改了档位，/auto-effort on 恢复`。
 
 ## 配置
 

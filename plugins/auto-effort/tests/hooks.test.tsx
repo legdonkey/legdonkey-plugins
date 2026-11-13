@@ -31,6 +31,12 @@ function setup(on: On, model = MODEL, env: Record<string, string> = {}, entries:
   on('turn.complete', (_, e) => ({ text: e.answer, usage: e.usage }))
   on('ui.status', (_, e) => { statuses.push(e.text); return { value: undefined } })
   on('ui.toast', (_, e) => { toasts.push(e.text); return { value: undefined } })
+  let tail: string | undefined
+  on('ui.render', ($, e) => {
+    if (e.component === 'PromptHint') tail = e.props.tail
+    const { Text } = $.ui.resolve(e)
+    return <Text>engine</Text>
+  })
   on('config.set', (_, e) => { configWrites.push(e); return { value: e.value } })
   on('model.complete', async (_, e) => {
     prompts.push(e.prompt)
@@ -42,10 +48,17 @@ function setup(on: On, model = MODEL, env: Record<string, string> = {}, entries:
     calls.push(e)
     return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn', usage: { ...usage, model } }
   })
-  return { clock, calls, statuses, toasts, prompts, configWrites,
+  return { clock, calls, statuses, toasts, prompts, configWrites, tail: () => tail,
     sessionId: (id: string) => { sessionId = id },
     holdStep: (wait: () => Promise<void>) => { beforeStep = wait },
     answer: (text: string) => { classification = text }, delay: (ms: number) => { delay = ms }, usage: (u: typeof USAGE) => { usage = u } }
+}
+
+// 终端上状态接在提示行末尾：挂载 PromptHint，读插件追加的 tail。
+async function hint($: Engine, m: { tail: () => string | undefined }) {
+  const ui = await $.ui.mount({ plugin: 'auto-effort', component: 'PromptHint', requestId: 'hint', surface: 'terminal', props: { isDraft: false, isWorking: false, hint: '? for shortcuts' } })
+  await ui.unmount()
+  return m.tail()
 }
 
 async function submit($: Engine, clock: MockClock, text: string, turnId = 't1', flags: { command?: { name: string; args: string }; isMeta?: true; midTurn?: boolean } = {}) {
@@ -348,7 +361,8 @@ for (const [label, env] of Object.entries<Record<string, string>>({
   await submit($, m.clock, '复杂任务')
   await step($)
   expect(m.prompts.length).toBe(0)
-  expect(m.statuses.at(-1)).toMatch('会重建缓存，已暂停')
+  expect(m.statuses).toEqual([])
+  expect(await hint($, m)).toBe(' · ⏸ 自动选档已暂停：会重建缓存，已暂停')
 })
 
 test('不支持的模型清空状态栏', async ($, on) => {
@@ -357,7 +371,7 @@ test('不支持的模型清空状态栏', async ($, on) => {
   const stream = $.turn.step({ turnId: 't1', index: 0, effort: 'medium', model: 'claude-haiku-5-5', messageCount: 2 })
   while (!(await stream.next()).done) {}
   expect(m.prompts.length).toBe(0)
-  expect(m.statuses.at(-1)).toBe(undefined)
+  expect(await hint($, m)).toBe(undefined)
 })
 
 test('缓存重建两轮后暂停，同一轮只告警一次', async ($, on) => {
