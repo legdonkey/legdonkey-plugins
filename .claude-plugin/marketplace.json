@@ -33,7 +33,7 @@
       "name": "auto-effort",
       "source": "./plugins/auto-effort",
       "description": "Claude Code mod：每条用户消息由 Haiku 5.5（或 OpenRouter System One）按官方指南判档，逐轮自动切换 Opus 5.5、Sonnet 5.5、Fable 5.2 的 effort，保留提示缓存，支持会话恢复。仅支持 Claude Code。",
-      "version": "0.3.0"
+      "version": "0.3.1"
     }
   ]
 }

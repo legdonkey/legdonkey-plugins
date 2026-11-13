@@ -24,7 +24,8 @@ claude plugin install auto-effort@legdonkey
 - `--resume` 按 session id 从持久决策恢复上一轮最终档位和摘要；低置信度沿用与 Fable「继续」升档照常使用恢复出的档位。`/clear` 删除本会话的持久决策和内存状态，其他会话不受影响。
 - 每轮首步比较引擎原始 effort。相邻非 ultrathink 轮的档位发生变化时，视为用户手动改档并暂停。用 `/auto-effort on` 恢复。
 - Bedrock、Vertex/Agent Platform、Foundry、自定义 `ANTHROPIC_BASE_URL` 或设置 `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` 时暂停，状态栏说明「会重建缓存，已暂停」。官方 `https://api.anthropic.com` 地址不算自定义网关。
-- 改档轮出现缓存读取归零，或新建缓存超过上一轮读取量一半时，提示「检测到缓存重建」。同一会话累计两轮触发后暂停。
+- 只在改写过档位的轮次检查缓存：上一轮读取大于 0，且本次读取减少时，提示「检测到缓存读取减少，可能是切档导致缓存重建」。写入变大不计数。每轮最多计一次，同一会话累计两次后暂停；`/auto-effort on` 恢复并清零。
+- 距上一个主会话请求结束超过 5 分钟、主会话压缩后、切换模型后和 `/clear` 后第一轮跳过判断，并重新建立读取基线。Claude Code 主会话实测使用 1 小时缓存 TTL，5 分钟是排除缓存过期的保守值。子代理压缩、预计算压缩和跳过的压缩不影响主会话的判断。
 
 终端里状态接在输入框下方提示行（`auto mode on` 那一行）的末尾，行宽不够时截断；桌面端等其他界面仍显示为插件独立状态行。状态示例：`🧠 high · 自动 · Haiku 0.8s`、`🧠 medium · 沿用（判档超时）`、`⏸ 自动选档已暂停：你手动改了档位，/auto-effort on 恢复`。
 

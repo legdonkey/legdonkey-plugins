@@ -206,5 +206,5 @@ export function parseContext(context: string): Pick<SessionMessage, 'role' | 'te
 }
 
 export function cacheRebuilt(previousRead: number, usage: Usage): boolean {
-  return previousRead > 0 && (usage.cache_read_input_tokens === 0 || usage.cache_creation_input_tokens > previousRead / 2)
+  return previousRead > 0 && usage.cache_read_input_tokens < previousRead
 }

@@ -88,12 +88,14 @@ test('输入取最近十条文本，历史最多 24000 字符，当前消息最�
   expect(configOf({ debugLogPath: 'relative.jsonl' }).debugLogPath).toBe('')
 })
 
-test('缓存守护只在已有缓存且读归零或大幅重建时触发', () => {
+test('缓存守护只在已有缓存且读取减少时触发', () => {
   const usage = { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 9000 }
   expect(cacheRebuilt(0, usage)).toBe(false)
   expect(cacheRebuilt(10000, usage)).toBe(true)
+  expect(cacheRebuilt(10000, { ...usage, cache_read_input_tokens: 9999 })).toBe(true)
+  expect(cacheRebuilt(10000, { ...usage, cache_read_input_tokens: 12000 })).toBe(false)
   expect(cacheRebuilt(10000, { ...usage, cache_read_input_tokens: 10000, cache_creation_input_tokens: 5000 })).toBe(false)
-  expect(cacheRebuilt(10000, { ...usage, cache_read_input_tokens: 10000, cache_creation_input_tokens: 5001 })).toBe(true)
+  expect(cacheRebuilt(10000, { ...usage, cache_read_input_tokens: 10000, cache_creation_input_tokens: 5001 })).toBe(false)
 })
 
 test('/auto-effort 参数补全按已输入的词给子命令或取值', () => {
