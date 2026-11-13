@@ -64,6 +64,8 @@ OpenRouter 模型：Jev 为 `typesafe/jev-1.14`，D1 Ultra 为 `liquid/d1-ultra`
 /auto-effort bench [opus|sonnet|fable|all] [holdout]
 ```
 
+输入 `/auto-effort ` 后，命令名旁会灰显可用子命令；再敲子命令或取值的首字母，补全列表会列出候选和中文说明，Tab 选中。
+
 `status` 返回开关、判档器、上下限和本会话最近 10 次决策。`lastFinal` 是上一轮最终档位；`lastDecision` 用时间、`turnId` 和步数标识来源决策；`summary` 是上一轮档位、工具次数与中断标记，不含消息原文。决策含时间、模型、判档器、判出档位、最终档位、置信度、中文理由、耗时与该次请求的缓存读写。`previousFinal` 记录决策使用的上一轮档位。修改开关、判档器和上下限会通过 `$.config.set` 写回 userConfig。
 
 `test` 只判档，不改主会话 effort。`bench` 对插件内 `bench/judge-cases.json` 判档，返回全部与 holdout 命中率、偏低数、偏高数、无效数及中位耗时。明细写入 `bench/results/<时间戳>-<judge>.json`，不复制用例文本。测评直接比较判档器的原始结果，不用运行时上下限调整答案。

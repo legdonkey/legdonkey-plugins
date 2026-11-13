@@ -1,6 +1,6 @@
 import { EFFORTS, MODEL_RULES } from './policy-text'
 import type { Effort, SupportedModel } from './policy-text'
-import type { PluginOptions, SessionMessage } from 'claude-code'
+import type { PluginOptions, PromptAutocompleteInput, PromptAutocompleteSuggestion, SessionMessage } from 'claude-code'
 
 export const JUDGES = ['haiku', 'jev', 'd1-ultra', 'mammoth-27b', 'decider'] as const
 export type Judge = typeof JUDGES[number]
@@ -40,6 +40,38 @@ export function retainedDecisions(value: unknown): Decision[] {
 
 export function isEffort(value: unknown): value is Effort {
   return typeof value === 'string' && EFFORTS.includes(value as Effort)
+}
+
+const VERBS: [string, string][] = [
+  ['status', '查看开关、判档器、上下限和最近决策'],
+  ['on', '开启自动选档（也用于暂停后恢复）'],
+  ['off', '关闭自动选档'],
+  ['judge', '切换判档器'],
+  ['floor', '设置最低档位'],
+  ['ceiling', '设置最高档位'],
+  ['max', '是否允许输出 max（还需 ceiling=max）'],
+  ['test', '只判档、不改档：test <文本>'],
+  ['bench', '对内置用例测评判档器'],
+]
+const VALUES: Record<string, [string, string][]> = {
+  judge: [['haiku', 'Haiku 5.5（默认）'], ['jev', 'OpenRouter Jev'], ['d1-ultra', 'OpenRouter D1 Ultra'],
+    ['mammoth-27b', 'OpenRouter Mammoth'], ['decider', 'OpenRouter Decider']],
+  floor: EFFORTS.map(e => [e, '最低档位']),
+  ceiling: EFFORTS.map(e => [e, '最高档位']),
+  max: [['on', '允许 max'], ['off', '不允许 max']],
+  bench: [['opus', '只测 Opus'], ['sonnet', '只测 Sonnet'], ['fable', '只测 Fable'], ['all', '三个模型都测']],
+}
+
+/** /auto-effort 的参数补全：按已输入的词给出子命令或取值。 */
+export function commandCompletions(e: PromptAutocompleteInput): PromptAutocompleteSuggestion[] {
+  const head = /^\s*\/auto-effort\s+(.*)$/s.exec(e.text.slice(0, e.start))
+  if (!head) return []
+  const words = head[1]!.split(/\s+/).filter(Boolean)
+  const rows = words.length === 0 ? VERBS
+    : words.length === 1 ? VALUES[words[0]!] ?? []
+    : words.length === 2 && words[0] === 'bench' ? [['holdout', '只测 holdout 用例']] as [string, string][]
+    : []
+  return rows.filter(([text]) => text.startsWith(e.token) && text !== e.token).map(([text, description]) => ({ text, description }))
 }
 
 export function supportedModel(value: string): SupportedModel | undefined {

@@ -1,6 +1,6 @@
 {
   "name": "auto-effort",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "按每条用户消息自动选择 Claude Code 主会话的 effort，保留提示缓存。",
   "types": "./types/index.d.ts",
   "userConfig": {

@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { cacheRebuilt, clampEffort, configOf, expandPiKey, httpFailure, isContinue, isUltra, judgeInput, parseContext, parseHaiku, parseSystemOne, retainedDecisions, supportedModel } from '../hooks/core'
+import { cacheRebuilt, clampEffort, commandCompletions, configOf, expandPiKey, httpFailure, isContinue, isUltra, judgeInput, parseContext, parseHaiku, parseSystemOne, retainedDecisions, supportedModel } from '../hooks/core'
 
 test('持久记录保留最近 50 会话、每会话 200 条和 UTF-8 安全上限，旧记录可读', () => {
   const row = { at: '2026-11-13', sessionId: 's', turnId: 't', index: 0, turn: 1, final: 'low' }
@@ -94,4 +94,22 @@ test('缓存守护只在已有缓存且读归零或大幅重建时触发', () =>
   expect(cacheRebuilt(10000, usage)).toBe(true)
   expect(cacheRebuilt(10000, { ...usage, cache_read_input_tokens: 10000, cache_creation_input_tokens: 5000 })).toBe(false)
   expect(cacheRebuilt(10000, { ...usage, cache_read_input_tokens: 10000, cache_creation_input_tokens: 5001 })).toBe(true)
+})
+
+test('/auto-effort 参数补全按已输入的词给子命令或取值', () => {
+  const at = (text: string) => {
+    const start = text.search(/\S+$/)
+    return commandCompletions({ text, cursor: text.length, token: text.slice(start), start }).map(r => r.text)
+  }
+  expect(at('/auto-effort s')).toEqual(['status'])
+  expect(at('/auto-effort c')).toEqual(['ceiling'])
+  expect(at('/auto-effort judge m')).toEqual(['mammoth-27b'])
+  expect(at('/auto-effort floor x')).toEqual(['xhigh'])
+  expect(at('/auto-effort ceiling m')).toEqual(['medium', 'max'])
+  expect(at('/auto-effort max o')).toEqual(['on', 'off'])
+  expect(at('/auto-effort bench all h')).toEqual(['holdout'])
+  expect(at('/auto-effort status')).toEqual([])
+  expect(at('/auto-effort test s')).toEqual([])
+  expect(at('/other s')).toEqual([])
+  expect(at('hello /auto-effort s')).toEqual([])
 })
