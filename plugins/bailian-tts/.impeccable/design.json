@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-10T12:00:00+08:00",
+  "generatedAt": "2026-11-14T07:32:19+08:00",
   "title": "Design System: bailian-tts 录音棚（配音工作台：开始 · 选音色 · 声音复刻）",
   "extensions": {
     "colorMeta": {
@@ -316,7 +316,7 @@
       },
       "bar-title": {
         "displayName": "顶栏标题",
-        "purpose": "「声音复刻 · 步骤名」「选音色 · 试听台」。"
+        "purpose": "顶栏左侧站名「百炼配音」。"
       },
       "control": {
         "displayName": "控件",
@@ -405,9 +405,9 @@
       "name": "顶栏",
       "kind": "nav",
       "refersTo": "bar",
-      "description": "透明 64px 顶栏，底部发丝线，右侧等宽计数。",
-      "html": "<header class=\"ds-bar\"><h1>声音复刻 <span>· 录音</span></h1><div class=\"ds-progress\"><b>01</b> / 04</div></header>",
-      "css": ".ds-bar { height: 64px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--room, #111113); color: var(--ivory, #ece8e1); border-bottom: 1px solid var(--line, #2c2e33); font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-bar h1 { font-size: 15px; font-weight: 300; margin: 0; letter-spacing: .14em; } .ds-bar h1 span { color: var(--ash, #a8a196); font-weight: 400; } .ds-progress { font-size: 14px; color: var(--ash, #a8a196); font-variant-numeric: tabular-nums; letter-spacing: .12em; } .ds-progress b { color: var(--ivory, #ece8e1); font-weight: 500; }"
+      "description": "透明 64px 顶栏，左站名「百炼配音」与四栏文字导航，底部发丝线，右侧等宽计数与「完成」。",
+      "html": "<header class=\"ds-bar\"><div class=\"ds-left\"><h1>百炼配音</h1><nav class=\"ds-nav\"><a aria-current=\"page\">选音色</a><a>声音复刻</a></nav></div><div class=\"ds-right\"><div class=\"ds-progress\">已收藏 <b>4</b></div><button class=\"ds-finish\">完成</button></div></header>",
+      "css": ".ds-bar { height: 64px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--room, #111113); color: var(--ivory, #ece8e1); border-bottom: 1px solid var(--line, #2c2e33); font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif; } .ds-left { display: flex; align-items: center; gap: 36px; height: 100%; } .ds-bar h1 { font-size: 15px; font-weight: 300; margin: 0; letter-spacing: .14em; } .ds-nav { display: flex; gap: 26px; height: 100%; } .ds-nav a { display: flex; align-items: center; height: 100%; font-size: 15px; letter-spacing: .04em; color: var(--ash, #a8a196); border-bottom: 1px solid transparent; margin-bottom: -1px; cursor: pointer; transition: color .2s, border-color .2s; } .ds-nav a[aria-current=\"page\"] { color: var(--ivory, #ece8e1); border-bottom-color: var(--ivory, #ece8e1); } @media (hover: hover) { .ds-nav a:hover { color: var(--ivory, #ece8e1); } } .ds-right { display: flex; align-items: center; gap: 20px; } .ds-progress { font-size: 14px; color: var(--ash, #a8a196); font-variant-numeric: tabular-nums; letter-spacing: .12em; } .ds-progress b { color: var(--ivory, #ece8e1); font-weight: 500; } .ds-finish { font: inherit; font-size: 14px; padding: 7px 16px; border-radius: 8px; border: 1px solid var(--edge, #6b6e76); background: transparent; color: var(--ivory, #ece8e1); cursor: pointer; transition: border-color .2s; } @media (hover: hover) { .ds-finish:hover { border-color: var(--ivory, #ece8e1); } } .ds-finish:focus-visible { outline: 2px solid var(--champagne, #c9b27c); outline-offset: 3px; border-radius: 6px; }"
     },
     {
       "name": "录音中顶栏",
@@ -508,9 +508,9 @@
   ],
   "narrative": {
     "northStar": "压暗的录音棚",
-    "overview": "复刻声音就是进一间很贵的录音棚录一条：灯光压暗，石墨黑的房间里只亮着念稿、表头和一点香槟金。界面不画调音台、推子这类道具，录音棚感只来自三件事：深而不纯黑的石墨底、细字重加宽字距的标题、所有数字等宽的仪表读数。分隔只有 1px 发丝线，没有渐变、没有投影、没有光晕。\n\n只做暗色，没有亮色主题。同一间录音棚管两个本地页面：复刻向导与选音色页，每页最多一块面板。复刻向导里，录音页是唯一保留面板的视图：左侧录音前准备，右侧一块圆角面板放录音稿与计时刻度。开录后面板外框退场，顶栏收起为红点「REC 录音中」，念稿放大占满屏幕，上方一枚 200 字重的大号计时，下方是带刻度、香槟金合格区的电平表与一行文字状态。质检、试听、完成三个视图不再用卡片，而是直接摆在房间里的单列：标题、发丝线分行、面板色只作为播放器和输入框的嵌入底。\n\n选音色页是录音棚里的一轮试音：左边是发丝线分行的音色清单，像一张场记单，试听过的音色在行尾记下这条 take 的等宽时长，正在播放的那一行底部发丝线就是播放进度；右边是贴顶的试听台，页面里唯一的面板，放要试的那句话、音色名与特质、自绘播放器和香槟金「试听」。\n\n明确拒绝「顶部步骤条 + 居中卡片 + 蓝色按钮」的开通向导，也拒绝把调音设备画到页面上的道具感。",
+    "overview": "复刻声音就是进一间很贵的录音棚录一条：灯光压暗，石墨黑的房间里只亮着念稿、表头和一点香槟金。界面不画调音台、推子这类道具，录音棚感只来自三件事：深而不纯黑的石墨底、细字重加宽字距的标题、所有数字等宽的仪表读数。分隔只有 1px 发丝线，没有渐变、没有投影、没有光晕。\n\n只做暗色，没有亮色主题。同一间录音棚只有一个本地页面「配音工作台」，顶栏四栏：开始、选音色、声音复刻、选中朗读（仅 macOS），每栏最多一块面板。开始栏是进棚前的登记台：顶部一句 46px 200 字重的结论（「先配好 API Key」/「可以开始了」），唯一的面板放 API Key 三步与「从剪贴板读取并保存」，下面是发丝线分行的「能做什么」与「运行环境」清单。声音复刻栏里，录音页是唯一保留面板的视图：左侧录音前准备，右侧一块圆角面板放录音稿与计时刻度。开录后面板外框退场，顶栏收起为红点「REC 录音中」，念稿放大占满屏幕，上方一枚 200 字重的大号计时，下方是带刻度、香槟金合格区的电平表与一行文字状态。质检、试听、完成三个视图不再用卡片，而是直接摆在房间里的单列：标题、发丝线分行、面板色只作为播放器和输入框的嵌入底。\n\n选音色栏是录音棚里的一轮试音：左边是发丝线分行的音色清单，像一张场记单，试听过的音色在行尾记下这条 take 的等宽时长，正在播放的那一行底部发丝线就是播放进度；右边是贴顶的试听台，页面里唯一的面板，放要试的那句话、音色名与特质、自绘播放器和香槟金「试听」。\n\n明确拒绝「顶部步骤条 + 居中卡片 + 蓝色按钮」的开通向导，也拒绝把调音设备画到页面上的道具感。",
     "keyCharacteristics": [
-      "石墨黑房间底色，透明 64px 顶栏只靠一条发丝线与内容分开，右侧等宽计数（复刻向导「0N / 04」，选音色页「已收藏 N」）。",
+      "石墨黑房间底色，透明 64px 顶栏只靠一条发丝线与内容分开，左侧站名「百炼配音」加四栏文字导航，右侧等宽计数（声音复刻「0N / 04」，选音色「已收藏 N」）与「完成」。",
       "香槟金是唯一的强调色，只给主操作、10～20 秒建议区间、序号和播放键。",
       "标题 300 字重、宽字距；计时与质检结论 200 字重的大号细字。",
       "唯一的分隔方式是 1px 发丝线；质检 / 试听 / 完成是无卡片的房间单列。",
@@ -549,6 +549,11 @@
         "name": "The 发丝线即结构 Rule",
         "body": "所有分隔都是 1px `line`：顶栏底线、面板外框、面板头底线、质检行线、区块线、试听对比竖线、分组标签底线、音色清单行线。要再分一层就加一条线或降一级嵌入色，不加阴影。",
         "section": "elevation"
+      },
+      {
+        "name": "The 密钥只给掩码 Rule",
+        "body": "页面任何位置只显示 key 的首尾几位；输入框用密码类型，保存后清空。",
+        "section": "components"
       },
       {
         "name": "The 场记单 Rule",

@@ -199,7 +199,7 @@
   .model-settings summary { cursor: pointer; margin-bottom: 16px; }
   .model-settings label { display: block; max-width: 640px; margin: 12px 0; color: var(--ash); font-size: 14px; }
   .model-settings input, .model-settings select { display: block; width: 100%; margin-top: 8px; }
-  #pg-voices.eleven-mode #flashStudio, #pg-voices.eleven-mode > .gate { display: none; }
+  #pg-voices.eleven-mode #flashStudio { display: none; }
   #eRefresh { margin-top: 12px; }
   #elevenPanel .note, #eBrowser .note { color: var(--ash); font-size: 14px; }
   #eBrowser .e-filter { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
@@ -207,7 +207,7 @@
   #pg-voices.next-mode .studio { display: block; }
   #pg-voices.next-mode .desk { max-width: 680px; position: static; max-height: none; }
   #pg-voices.next-mode .studio > section, #pg-voices.next-mode .desk > .block:last-child,
-  #pg-voices.next-mode #vFav { display: none; }
+  #pg-voices.next-mode #vFav, #pg-voices.next-mode #vInstrField { display: none; }
   #pg-voices { max-width: 1180px; margin-top: -8px; }
   #pg-voices .studio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 1.15fr); gap: 48px; align-items: start; }
   /* 分组:细字标签,当前项象牙白加 1px 下划线 */
@@ -519,16 +519,22 @@
 <main>
   <section aria-label="模型设置" class="model-settings">
     <details>
-      <summary id="modelSummary">全局配音默认模型（复刻仍使用 Flash）</summary>
+      <summary id="modelSummary">全局配音默认模型</summary>
       <form id="modelForm">
-        <label>模型<select id="modelSelect"><option value="qwen-audio-3.1-tts-flash">Flash · 收藏音色</option><option value="qwen-audio-3.1-tts-next">Next · 文字描述声音</option><option value="eleven_v4">Eleven v4 · 固定音色</option><option value="eleven_v4_turbo">Eleven v4 Turbo · 低延迟</option></select></label>
+        <label>模型<select id="modelSelect"><option value="qwen-audio-3.1-tts-flash">Flash · 收藏音色</option><option value="qwen-audio-3.1-tts-plus">Plus · 高清音色与复刻</option><option value="qwen-audio-3.1-tts-next">Next · 文字描述声音</option><option value="eleven_v4">Eleven v4 · 固定音色</option><option value="eleven_v4_turbo">Eleven v4 Turbo · 低延迟</option></select></label>
         <label>当前模型的朗读字数上限<input type="number" id="readMax" min="1" step="1" required aria-describedby="readMaxHint"></label>
         <p class="note" id="readMaxHint"></p>
         <p class="note">每个模型独立保存，初始为 1500 字。只影响中键、快捷键和「选中朗读」试读，UI 音色试听仍最多 200 字。超出时优先往前退到句末，仍整段生成后播放。</p>
+        <div id="flashFields" hidden>
+          <p class="note">北京地域，沿用当前百炼 API Key。Flash 提供 68 个系统音色与独立声音复刻；收藏保存在 ~/.config/bailian-tts/favorites.txt，复刻音色仅供 Flash 使用。</p>
+        </div>
+        <div id="plusFields" hidden>
+          <p class="note">北京地域，沿用当前百炼 API Key。Plus 官方提供 4 个多语种与方言旗舰系统音色（龙安欢、龙安灵心、龙安风悦、许南川），并支持抗噪能力更强的独立声音复刻；收藏保存在 ~/.config/bailian-tts/plus-favorites.txt，复刻音色与模型强绑定，不与 Flash 混用。</p>
+        </div>
         <div id="nextFields" hidden>
           <label>业务空间 ID<input type="text" id="workspaceId" autocomplete="off" placeholder="例如：llm-xxxxxxxx"></label>
           <label>Next 声音描述<input type="text" id="nextDescription" maxlength="100" placeholder="例如：沉稳知性的女声，语速适中"></label>
-          <p class="note">北京地域，沿用当前 API Key。Next 不使用 Flash 的收藏或复刻音色；声音由描述生成，不保证每次音色一致。普通场景最长 120 秒，长文可能无法完整读完。环境变量 SFM_WORKSPACE_ID 优先于这里的设置。</p>
+          <p class="note">北京地域，沿用当前 API Key。Next 不使用 Flash / Plus 的收藏或复刻音色；声音由描述生成，不保证每次音色一致。普通场景最长 120 秒，长文可能无法完整读完。环境变量 SFM_WORKSPACE_ID 优先于这里的设置。</p>
         </div>
         <div id="elevenFields" hidden>
           <p class="note">ElevenLabs 使用独立 API Key，不是百炼 Key。请在 ElevenLabs 创建具有 Voices 读取、Text to Speech 生成功能所需权限的 Key；保存时只读取音色列表，不提交合成。</p>
@@ -590,7 +596,7 @@
     <section class="home-sec" aria-labelledby="hFeatTitle">
       <h2 id="hFeatTitle">能做什么</h2>
       <ul class="rows">
-        <li><div><b>选音色</b><p>68 个系统音色和你复刻的音色在同一张清单里，用同一句话逐个试听、横向比较，满意的收藏或设为默认。</p></div>
+        <li><div><b>选音色</b><p>Flash 68 个系统音色或 Plus 4 个旗舰音色与你为该模型复刻的音色在同一张清单里，用同一句话逐个试听、横向比较，满意的收藏或设为默认。</p></div>
           <a class="btn compact" href="#voices">去选音色</a></li>
         <li><div><b>声音复刻</b><p>在浏览器里录 10～20 秒，录完当场质检音量与破音，提交后对比原声和复刻效果。</p></div>
           <a class="btn compact" href="#clone">去复刻</a></li>
@@ -609,18 +615,18 @@
         <tbody>
           <tr><th scope="row">“检查一下能不能用”</th><td><code>run.py --check</code> → <code>status</code>，只做本地检查。</td></tr>
           <tr><th scope="row">“第一次用，帮我配置”</th><td>经你确认后初始化环境，再用 <code>ui</code>、<code>key</code> 引导配置；Key 不发到对话里。</td></tr>
-          <tr><th scope="row">“给我找几个女声音色”</th><td>百炼 Flash 用 <code>voices --gender 女</code>；ElevenLabs 在工作台筛选女声；Next 用声音描述。</td></tr>
+          <tr><th scope="row">“给我找几个女声音色”</th><td>百炼 Flash / Plus 用 <code>voices --gender 女</code>；ElevenLabs 在工作台筛选女声；Next 用声音描述。</td></tr>
           <tr><th scope="row">“我想自己试听挑声音”</th><td><a href="#voices"><code>ui --page voices</code> · 去选音色</a>，现场试听会消耗额度。</td></tr>
           <tr><th scope="row">“用这个声音试读一句”</th><td><code>preview</code>，合成一句并播放，适合比较音色和效果。</td></tr>
           <tr><th scope="row">“把这段文案生成音频”</th><td><code>gen</code>，生成单段 WAV 音频文件。</td></tr>
           <tr><th scope="row">“给这份多段脚本配音并生成字幕”</th><td><code>script</code>，生成分段音频、完整音轨和 SRT 字幕。</td></tr>
-          <tr><th scope="row">“以后默认用这个声音”</th><td>Flash 用 <code>fav</code>；ElevenLabs 在<a href="#voices">选音色</a>里设为默认；Next 在顶部模型设置中保存声音描述。</td></tr>
+          <tr><th scope="row">“以后默认用这个声音”</th><td>Flash / Plus 用 <code>fav</code>；ElevenLabs 在<a href="#voices">选音色</a>里设为默认；Next 在顶部模型设置中保存声音描述。</td></tr>
           <tr><th scope="row">“选中文字按热键就朗读”</th><td><a href="#say"><code>ui --page say</code> · 去配置</a>；之后热键调用 <code>say</code>，不需要 AI 或工作台常驻。仅 macOS。</td></tr>
           <tr><th scope="row">“用我的录音复刻声音”</th><td><a href="#clone"><code>ui --page clone</code> · 去复刻</a>，有现成录音文件时用 <code>clone</code>。复刻他人声音须先取得授权。</td></tr>
           <tr><th scope="row">“删除这个复刻音色”</th><td>经你确认后调用 <code>delete</code>，删除云端音色，不可恢复；取消收藏不等于删除。</td></tr>
         </tbody>
       </table>
-      <p class="hint" id="hUsageModel"><code>preview</code>、<code>gen</code>、<code>script</code>、<code>say</code> 跟随顶部保存的默认模型。声音复刻与百炼音色管理仍使用 Flash；试听和生成会消耗对应服务的额度。命令统一通过 <code>python3 "$skill_dir/scripts/run.py" &lt;子命令&gt;</code> 执行，<code>$skill_dir</code> 是技能目录。</p>
+      <p class="hint" id="hUsageModel"><code>preview</code>、<code>gen</code>、<code>script</code>、<code>say</code> 跟随顶部保存的默认模型。每个模型有独立配置面板与专属界面：Flash / Plus 使用对应模型的音色、收藏与声音复刻，Next 只按文字描述生成声音，Eleven 使用自己的 Key 与音色库；试听和生成会消耗对应服务的额度。命令统一通过 <code>python3 "$skill_dir/scripts/run.py" &lt;子命令&gt;</code> 执行，<code>$skill_dir</code> 是技能目录。</p>
     </section>
 
     <section class="home-sec" aria-labelledby="hEnvTitle">
@@ -634,6 +640,7 @@
     <div class="gate" data-gate hidden>
       <div class="verdict"><b>还差一步</b><span>试听要调用百炼接口，先在「开始」里配好 API Key。</span></div>
       <a class="btn primary" href="#home">去配置 API Key</a>
+      <button class="primary compact" data-model-settings hidden>展开模型设置</button>
     </div>
     <div class="studio" id="eStudio" hidden>
       <section id="eBrowser" aria-label="ElevenLabs 音色清单">
@@ -681,7 +688,7 @@
         <div class="block">
           <label class="field script"><span>要试的那句话<em class="count" id="vTextCount"></em></span>
             <textarea id="vText" maxlength="200" rows="1"></textarea></label>
-          <label class="field"><span>指令（可不填）<em class="count" id="vInstrCount">0 / 100</em></span>
+          <label class="field" id="vInstrField"><span>指令（可不填）<em class="count" id="vInstrCount">0 / 100</em></span>
             <input type="text" id="vInstr" placeholder="例如：沉稳的中年女声，语速偏慢" autocomplete="off"></label>
           <p class="hint tight" id="vHint">可写 [laughing]、[serious] 等标签；方言写进指令（仅多语种与方言组）。</p>
         </div>
@@ -710,6 +717,10 @@
 
   <!-- ================= 声音复刻 ================= -->
   <section class="page" id="pg-clone" aria-label="声音复刻" hidden>
+    <div class="gate" id="cModelGate" hidden>
+      <div class="verdict"><b id="cModelTitle"></b><span id="cModelText"></span></div>
+      <div class="actions"><a class="btn primary compact" id="cModelVoices" href="#voices" hidden>去选音色</a><button class="compact" id="cModelSettings" data-model-settings>展开模型设置</button></div>
+    </div>
     <div class="gate" data-gate hidden>
       <div class="verdict"><b>还差一步</b><span>复刻要把录音上传到百炼，先在「开始」里配好 API Key。</span></div>
       <a class="btn primary" href="#home">去配置 API Key</a>
@@ -733,7 +744,7 @@
         </aside>
 
         <article class="card" aria-labelledby="cPassageTitle">
-          <div class="card-head"><b id="cPassageTitle">录音稿</b><span>建议 10～20 秒 · 先停一秒再开口</span></div>
+          <div class="card-head"><b id="cPassageTitle">录音稿</b><span id="cPassageMeta">Flash 复刻 · 建议 10～20 秒 · 先停一秒再开口</span></div>
           <div class="card-foot stage"><span class="clock" id="cClock" aria-hidden="true">00:00.0</span><span class="due" id="cDue" role="status" aria-live="polite">建议 10～20 秒</span></div>
           <p class="passage">大家好，今天我们来聊一聊人工智能。其实它的核心原理并不复杂，就是根据已有的信息，去预测接下来最可能出现的内容。理解了这一点，很多看起来神奇的能力，也就不难解释了。</p>
           <div class="card-foot">
@@ -841,6 +852,7 @@
     <div class="gate" data-gate hidden>
       <div class="verdict"><b>还差一步</b><span>朗读要调用百炼接口，先在「开始」里配好 API Key。</span></div>
       <a class="btn primary" href="#home">去配置 API Key</a>
+      <button class="primary compact" data-model-settings hidden>展开模型设置</button>
     </div>
     <div data-gated>
       <div class="verdict"><b>选中文字，按一下就读</b><span id="sLead">在任意 App 里选中文字，按鼠标按键或快捷键，用默认音色读出来；再按一次立即停止。</span>
@@ -943,7 +955,7 @@
   <section class="page" id="pg-closed" aria-label="已完成" hidden>
     <div class="card-head"><b>本次结果</b><span class="mark pass" id="xMark">已保存</span></div>
     <div class="block"><ol id="xList"></ol></div>
-    <div class="block"><p style="margin:0">工作台已关闭，可以关掉这个页面，回到对话。以后不指定音色时，用收藏里的第 1 个。</p></div>
+    <div class="block"><p id="xNote" style="margin:0">工作台已关闭，可以关掉这个页面，回到对话。以后不指定音色时，用当前模型收藏里的第 1 个。</p></div>
   </section>
 </main>
 
@@ -967,6 +979,12 @@ const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(
 const S = { key: { configured: false }, favorites: [], page: null, closed: false, platform: "" };
 const PAGES = ["home", "voices", "clone", "say"];
 const isEleven = model => ["eleven_v4", "eleven_v4_turbo"].includes(model);
+const isBailianVoice = model => ["qwen-audio-3.1-tts-flash", "qwen-audio-3.1-tts-plus"].includes(model);
+const currentKey = () => isEleven(S.settings.model) ? S.elevenKey : S.key;
+document.querySelectorAll("[data-model-settings]").forEach((button) => button.addEventListener("click", () => {
+  document.querySelector(".model-settings details").open = true;
+  $("modelSelect").focus();
+}));
 
 // 展开后才加载本地视频素材，不让宣传片影响首次配置。
 const promoVideo = $("hPromoVideo");
@@ -985,23 +1003,27 @@ function setFavorites(favs) { S.favorites = favs; Voices.onFavorites(); barInfo(
 function setKey(k) {
   const was = S.key.configured;
   S.key = k;
-  document.querySelectorAll("[data-gate]").forEach((el) => { el.hidden = k.configured; });
-  document.querySelectorAll("[data-gated]").forEach((el) => {
-    const configured = isEleven(S.settings.model) && el.closest("#pg-say") ? S.elevenKey.configured : k.configured;
-    el.hidden = !configured;
+  const eleven = isEleven(S.settings.model), bailian = isBailianVoice(S.settings.model);
+  document.querySelectorAll("[data-gate]").forEach((el) => {
+    el.hidden = currentKey().configured || (!!el.closest("#pg-clone") && !bailian);
+    if (eleven && !el.closest("#pg-clone")) {
+      el.querySelector(".verdict span").textContent = "请先在顶部模型设置中保存 ElevenLabs API Key。";
+      el.querySelector("a").hidden = true;
+      el.querySelector("[data-model-settings]").hidden = false;
+    }
   });
-  if (isEleven(S.settings.model)) {
-    const gate = $("pg-say").querySelector("[data-gate]");
-    gate.hidden = S.elevenKey.configured;
-    if (!S.elevenKey.configured) gate.querySelector(".verdict span").textContent = "请先在顶部模型设置中保存 ElevenLabs API Key。";
-  }
+  document.querySelectorAll("[data-gated]").forEach((el) => {
+    el.hidden = !currentKey().configured || (!!el.closest("#pg-clone") && !bailian) || (el.id === "flashStudio" && eleven);
+  });
+  $("eStudio").hidden = !eleven || !S.elevenKey.configured;
+  $("cModelGate").hidden = bailian;
   Home.renderKey();
-  if (k.configured && !was) Voices.loadMine();
+  if (bailian && k.configured && !was) Voices.loadMine();
 }
 function barInfo() {
   const el = $("barInfo");
-  if (S.page === "voices") el.innerHTML = `已收藏 <b>${isEleven(S.settings.model) ? Eleven.count() : S.favorites.length}</b>`;
-  else if (S.page === "clone" && S.key.configured) el.innerHTML = `<b>0${Clone.stepNo()}</b> / 04`;
+  if (S.page === "voices" && !S.settings.model.endsWith("-next")) el.innerHTML = `已收藏 <b>${isEleven(S.settings.model) ? Eleven.count() : S.favorites.length}</b>`;
+  else if (S.page === "clone" && isBailianVoice(S.settings.model) && S.key.configured) el.innerHTML = `<b>0${Clone.stepNo()}</b> / 04`;
   else el.textContent = "";
 }
 
@@ -1010,7 +1032,7 @@ function route() {
   if (S.closed) return;
   let page = location.hash.slice(1);
   if (document.body.classList.contains("recording") && page !== "clone") { history.replaceState(null, "", "#clone"); return; }
-  if (!PAGES.includes(page) || (page === "say" && S.platform !== "darwin")) page = S.key.configured ? "voices" : "home";
+  if (!PAGES.includes(page) || (page === "say" && S.platform !== "darwin")) page = currentKey().configured ? "voices" : "home";
   if (page === S.page) return;
   document.querySelectorAll("audio, video").forEach((a) => a.pause());
   S.page = page;
@@ -1030,13 +1052,15 @@ $("finish").addEventListener("click", async () => {
   document.querySelectorAll("audio, video").forEach((a) => a.pause());
   await post("/done").catch(() => {});
   S.closed = true;
-  const favs = S.favorites;
+  const eleven = isEleven(S.settings.model), next = S.settings.model.endsWith("-next"), key = currentKey();
+  const favs = eleven ? Eleven.favorites() : S.favorites.map((id) => ({ voice: id, name: Voices.nameOf(id) }));
   $("xList").innerHTML =
-    `<li><span class="mark ${S.key.configured ? "pass" : "na"}">${S.key.configured ? "API Key" : "未配置"}</span><span>${S.key.configured ? `已保存 ${esc(S.key.masked)}` : "还没有配置 API Key，下次打开时从「开始」继续。"}</span></li>` +
-    (favs.length
-      ? favs.map((id, i) => `<li><span class="mark ${i === 0 ? "pass" : "na"}">${i === 0 ? "默认" : `第 ${i + 1} 位`}</span><span>${esc(Voices.nameOf(id))}</span><code>${esc(id)}</code></li>`).join("")
-      : `<li><span class="mark na">未收藏</span><span>还没有收藏音色，合成时用内置默认音色。</span></li>`);
-  $("xMark").textContent = favs.length ? `已收藏 ${favs.length} 个` : "已保存";
+    `<li><span class="mark ${key.configured ? "pass" : "na"}">${eleven ? "ElevenLabs" : "百炼"} API Key</span><span>${key.configured ? `已配置 ${esc(key.masked)}` : "还没有配置 API Key，下次打开时继续配置。"}</span></li>` +
+    (next ? `<li><span class="mark na">声音描述</span><span>${esc(S.settings.description || "未设置")}</span></li>` : favs.length
+      ? favs.map((v, i) => `<li><span class="mark ${i === 0 ? "pass" : "na"}">${i === 0 ? "默认" : `第 ${i + 1} 位`}</span><span>${esc(v.name)}</span><code>${esc(v.voice)}</code></li>`).join("")
+      : `<li><span class="mark na">未收藏</span><span>${eleven ? "请在选音色页收藏 ElevenLabs 音色。" : "还没有收藏音色，合成时用本模型的内置默认音色。"}</span></li>`);
+  $("xMark").textContent = next ? "Next · 描述声音" : favs.length ? `已收藏 ${favs.length} 个` : "已保存";
+  $("xNote").textContent = next ? "工作台已关闭，可以关掉这个页面，回到对话。Next 继续使用顶部保存的声音描述。" : "工作台已关闭，可以关掉这个页面，回到对话。以后不指定音色时，用当前模型收藏里的第 1 个。";
   PAGES.forEach((p) => { $(`pg-${p}`).hidden = true; });
   $("pg-closed").hidden = false;
   document.querySelector(".bar .left").style.visibility = "hidden";
@@ -1049,7 +1073,8 @@ const Home = (() => {
   let deps = {}, platform = "";
 
   function renderKey() {
-    const k = S.key;
+    const k = currentKey(), eleven = isEleven(S.settings.model);
+    $("hKeyTitle").closest(".keypanel").hidden = eleven;
     $("hKeyMark").textContent = k.configured ? "已配置" : "未配置";
     $("hKeyMark").className = `mark ${k.configured ? "pass" : "na"}`;
     $("hKeyDone").hidden = !k.configured;
@@ -1059,14 +1084,16 @@ const Home = (() => {
       ? (k.env_conflict ? "已保存到 ~/.dashscope_key，本次已改用新 Key。但环境变量 DASHSCOPE_API_KEY 里还是另一个 Key，它会优先生效，请从 shell 配置里删掉它。" : "来自环境变量 DASHSCOPE_API_KEY。")
       : `保存在 ${k.path}${k.loose ? "。⚠ 文件权限过宽，重新保存一次会改为仅本人可读。" : "，仅本人可读。"}`;
     $("hTitle").textContent = k.configured ? "可以开始了" : "先配好 API Key";
-    $("hLead").textContent = k.configured
-      ? "API Key 已就绪。挑一个音色，或者复刻你自己的声音；之后回到对话里，把文案交给助手配音。"
-      : "bailian-tts 用阿里百炼的 qwen-audio-3.1-tts-flash 把文字读成接近真人的配音。第一次用，先花两分钟在百炼控制台创建一个 API Key。";
+    $("hLead").textContent = eleven
+      ? "ElevenLabs 使用独立的 Key 与音色库，请在顶部模型设置中配置 Key，再到「选音色」试听和收藏。"
+      : S.settings.model.endsWith("-next") ? "Next 按顶部保存的声音描述生成配音，请在模型设置中配置业务空间 ID 与声音描述，不使用录音复刻。"
+      : k.configured ? "API Key 已就绪。挑一个音色，或者复刻你自己的声音；之后回到对话里，把文案交给助手配音。"
+      : "Flash / Plus 使用北京地域百炼 API Key。第一次用，先花两分钟在百炼控制台创建一个 API Key。";
     renderEnv();
   }
   // 停在「开始」时轮询:助手在对话里执行 key --clipboard 保存或更换 key 后,这里自动更新
   setInterval(async () => {
-    if (document.hidden || S.closed || S.page !== "home") return;
+    if (document.hidden || S.closed || S.page !== "home" || isEleven(S.settings.model)) return;
     const r = await get("/key").catch(() => null);
     if (r && (r.key.configured !== S.key.configured || r.key.masked !== S.key.masked)) { setKey(r.key); msg($("hKeyMsg"), ""); }
   }, 2500);
@@ -1076,7 +1103,7 @@ const Home = (() => {
     $("hEnv").innerHTML =
       row("Python 依赖 dashscope", deps.dashscope, "已安装", "回到对话里说「安装依赖」，助手会用阿里云 PyPI 镜像装好。") +
       row("音频工具 ffmpeg", deps.ffmpeg, "已安装", "合成后的音频要用它转码。macOS 用 brew install ffmpeg 安装。") +
-      row("API Key", S.key.configured, "已配置", "按上面三步创建并保存。", "未配置");
+      row(isEleven(S.settings.model) ? "ElevenLabs API Key" : "百炼 API Key", currentKey().configured, "已配置", isEleven(S.settings.model) ? "在顶部模型设置中配置。" : "按上面三步创建并保存。", "未配置");
   }
   async function save(body) {
     $("hFromClip").disabled = $("hSave").disabled = true;
@@ -1250,8 +1277,9 @@ const Eleven = (() => {
     render(); audio.src=r.audio; audio.play().catch(()=>{}); msg($("eMsg"), "可重复播放，不再提交合成。", "ok");
   });
   return {
-    init(d) { key=d.eleven_key; favorites=d.eleven_favorites; voices=[...favorites]; $("eScope").value=favorites.length ? "favorites" : "all"; keyInfo(); render(); $("eStudio").hidden=!isEleven(d.settings.model); },
+    init(d) { key=d.eleven_key; favorites=d.eleven_favorites; voices=[...favorites]; $("eScope").value=favorites.length ? "favorites" : "all"; keyInfo(); render(); },
     count: ()=>favorites.length,
+    favorites: ()=>favorites,
     enter() { if (key.configured && !loaded) refresh(); },
   };
 })();
@@ -1261,13 +1289,13 @@ const Eleven = (() => {
 const Voices = (() => {
   // 分组顺序与 catalog 的 scene 一致;「我的复刻」「已收藏」是页面补的两组
   const GROUPS = ["精品中文", "多语种与方言", "精品英文", "其他系统"];
-  const MODEL_PREFIX = "qwen-audio-3.1-tts-flash-";
+  let modelPrefix = "qwen-audio-3.1-tts-flash-";
   let voices = [], selected = null, group = "全部", mineState = "idle", mineStale = false;
   const takes = new Map();  // `${voice}\n${text}\n${instr}` → {audio, duration}
 
   // ---- 数据 ----
   function cloneEntry(v) {
-    const prefix = v.voice.startsWith(MODEL_PREFIX) ? v.voice.slice(MODEL_PREFIX.length).split("-")[0] : v.voice;
+    const prefix = v.voice.startsWith(modelPrefix) ? v.voice.slice(modelPrefix.length).split("-")[0] : v.voice;
     return { voice: v.voice, name: `我的复刻 · ${prefix}`, gender: "", trait: "用你的录音复刻", usage: "",
              lang: "跟随录音", scene: "我的复刻", created: (v.created || "").slice(0, 10), status: v.status };
   }
@@ -1275,14 +1303,14 @@ const Voices = (() => {
     return voices.find((v) => v.voice === id) || { voice: id, name: id, gender: "", trait: "不在当前清单里", usage: "", lang: "", scene: "其他" };
   }
   async function loadMine() {
-    if (isEleven(S.settings.model) || mineState === "loading") return;
+    if (!isBailianVoice(S.settings.model) || mineState === "loading") return;
     mineState = "loading"; mineStale = false; renderList();
     const m = await get("/mine").catch(() => ({ error: "network" }));
     voices = voices.filter((v) => v.scene !== "我的复刻");
     if (m.voices) { mineState = "ok"; voices = voices.concat(m.voices.map(cloneEntry)); }
     else mineState = "error";
     renderList();
-    if (selected && selected.startsWith(MODEL_PREFIX)) refreshDesk();
+    if (selected && selected.startsWith(modelPrefix)) refreshDesk();
   }
 
   // ---- 清单 ----
@@ -1294,7 +1322,8 @@ const Voices = (() => {
   }
   function renderTabs() {
     const n = (s) => voices.filter((v) => v.scene === s).length;
-    const tabs = [["全部", voices.length], ...GROUPS.map((s) => [s, n(s)]), ["我的复刻", mineState === "ok" ? n("我的复刻") : "…"], ["已收藏", S.favorites.length]];
+    const activeGroups = GROUPS.filter((s) => voices.some((v) => v.scene === s));
+    const tabs = [["全部", voices.length], ...activeGroups.map((s) => [s, n(s)]), ["我的复刻", mineState === "ok" ? n("我的复刻") : "…"], ["已收藏", S.favorites.length]];
     $("vTabs").innerHTML = tabs.map(([s, c]) =>
       `<button class="tab" aria-pressed="${s === group}" data-group="${esc(s)}">${esc(s)}<b>${c}</b></button>`).join("");
   }
@@ -1372,7 +1401,7 @@ const Voices = (() => {
     const v = byId(selected);
     if (S.settings.model === "qwen-audio-3.1-tts-next") {
       $("vName").textContent = "Next · 描述声音";
-      $("vFacts").textContent = "整段生成后播放；声音描述请在顶部模型设置中保存。";
+      $("vFacts").textContent = `声音描述：${S.settings.description || "未设置"}`;
       return;
     }
     $("vName").innerHTML = `${esc(v.name)}${v.gender ? `<span>${esc(v.gender)}声</span>` : ""}`;
@@ -1518,6 +1547,7 @@ const Voices = (() => {
     loadMine,
     nameOf: (id) => byId(id).name,
     init(d) {
+      modelPrefix = `${d.model}-`;
       voices = [...d.catalog].sort((a, b) => GROUPS.indexOf(a.scene) - GROUPS.indexOf(b.scene));
       $("vText").value = store.get("pick-text", d.sample);
       $("vInstr").value = store.get("pick-instr", "");
@@ -1526,13 +1556,14 @@ const Voices = (() => {
       const next = d.settings.model.endsWith("-next");
       $("pg-voices").classList.toggle("next-mode", next);
       $("pg-voices").classList.toggle("eleven-mode", isEleven(d.settings.model));
+      if (isEleven(d.settings.model)) return;
       if (next) {
         voices = [{voice: "next-description", name: "Next · 描述声音", scene: "其他系统"}];
         $("vInstr").value = "";
-        $("vInstr").disabled = true;
-        $("vInstr").placeholder = "使用顶部已保存的 Next 声音描述";
-        $("vHint").textContent = "Next 不使用 Flash 的音色 ID 和控制标签，请直接输入要朗读的文字。";
+        $("vHint").textContent = "Next 按文字描述生成声音；可在顶部模型设置中修改声音描述。请直接输入要朗读的文字。";
         syncCounts();
+      } else if (d.model === "qwen-audio-3.1-tts-plus") {
+        $("vHint").textContent = "可写 [laughing]、[serious] 等标签；4 个旗舰系统音色与本模型复刻音色均支持自然语言与方言指令。";
       }
       select(next ? "next-description" : S.favorites[0] || voices[0].voice);
     },
@@ -1806,7 +1837,7 @@ const Clone = (() => {
   $("cSayBtn").addEventListener("click", async () => {
     const text = $("cSayText").value.trim(); if (!text) return;
     $("cSayBtn").disabled = true; busy($("cTryMsg"), "正在合成…");
-    const r = await post("/say", { voice: voiceId, text }).catch(offline);
+    const r = await post("/say", { voice: voiceId, text, clone: true, model: S.settings.model }).catch(offline);
     $("cSayBtn").disabled = false;
     if (r.audio) { msg($("cTryMsg"), ""); $("cCloned").src = r.audio; $("cCloned").play().catch(() => {}); }
     else msg($("cTryMsg"), r.error || "合成失败，请稍后再试。", "err");
@@ -1845,6 +1876,16 @@ const Clone = (() => {
   $("cAgain").addEventListener("click", () => { restart(); msg($("cRecMsg"), ""); });
 
   return {
+    init(d) {
+      const eleven = isEleven(d.model);
+      $("cPassageMeta").textContent = `${d.model === "qwen-audio-3.1-tts-plus" ? "Plus" : "Flash"} 复刻 · 建议 10～20 秒 · 先停一秒再开口`;
+      $("cModelTitle").textContent = eleven ? "当前模型不在本页复刻" : "当前模型不使用声音复刻";
+      $("cModelText").textContent = eleven
+        ? "本页仅支持百炼 Flash 与 Plus 的声音复刻。使用 ElevenLabs 请在 ElevenLabs 控制台创建音色后前往「选音色」刷新，或在顶部切换为百炼 Flash / Plus。"
+        : "Next 直接按顶部模型设置中的文字描述生成声音，不需要录音复刻。如需复刻自己的声音，请在顶部切换为百炼 Flash 或 Plus。";
+      $("cModelVoices").hidden = !eleven;
+      $("cModelSettings").classList.toggle("primary", !eleven);
+    },
     stepNo: () => STEPS[step],
     enter() { if (step === "grade") requestAnimationFrame(drawWave); },
   };
@@ -2055,7 +2096,7 @@ const Say = (() => {
   $("navSay").hidden = d.platform !== "darwin";
   S.settings = d.settings;
   S.elevenKey = d.eleven_key;
-  const modelName = {eleven_v4: "Eleven v4 · 固定音色", eleven_v4_turbo: "Eleven v4 Turbo · 低延迟", "qwen-audio-3.1-tts-next": "Next · 文字描述声音", "qwen-audio-3.1-tts-flash": "Flash · 收藏音色"};
+  const modelName = {eleven_v4: "Eleven v4 · 固定音色", eleven_v4_turbo: "Eleven v4 Turbo · 低延迟", "qwen-audio-3.1-tts-next": "Next · 文字描述声音", "qwen-audio-3.1-tts-flash": "Flash · 收藏音色", "qwen-audio-3.1-tts-plus": "Plus · 高清音色与复刻"};
   $("modelSummary").textContent = `默认模型：${modelName[d.settings.model]}（点击设置）`;
   $("modelSelect").value = d.settings.model;
   $("workspaceId").value = d.settings.workspace_id;
@@ -2069,7 +2110,9 @@ const Say = (() => {
     const model = $("modelSelect").value;
     $("readMax").max = d.read_limit_caps[model];
     $("readMax").value = readLimits[model] ?? 1500;
-    $("readMaxHint").textContent = `可设置 1～${d.read_limit_caps[model]} 字。${model.endsWith("-next") ? "Next 为声音描述预留空间；音频仍受 120 秒限制，增加字数不保证能读完。" : isEleven(model) ? "Eleven 使用本插件保守的 2000 字符接口上限；更长文本需另行分段。" : "Flash 上限按单次提交 20000 字符控制；长文等待时间与费用会增加。"}`;
+    $("readMaxHint").textContent = `可设置 1～${d.read_limit_caps[model]} 字。${model.endsWith("-next") ? "Next 为声音描述预留空间；音频仍受 120 秒限制，增加字数不保证能读完。" : isEleven(model) ? "Eleven 使用本插件保守的 2000 字符接口上限；更长文本需另行分段。" : model === "qwen-audio-3.1-tts-plus" ? "Plus 上限按单次提交 20000 字符控制，按字符计费；长文等待时间与费用会增加。" : "Flash 上限按单次提交 20000 字符控制；长文等待时间与费用会增加。"}`;
+    $("flashFields").hidden = model !== "qwen-audio-3.1-tts-flash";
+    $("plusFields").hidden = model !== "qwen-audio-3.1-tts-plus";
     $("nextFields").hidden = !$("modelSelect").value.endsWith("-next");
     $("elevenFields").hidden = !isEleven($("modelSelect").value);
   }
@@ -2091,6 +2134,7 @@ const Say = (() => {
   });
   Home.init(d);
   Voices.init(d);
+  Clone.init(d);
   setKey(d.key);
   route();
 })();

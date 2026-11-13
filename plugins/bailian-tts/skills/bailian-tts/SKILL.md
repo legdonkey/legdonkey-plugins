@@ -1,9 +1,9 @@
 ---
 name: bailian-tts
-description: 把中文(及方言、多语种)文案合成自然语音,模型跟随工作台默认设置(百炼 qwen-audio-3.1-tts-flash / qwen-audio-3.1-tts-next,或 ElevenLabs Eleven v4 / v4 Turbo),不要自行切换模型;支持试听音色、单段生成 wav、按脚本批量生成并输出字幕(SRT)与拼接音轨,以及用自己的录音复刻音色(仅百炼 Flash)。Flash 还可用自然语言指令控制语气/情感/语速/角色,并在文本里嵌入 [excited]、[laughing] 等情感与拟声标签。当用户想用阿里/百炼/Qwen-Audio/DashScope/ElevenLabs 做语音合成、TTS、配音、旁白、朗读、文字转语音,给视频/PPT/课件加配音,要带情感或方言的配音,试听音色,把多段文案批量转成 wav 并对齐字幕,或复刻自己的声音时,使用本技能。不要每次现写 SDK 代码。
+description: 把中文(及方言、多语种)文案合成自然语音,模型跟随工作台默认设置(百炼 qwen-audio-3.1-tts-flash / qwen-audio-3.1-tts-plus / qwen-audio-3.1-tts-next,或 ElevenLabs Eleven v4 / v4 Turbo),不要自行切换模型;支持试听音色、单段生成 wav、按脚本批量生成并输出字幕(SRT)与拼接音轨,以及用自己的录音复刻音色(百炼 Flash / Plus 独立复刻)。Flash / Plus 还可用自然语言指令控制语气/情感/语速/角色,并在文本里嵌入 [excited]、[laughing] 等情感与拟声标签。当用户想用阿里/百炼/Qwen-Audio/DashScope/ElevenLabs 做语音合成、TTS、配音、旁白、朗读、文字转语音,给视频/PPT/课件加配音,要带情感或方言的配音,试听音色,把多段文案批量转成 wav 并对齐字幕,或复刻自己的声音时,使用本技能。不要每次现写 SDK 代码。
 ---
 
-# 语音合成工作台（百炼 Flash / Next、Eleven v4）
+# 语音合成工作台（百炼 Flash / Plus / Next、Eleven v4）
 
 把文案合成成接近真人的语音。核心是 `scripts/tts.py`,封装了「读 key → 调 Qwen-Audio-TTS(带指令)→ 规范化为 24kHz 单声道 wav → 量时长」,以及复刻音色的创建、查询、删除。
 
@@ -20,7 +20,7 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 
 ## 开工前自查与首次引导
 
-每次被调用先跑 `python3 "$skill_dir/scripts/run.py" --check`（本地检查，不安装、不联网）。如果 `ready: false`，先说明会在用户目录下载并安装依赖，征得同意后执行 `python3 "$skill_dir/scripts/run.py" --setup --yes`；初始化失败时转述原因，不继续启动。非交互模式不会读取朗读正文作为确认输入，也不会擅自安装；交互式终端可直接运行启动器并回答确认提示。随后运行 `... run.py status`（本地检查，不联网）。最后一行是 `onboarding: 需要` 时,先带用户走完首次引导,再做用户要的事:
+每次被调用先跑 `python3 "$skill_dir/scripts/run.py" --check`（本地检查，不安装、不联网）。如果 `ready: false`，先说明会在用户目录下载并安装依赖，征得同意后执行 `python3 "$skill_dir/scripts/run.py" --setup --yes`；初始化失败时转述原因，不继续启动。非交互模式不会读取朗读正文作为确认输入，也不会擅自安装；交互式终端可直接运行启动器并回答确认提示。随后运行 `... run.py status`（本地检查，不联网）。最后一行是 `onboarding: 需要` 时，先按当前默认模型配置 Key，再做用户要的事：默认 Eleven v4 / Turbo 时打开 `ui`，在顶部模型设置中保存 ElevenLabs Key（见下文）；默认 Flash / Plus / Next 时按以下百炼引导执行，不为 Eleven 配置百炼 Key:
 
 1. 后台运行 `ui`(运行方式见下文 **ui**),它会在用户默认浏览器打开工作台的「开始」页:说明插件能做什么、创建 API Key 的三步,以及「从剪贴板读取并保存」按钮。
 2. 运行 `... run.py key --console`,在用户默认浏览器打开百炼控制台的 API Key 页(不依赖任何浏览器自动化工具),然后把操作交给用户:「请在刚打开的页面登录阿里云,确认右上角地域是华北2(北京),点『创建 API Key』(选项保持默认),再点 Key 旁的复制图标;复制好了回来告诉我。」不要替用户登录、填写或点击创建。
@@ -31,8 +31,10 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 
 ## 模型与音色
 
-- **Flash 模型** `qwen-audio-3.1-tts-flash` 用于百炼音色收藏与声音复刻。`gen` / `script` / `preview` / `say` 均跟随工作台默认模型，工作台顶部可切换为 `qwen-audio-3.1-tts-next`，配置保存在 `~/.config/bailian-tts/settings.json`；Next 使用声音描述，不使用 Flash 音色 ID。**默认音色**:未指定 `-v` 时用用户**收藏的第 1 个**(见 `fav`),收藏为空时用 `longanhuan_v3.1`(女)。脚本会在 stderr 打印实际用了哪个。
-- 68 个系统音色在 [references/voices.json](references/voices.json)(与官方列表对齐),`voices` 命令直接读。系统音色名都以 `_v3.1` 结尾,区分大小写。
+- **Flash / Plus**：`qwen-audio-3.1-tts-flash` 支持全部 68 个系统音色；`qwen-audio-3.1-tts-plus` 仅支持 4 个多语种与方言旗舰系统音色：龙安欢 `longanhuan_v3.1`、龙安灵心 `longanlingxin_v3.1`、龙安风悦 `longanfengyue_v3.1`、许南川 `xunanchuan_v3.1`。两模型均支持自然语言指令、文本内标签与各自的声音复刻。Plus 沿用北京地域百炼 Key，按输入文本字符计费，价格为 1.4 元/万字符，以官方账单为准。
+- **默认模型与音色**：`gen` / `script` / `preview` / `say` 均跟随工作台默认模型，配置保存在 `~/.config/bailian-tts/settings.json`。Flash / Plus 未指定 `-v` 时用**对应模型收藏的第 1 个**(见 `fav`)，为空时用 `longanhuan_v3.1`(女)。Next 使用声音描述，不使用音色 ID。脚本会在 stderr 打印实际模型与默认音色来源。
+- **独立收藏**：Flash 使用 `favorites.txt`，Plus 使用 `plus-favorites.txt`，均位于 `~/.config/bailian-tts/`。Plus 文件不存在时，只读继承 Flash 收藏中 Plus 支持的旗舰系统音色，不继承 Flash 复刻音色、不落盘；首次增删或设默认时独立保存。Plus 文件存在但为空时不再继承。
+- 音色快照在 [references/voices.json](references/voices.json)，Plus 仅使用标有 `plus: true` 的 4 个音色。`voices` 按目标模型读取。系统音色名都以 `_v3.1` 结尾，区分大小写。
 - **音色必须属于本模型**:其它模型的系统音色(如 3.0 系列的 `*_v3.6`)、为其它模型创建的复刻音色都不能用,服务端只会回 `411`。脚本会提前识别并提示。
 - 分组:**多语种与方言**(4 个,支持 8 种方言与 8 种外语)、**精品中文**(22 个,仅普通话)、**精品英文**(15 个,仅英文)、**其他系统**(27 个,角色/童声/陪伴等)。
 
@@ -43,7 +45,7 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 - Turbo 依赖 `websocket-client`，由启动器按 `requirements.txt` 与 dashscope 一起安装和校验；缺失时经用户确认执行 `run.py --setup --yes` 修复，不单独向其他 Python 环境安装。
 - 官网当前 API 基础费率为 v4 $0.08/千字符、Turbo $0.04/千字符，实际价格与音色资格以账号为准；使用 Turbo 不解除音色库的付费套餐限制。
 
-- UI 与 `say` 支持 `eleven_v4`，使用官方 Text to Dialogue HTTPS 接口（单人朗读发送一条 `text` / `voice_id` 输入），支持固定音色。`gen` / `script` / `preview` 同样跟随默认模型；声音复刻仍使用百炼 Flash。
+- UI 与 `say` 支持 `eleven_v4`，使用官方 Text to Dialogue HTTPS 接口（单人朗读发送一条 `text` / `voice_id` 输入），支持固定音色。`gen` / `script` / `preview` 同样跟随默认模型；默认选 Eleven 时只显示 Eleven 的 Key、音色与收藏，不显示 Flash / Plus 复刻界面；如需百炼复刻必须先切换模型。
 - 在工作台顶部选择 Eleven v4，打开 ElevenLabs API Key 页面，由用户创建具有读取音色与语音生成权限的 Key，粘贴到本地密码输入框并点击「校验并保存 Key」。不要读取用户剪贴板或把 Key 写进对话。校验只读取账号音色，不提交合成。
 - 密钥：`ELEVENLABS_API_KEY` → `~/.config/bailian-tts/elevenlabs.key`，文件权限 600；只显示掩码，环境变量与新 Key 冲突时拒绝覆盖。
 - 点「保存模型设置」切换试听与中键朗读。刷新账号音色后可加入收藏、设为默认；收藏位于 `~/.config/bailian-tts/elevenlabs-favorites.json`，第 1 个为中键默认音色，与百炼收藏隔离。本地取消收藏不删除 ElevenLabs 账号音色。首次读取账号音色时，若本地收藏文件尚不存在，从可用账号音色中导入 Siqi Liu、Adrian、Roger；不会导入 Coco Li。
@@ -53,7 +55,7 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 - 正文会发送到 ElevenLabs；生成消耗该账号额度，用户确认后才提交试听。相同音色与文本在同一工作台中复用已有音频。音色费率与模型费率需按账号确认，首次导入不代表自动核验价格。
 - 参考：[模型文档](https://elevenlabs.io/docs/overview/models#eleven-v4)、[接口](https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert)、[API 定价](https://elevenlabs.io/pricing/api)。
 
-## 控制语气（百炼 Flash）
+## 控制语气（百炼 Flash / Plus）
 
 - **`--instruct "自然语言"`**:原样传给模型。写具体的声音特征比写主观词有效:「沉稳的中年女声,语速偏慢,适合新闻播报」好于「好听一点」。方言也用指令:「请用重庆话表达。」(只对多语种与方言组的 4 个音色有效)。上限 100 字符,汉字计 2,超长脚本直接报错。
 - **`--emotion`**:`neutral / happy / angry / sad / surprised / fearful / disgusted`,未给 `--instruct` 时拼成「用开心的语气说话。」这类指令。
@@ -64,9 +66,9 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 
 ## 全局模型与命令行限制
 
-`gen` / `script` / `preview` / `say` 使用工作台保存的模型，不会自动回退到 Flash。ElevenLabs 未指定 `-v` 时使用其独立收藏的第一个音色，Next 使用工作台声音描述，不接受 `-v` / `@voice`。`voices` / `fav` / `clone` / `delete` 仍管理百炼 Flash 音色。
+`gen` / `script` / `preview` / `say` 使用工作台保存的模型，不会自动回退到 Flash。ElevenLabs 未指定 `-v` 时使用其独立收藏的第一个音色，Next 使用工作台声音描述，不接受 `-v` / `@voice`。`voices` / `fav` / `clone` 仅跟随默认的 Flash / Plus；默认为 Next 或 Eleven 时直接报错，不会静默操作 Flash。`voices` / `fav` / `clone` 可用 `--model qwen-audio-3.1-tts-flash|qwen-audio-3.1-tts-plus` 显式指定管理目标，不改变默认合成模型；`delete` 按给定 ID 删除。
 
-`gen` / `script` / `preview` 不自动截断正文；Next 单段上限 2800 字符，Eleven 单段上限 2000 字符。Next 不接受 `--instruct` / `--emotion` / `--pitch` / `@instruct`；Eleven 还不接受非默认 `--rate` / `--volume`。不兼容设置在合成前报错；脚本先校验全部段落再提交。Next 的输出时长限制仍可能导致长文不完整，先用短句验证。
+`gen` / `script` / `preview` 不自动截断正文；Flash / Plus 单段上限均为 20000 字符，Next 单段上限 2800 字符，Eleven 单段上限 2000 字符。Next 不接受 `--instruct` / `--emotion` / `--pitch` / `@instruct`；Eleven 还不接受非默认 `--rate` / `--volume`。不兼容设置在合成前报错；脚本先校验全部段落再提交。Next 的输出时长限制仍可能导致长文不完整，先用短句验证。
 
 ## 子命令
 
@@ -74,15 +76,16 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 ```bash
 ... run.py voices --gender 女 --scene 新闻播报
 ... run.py voices --mine
+... run.py voices --model qwen-audio-3.1-tts-plus  # 仅列 4 个旗舰系统音色
 ```
 
-**preview** —— 合成一句直接播放,**选音色、调语气时先用它**:
+**preview** —— 合成一句直接播放,**选音色、调语气时先用它**。以下示例中的 `xuyuyuan_v3.1` 仅适用于 Flash；Plus 请用其旗舰或复刻音色:
 ```bash
 ... run.py preview -v xuyuyuan_v3.1 --instruct "沉稳知性,像新闻播报"
 ... run.py preview -v longanhuan_v3.1 --instruct "请用重庆话表达。" --text "今天我们去吃火锅,好不好嘛。"
 ```
 
-**gen** —— 生成单段 wav(`--text` 或 `--file`),打印时长:
+**gen** —— 生成单段 wav(`--text` 或 `--file`),打印时长。以下 `yuxiaoyun_v3.1` 仅适用于 Flash:
 ```bash
 ... run.py gen -v yuxiaoyun_v3.1 --text "[excited]新品上市![laughing]" --out audio/ad.wav
 ... run.py gen --emotion sad --file 文案.txt --out out.wav
@@ -92,7 +95,7 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 ```bash
 ... run.py script 旁白.txt --out-dir dub/ --gap 0.4
 ```
-脚本格式:每个非空行是一段;`#` 开头为注释;`@voice <音色>`、`@instruct <指令>` 设置之后各段,`@instruct` 留空即清除。命令行的 `-v` / `--instruct` 是初始值。
+脚本格式:每个非空行是一段;`#` 开头为注释;`@voice <音色>`、`@instruct <指令>` 设置之后各段,`@instruct` 留空即清除。命令行的 `-v` / `--instruct` 是初始值。以下为 Flash 示例；Plus 脚本必须使用 Plus 的旗舰或复刻音色，所有段落先校验再合成。
 ```text
 @voice xuyuyuan_v3.1
 @instruct 沉稳知性的女声，语速适中
@@ -104,7 +107,7 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 
 **ui** —— **本地配音工作台,首次引导、挑音色、复刻声音、配置选中朗读都用它**。在本机启动只监听 `127.0.0.1` 的服务(每个请求带一次性 token)并自动打开浏览器,同一个页面顶栏有四栏(选中朗读仅 macOS):
 - **开始**:功能介绍、运行环境检查、创建并保存 API Key(校验后写入 `~/.dashscope_key`,权限 600)。还没配置 key 时,不论要打开哪一栏都先落在这里。
-- **选音色**:左侧是 68 个系统音色和本模型可用的复刻音色(按分组、性别、关键词筛选),右侧试听台写一句话(可加指令),逐个音色点「试听」现场合成;试听过的音色在清单上记下时长。可加入收藏、取消收藏、设为默认(直接写 `favorites.txt`),复刻音色还可在这里删除。
+- **选音色**:左侧是 Flash 68 个系统音色或 Plus 4 个旗舰系统音色，以及本模型可用的复刻音色(按分组、性别、关键词筛选),右侧试听台写一句话(可加指令),逐个音色点「试听」现场合成;试听过的音色在清单上记下时长。可加入收藏、取消收藏、设为默认(按模型写 `favorites.txt` / `plus-favorites.txt`),复刻音色还可在这里删除。
 - **选中朗读**(仅 macOS):安装 `bailian-say` 入口、配置鼠标按键(OpenLogi,确认后自动改配置并备份)或全局键盘快捷键(一键编译并启动后台小助手)、试读与查看朗读日志,详见下文 **say**。
 - **声音复刻**:四步向导。录音(准备事项、麦克风选择、录音稿;开录后整屏只留念稿、大号计时与电平表;也可选已有文件)→ 质检(先给结论,再列时长 / 音量 / 破音与波形)→ 试听(原声与复刻对比、自定义句子再试)→ 完成(设为默认 / 加入收藏 / 不收藏 / 删除重录)。
 ```bash
@@ -113,19 +116,19 @@ python3 "$skill_dir/scripts/run.py" <子命令> ...
 ... run.py ui --page clone         # 直接打开「声音复刻」,等同 clone-ui
 ... run.py ui --page say           # 直接打开「选中朗读」
 ```
-- **模型切换**：展开顶部「默认模型」，选择 Flash、Next、Eleven v4 或 Eleven v4 Turbo 后保存；同步用于工作台试听及 `gen` / `script` / `preview` / `say`；声音复刻、`voices` / `fav` / `delete` 仍为 Flash 专属。Next 沿用北京地域 API Key，需要填写业务空间 ID（或设置优先级更高的 `SFM_WORKSPACE_ID`）与声音描述；参考[官方接口](https://help.aliyun.com/zh/model-studio/audio-generation-api)。不上传参考录音，不保证每次音色一致。提示词合计最多 3000 字符，普通场景音频最长 120 秒，1500 字长文可能无法完整生成；试听仍限制 200 字。先用短句试听，不要为尝试模型自动提交付费请求。
+- **模型切换**：展开顶部「默认模型」，选择 Flash、Plus、Next、Eleven v4 或 Eleven v4 Turbo 后保存；同步用于工作台试听及 `gen` / `script` / `preview` / `say`。每个模型使用自己的专属配置面板：Flash / Plus 显示音色与复刻说明；Next 只显示业务空间 ID 与声音描述；Eleven 显示 ElevenLabs Key。选音色、收藏与声音复刻仅对应当前模型。Next / Eleven 不加载百炼音色目录与收藏，也不显示 Flash 录音步骤；复刻栏改为本模型说明和切换入口。Next 沿用北京地域 API Key，需要填写业务空间 ID（或设置优先级更高的 `SFM_WORKSPACE_ID`）与声音描述；参考[官方接口](https://help.aliyun.com/zh/model-studio/audio-generation-api)。不上传参考录音，不保证每次音色一致。提示词合计最多 3000 字符，普通场景音频最长 120 秒，1500 字长文可能无法完整生成；试听仍限制 200 字。先用短句试听，不要为尝试模型自动提交付费请求。
 - 用户要挑音色、逐个试听比较 → `--page voices`;要复刻自己的声音 → `--page clone`;要管理音色(收藏、默认、删除复刻)→ `--page voices`。
 - 它会一直运行到用户点顶栏的「完成」。宿主支持后台运行时(如 Claude Code)放到后台,不要轮询;不支持时(如 Pi)前台运行且**不设超时**,地址会先打印出来,命令在用户点「完成」后返回。启动后告诉用户「已在浏览器打开配音工作台(某一栏),操作完点右上角『完成』回到这里」。
-- 进程退出时 stdout 打印 API key 状态(掩码)、本次创建的音色、试听了几个音色合成几次,以及「当前收藏」,据此向用户汇报。
+- 进程退出时 stdout 按当前模型汇总：Flash / Plus 打印百炼 Key 掩码、该模型创建的音色与收藏；Next 打印百炼 Key、业务空间 ID 状态与声音描述；Eleven 打印 ElevenLabs Key 与 Eleven 收藏。页面关闭汇总也只显示当前模型结果，不带入 Flash 收藏。据此向用户汇报。
 - 浏览器没自动打开时,把输出里的 `http://127.0.0.1:…/?t=…#…` 地址给用户手动打开(token 只在本次有效)。
 - 试听按次计费;同一音色、同一句子、同一指令在本次页面里只合成一次。页面里的删除自带二次确认,并会同时从收藏中移除,无需再问。
 
-**status** / **key** —— `status` 检查依赖、ffmpeg、API key 与收藏;`key` 查看 key 掩码,`key --console` 在默认浏览器打开百炼控制台的 API Key 页,`key --clipboard` 保存剪贴板里刚复制的 key 并清空剪贴板,`key --stdin` 从标准输入读取。保存前都会向百炼校验,无效 key 不会覆盖已有文件。
+**status** / **key** —— `status` 检查依赖、ffmpeg 与当前模型配置（Flash / Plus 的 Key 与收藏、Next 的百炼 Key 与业务空间和描述、Eleven 的 Key 与收藏），`onboarding` 按当前服务的 Key 判断；`key` 查看 key 掩码,`key --console` 在默认浏览器打开百炼控制台的 API Key 页,`key --clipboard` 保存剪贴板里刚复制的 key 并清空剪贴板,`key --stdin` 从标准输入读取。保存前都会向百炼校验,无效 key 不会覆盖已有文件。
 
 ### 按模型配置朗读长度
 
 - 工作台顶部模型设置提供「当前模型的朗读字数上限」，每个模型独立保存到 `settings.json` 的 `read_limits`。未配置或旧配置按 1500 字处理；修改后点击「保存模型设置」，中键、快捷键与「选中朗读」试读都会读取对应模型的值。
-- CLI 显式指定 `say --max N` 时覆盖该模型的本地配置，仍需满足安全范围：Flash 1～20000、Next 1～2800、Eleven v4 与 Turbo 各 1～2000。Next 为声音描述预留提示词长度，Eleven 使用插件保守的接口限制，不代表模型能力上限；增大字数不能解除输出时长限制。
+- CLI 显式指定 `say --max N` 时覆盖该模型的本地配置，仍需满足安全范围：Flash / Plus 各 1～20000、Next 1～2800、Eleven v4 与 Turbo 各 1～2000。Next 为声音描述预留提示词长度，Eleven 使用插件保守的接口限制，不代表模型能力上限；增大字数不能解除输出时长限制。
 - 字数在清理 Markdown 后计算；超出仍优先向前退到句末，必要时硬切并加省略号。整段生成后播放，不恢复自动分段。UI 的音色试听仍固定最多 200 字。
 
 **say** —— **用户想「选中文字按一下就读出来」(鼠标按键、快捷键朗读)时用它**,仅 macOS。读入文字 → 去掉代码块与 Markdown 符号 → 超过当前模型的字数配置（未配置时 1500，`--max` 可覆盖）时优先在句末截断 → 整段一次合成,完成后播放;再次触发会结束上一次本地合成与播放，再处理当前选中的文字；新旧启动入口统一识别，所有模型共用进程间控制锁和播放锁，避免中键、热键并发播放。已提交到服务端的请求仍可能计费，不自动重试。也接受 `-v` / `--instruct` / `--emotion`,不给音色时用收藏第 1 个。输出与报错写到 `~/Library/Logs/bailian-tts-say.log`,失败弹系统通知。
@@ -137,34 +140,37 @@ echo "要读的文字" | ~/.local/bin/bailian-say
 - 不方便用页面时运行 `say --install`,把它打印的配置转述给用户:**鼠标按键**(如 OpenLogi 的 `Workflow`:`bailian-say --save` → 按 `Cmd+C` → `bailian-say --clipboard`,会临时借用剪贴板,只还原纯文字;在 Ghostty、Orca 里 `Cmd+C` 复制不到时(如 Pi 全屏模式接管了鼠标),改读选中时已自动复制的文字)或**键盘快捷键**(推荐在页面一键配置;手动时用快捷指令快速操作,文字作为 stdin 传给 `bailian-say`,再在系统设置里绑快捷键)。改第三方软件的配置前先备份并征得用户同意。
 - `~/.local/bin/bailian-say` 通过标准库启动器使用同一虚拟环境，不依赖工作台服务。插件移动或升级后原路径失效时，回退到 Claude Code / Codex 插件缓存的最新副本；旧版入口升级后需运行 `run.py say --install` 更新一次。不要修改原有鼠标绑定。
 
-**clone** —— 命令行复刻,适合用户已经有录音文件、或不方便用浏览器时。直接给**本地录音路径**(m4a/mp3/wav 等,如 macOS 语音备忘录导出的文件):脚本用 ffmpeg 转成 24kHz 单声道 wav、检查时长(5~60 秒,推荐 10~20 秒),上传到百炼免费临时存储,再提交复刻并等待音色可用。用户不需要自己的 OSS。已有公网 URL 时也可直接传 URL。录音要求:单人、无背景音乐和噪音、至少 5 秒连续清晰朗读:
+**clone** —— 命令行复刻,适合用户已经有录音文件、或不方便用浏览器时。目标模型仅跟随默认 Flash / Plus，也可用 `--model` 指定；默认为 Next / Eleven 且未指定 `--model` 时直接报错。直接给**本地录音路径**(m4a/mp3/wav 等,如 macOS 语音备忘录导出的文件):脚本用 ffmpeg 转成 24kHz 单声道 wav、检查时长(5~60 秒,推荐 10~20 秒),上传到百炼免费临时存储,再提交复刻并等待音色可用。用户不需要自己的 OSS。已有公网 URL 时也可直接传 URL。录音要求:单人、无背景音乐和噪音、至少 5 秒连续清晰朗读:
 ```bash
 ... run.py clone ~/Desktop/我的录音.m4a --prefix ygd [--lang zh] [--denoise]
 ... run.py clone "https://..." --prefix ygd
+... run.py clone ~/Desktop/我的录音.m4a --prefix ygd --model qwen-audio-3.1-tts-plus
 ```
-成功后打印 `voice_id`(形如 `qwen-audio-3.1-tts-flash-ygd-<hex>`),之后 `-v <voice_id>` 使用,复刻音色同样支持指令。**每次调用都会新建一个音色**(账号上限 1000 个),不要重复提交。
+成功后打印 `voice_id`(形如 `qwen-audio-3.1-tts-flash-ygd-<hex>` 或 `qwen-audio-3.1-tts-plus-ygd-<hex>`)。复刻 `target_model` 与合成模型强绑定，Flash / Plus 的复刻音色不能混用，切换模型需重新复刻。Plus 支持抗噪能力更强的独立复刻，录音质量仍影响结果。之后在对应模型下用 `-v <voice_id>` 使用，复刻音色同样支持指令。**每次调用都会新建一个音色**(账号上限 1000 个),不要重复提交。
 
 **delete** —— 删除复刻音色:`... run.py delete <voice_id>`。**删除不可恢复,执行前先向用户确认。**
 
-**fav** —— 管理用户的收藏音色,存在 `~/.config/bailian-tts/favorites.txt`(每行一个,按添加顺序,第 1 个即默认音色)。系统音色和本模型的复刻音色都能收藏;`voices` 列表里收藏的音色标 ★:
+**fav** —— 管理目标模型的收藏音色，Flash 存在 `~/.config/bailian-tts/favorites.txt`，Plus 独立存在 `~/.config/bailian-tts/plus-favorites.txt`(每行一个，按添加顺序，第 1 个即该模型默认音色)。系统音色和本模型的复刻音色都能收藏;`voices` 列表里收藏的音色标 ★:
 ```bash
 ... run.py fav                      # 查看收藏
 ... run.py fav add longanwen_v3.1 longanlang_v3.1
 ... run.py fav rm longanlang_v3.1
+... run.py fav add longanhuan_v3.1 --model qwen-audio-3.1-tts-plus
 ```
+以上 `longanwen_v3.1` / `longanlang_v3.1` 仅适用于 Flash。Plus 文件不存在时仅继承 Flash 收藏中的旗舰系统音色，保存后与 Flash 隔离；空文件也表示独立空收藏。
 用户说"收藏这个音色""以后默认用 X"时用 `fav add`;要换默认就先 `rm` 再按想要的顺序 `add`。
 
 ## 典型协作流程
 
 0. `status` 自查;需要 onboarding 时按「开工前自查与首次引导」走完。
-1. 用户给文案 + 想要的语气/音色。**先读 `~/.config/bailian-tts/settings.json` 的 `model` 确认工作台默认模型(文件不存在即 Flash),始终用它合成;不要自行换模型,也不要用临时 HOME、改配置文件等方式绕开设置。** 需求超出该模型能力时(如要 `--instruct` 但默认不是 Flash,差异见「全局模型与命令行限制」),先说明差异,问用户是在工作台切换模型,还是在当前模型下换种做法(如 Eleven 用文本标签)。用户没指定音色时按默认模型选:
-   - **Flash**:先 `fav` 看百炼收藏:只有 1 个就直接用;有多个时问用户用哪个,或用收藏音色各 `preview` 一句让用户选。收藏为空、或用户想多比较几个时,后台运行 `ui --page voices` 让用户在页面上逐个试听挑选;只想按条件缩小范围时用 `voices`。
+1. 用户给文案 + 想要的语气/音色。**先读 `~/.config/bailian-tts/settings.json` 的 `model` 确认工作台默认模型(文件不存在即 Flash),始终用它合成;不要自行换模型,也不要用临时 HOME、改配置文件等方式绕开设置。** 需求超出该模型能力时(如要 `--instruct` 但默认不是 Flash / Plus,差异见「全局模型与命令行限制」),先说明差异,问用户是在工作台切换模型,还是在当前模型下换种做法(如 Eleven 用文本标签)。用户没指定音色时按默认模型选:
+   - **Flash / Plus**:先 `fav` 看对应模型收藏，`voices` 也只列该模型的系统音色:只有 1 个就直接用;有多个时问用户用哪个,或用收藏音色各 `preview` 一句让用户选。收藏为空、或用户想多比较几个时,后台运行 `ui --page voices` 让用户在页面上逐个试听挑选;只想按条件缩小范围时用 `voices`。
    - **Next**:不传 `-v` / `@voice`,用工作台声音描述;要换声音就请用户在工作台改描述。
    - **Eleven v4 / Turbo**:不看 `fav`(那是百炼收藏),不传 `-v` 时用 ElevenLabs 收藏第 1 个;用户想换或要比较时,后台运行 `ui --page voices` 让用户试听并设为默认。
 2. `preview` 试听 1~2 个候选(音色 × 指令),让用户拍板。
 3. 单段用 `gen`;多段/视频用 `script`,把 `all.wav` 和 `subtitles.srt` 交给剪辑工具。
 4. 用户想在任意 App 里选中文字就朗读:后台运行 `ui --page say`,在页面上安装入口、配置鼠标按键或快捷键并试读。
-5. 用户要用自己的声音:后台运行 `ui --page clone`,等用户点「完成」后汇报结果;用户已给出录音文件路径时可直接 `clone`。
+5. 用户要用自己的声音：默认 Flash / Plus 时后台运行 `ui --page clone`，等用户点「完成」后汇报结果。默认 Next / Eleven 时不显示百炼录音步骤；先请用户在顶部切换模型，或由用户明确指定 CLI 的 `clone --model` 目标。Eleven 音色在 ElevenLabs 控制台创建后回工作台刷新。用户已给出录音文件路径时可直接用目标模型的 `clone`。复刻后在同一模型下试听和收藏，不把旧模型的复刻 ID 用于新模型。
 
 ## 排错
 
@@ -176,5 +182,5 @@ echo "要读的文字" | ~/.local/bin/bailian-say
 
 ## 边界
 
-- 支持 Flash 音色配音、Eleven v4 / Turbo 固定音色配音，以及 Next 的文字描述声音配音；Next 的多人对话、参考录音、配乐与音效编排不在本技能内。Flash 的声音设计不在本技能内。
+- 支持 Flash / Plus 音色配音、Eleven v4 / Turbo 固定音色配音，以及 Next 的文字描述声音配音；Next 的多人对话、参考录音、配乐与音效编排不在本技能内。Flash 的声音设计不在本技能内。
 - 复刻他人声音须取得本人授权。
