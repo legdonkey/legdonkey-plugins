@@ -2,7 +2,7 @@ import type { EngineInterface } from 'claude-code'
 import type { Effort, SupportedModel } from './policy-text'
 import { EFFORTS, MODEL_RULES } from './policy-text'
 import { classify } from './judge'
-import { isEffort, judgeInput, parseContext } from './core'
+import { isEffort, judgeState, parseContext } from './core'
 import type { Config, Usage } from './core'
 
 type Case = { id: string; message: string; context?: string; currentEffort: Effort; holdout?: boolean; ok: Record<SupportedModel, Effort[]> }
@@ -22,8 +22,8 @@ export async function runBench($: EngineInterface, config: Config, args: string[
   for (const model of models) {
     for (const c of cases) {
       const history = c.context ? parseContext(c.context) : []
-      const prompt = judgeInput(model, c.currentEffort, { effort: c.currentEffort, toolCalls: 0, interrupted: false }, history, c.message)
-      const answer = await classify($, config, model, prompt, fallback)
+      const state = judgeState(model, c.currentEffort, { effort: c.currentEffort, toolCalls: 0, interrupted: false }, history, c.message)
+      const answer = await classify($, config, model, state, fallback)
       if (answer.usage) for (const key of Object.keys(usage) as (keyof Usage)[]) usage[key] += answer.usage[key]
       const actual = answer.result && answer.result.confidence >= 0.5 ? answer.result.effort : undefined
       const expected = c.ok[model]

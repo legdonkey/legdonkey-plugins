@@ -8,6 +8,13 @@ export type Config = ReturnType<typeof configOf>
 export type Classification = { effort: Effort; confidence: number; reason: string; suggestModel: boolean }
 export type JudgeResult = { result?: Classification; judge: Judge; ms: number; failure?: string; usage?: Usage }
 export type Usage = { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number }
+export type JudgeState = {
+  model: SupportedModel
+  current_effort: Effort | null
+  last_turn: { effort: Effort | null; tool_calls: number; user_interrupted: boolean }
+  recent_messages: Pick<SessionMessage, 'role' | 'text'>[]
+  user_message: string
+}
 export type Decision = {
   at: string; sessionId: string; turn: number; turnId: string; index: number; model: SupportedModel
   judge: string; judged?: Effort; final?: Effort; confidence?: number; reason: string; ms: number
@@ -104,12 +111,6 @@ export function isUltra(text: string): boolean {
   return /\bultrathink\b/i.test(text)
 }
 
-/** 整条消息只是「继续」类请求。只用于 Fable 提前收工后的升档规则，其他短回复都交给判档器结合前文判断。 */
-export function isContinue(text: string): boolean {
-  const words = text.toLowerCase().replace(/[\p{P}\p{S}]/gu, ' ').trim().replace(/\s+/g, ' ')
-  return ['继续', '继续吧', '接着', '接着做', 'continue', 'go on', 'keep going'].includes(words)
-}
-
 /** 按 Pi 的规则展开 auth.json 里的 key：`$NAME`、`${NAME}` 取变量，`$$`、`$!` 转义。 */
 export function expandPiKey(key: string, env: Record<string, unknown>): string | undefined {
   // shortcut: `!命令` 形式要执行 shell，模板变量只从 auth.json 条目自带的 env 取（mod 只能按字面量名读环境变量）；有人用到时再扩展。
@@ -162,9 +163,32 @@ export function parseSystemOne(text: string): Classification | undefined {
     if (!record(data) || !record(data.answers) || !record(data.answers.effort)) return undefined
     const value = data.answers.effort
     if (value.type !== 'choice' || !isEffort(value.choice) || !record(value.probabilities)) return undefined
-    const confidence = value.probabilities[value.choice]
-    if (typeof confidence !== 'number' || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) return undefined
+    const probabilities = value.probabilities
+    const own = probabilities[value.choice]
+    if (typeof own !== 'number' || !Number.isFinite(own) || own < 0 || own > 1) return undefined
+    const idx = EFFORTS.indexOf(value.choice)
+    const leftEffort = EFFORTS[idx - 1]
+    const rightEffort = EFFORTS[idx + 1]
+    const left = leftEffort !== undefined && Object.hasOwn(probabilities, leftEffort) ? probabilities[leftEffort] : 0
+    const right = rightEffort !== undefined && Object.hasOwn(probabilities, rightEffort) ? probabilities[rightEffort] : 0
+    if (typeof left !== 'number' || !Number.isFinite(left) || left < 0 || left > 1
+      || typeof right !== 'number' || !Number.isFinite(right) || right < 0 || right > 1) return undefined
+    const confidence = own >= 0.35 ? Math.min(1, own + Math.max(left, right)) : own
     return { effort: value.choice, confidence, reason: safeReason(value.choice, ''), suggestModel: false }
+  } catch { return undefined }
+}
+
+export function parseSystemOneUsage(text: string): Usage | undefined {
+  try {
+    const data: unknown = JSON.parse(text)
+    if (!record(data) || !record(data.usage)) return undefined
+    const { input_tokens, output_tokens, input_tokens_details } = data.usage
+    const cached = record(input_tokens_details) && Object.hasOwn(input_tokens_details, 'cached_tokens')
+      ? input_tokens_details.cached_tokens : 0
+    if (typeof input_tokens !== 'number' || !Number.isFinite(input_tokens) || input_tokens < 0
+      || typeof output_tokens !== 'number' || !Number.isFinite(output_tokens) || output_tokens < 0
+      || typeof cached !== 'number' || !Number.isFinite(cached) || cached < 0) return undefined
+    return { input_tokens, output_tokens, cache_read_input_tokens: cached, cache_creation_input_tokens: 0 }
   } catch { return undefined }
 }
 
@@ -180,21 +204,27 @@ export function httpFailure(status: number): string {
  * 判档输入，写法参照 Pi 的 inline-effort：当前消息最多 12,000 字符；近期对话取最近 10 条 user/assistant 文本，
  * 合计最多 24,000 字符，越新的越优先保留（每条保留结尾，助手回复的结尾通常是它提出的问题或计划）。不含工具结果和图片。
  */
-export function judgeInput(model: SupportedModel, current: Effort | undefined,
+export function judgeState(model: SupportedModel, current: Effort | undefined,
   summary: { effort?: Effort; toolCalls: number; interrupted: boolean },
-  history: readonly Pick<SessionMessage, 'role' | 'text'>[], text: string): string {
+  history: readonly Pick<SessionMessage, 'role' | 'text'>[], text: string): JudgeState {
   let left = 24000
-  const recent: string[] = []
+  const recent_messages: JudgeState['recent_messages'] = []
   for (const row of history.filter(row => row.text.trim()).slice(-10).reverse()) {
     const part = row.text.slice(-left)
-    recent.unshift(`${row.role === 'user' ? '用户' : '助手'}: ${part}`)
+    recent_messages.unshift({ role: row.role, text: part })
     left -= part.length
     if (left === 0) break
   }
-  const context = recent.length
-    ? `近期对话（用于补全当前消息省略的目标、约束和交付要求；新任务不继承）：\n${recent.join('\n')}`
+  return { model, current_effort: current ?? null,
+    last_turn: { effort: summary.effort ?? null, tool_calls: summary.toolCalls, user_interrupted: summary.interrupted },
+    recent_messages, user_message: text.slice(0, 12000) }
+}
+
+export function formatJudgeInput(state: JudgeState): string {
+  const context = state.recent_messages.length
+    ? `近期对话：\n${state.recent_messages.map(row => `${row.role === 'user' ? '用户' : '助手'}: ${row.text}`).join('\n')}`
     : '近期对话：无'
-  return `当前模型：${model}\n会话当前档位：${current ?? '未设置'}\n上一轮摘要：档位=${summary.effort ?? '无'}；工具调用次数=${summary.toolCalls}；是否被中断=${summary.interrupted ? '是' : '否'}\n\n${context}\n\n当前用户消息：\n${text.slice(0, 12000)}`
+  return `会话当前档位：${state.current_effort ?? '未设置'}\n上一轮摘要：档位=${state.last_turn.effort ?? '无'}；工具调用次数=${state.last_turn.tool_calls}；用户中断=${state.last_turn.user_interrupted ? '是' : '否'}\n\n${context}\n\n当前用户消息：\n${state.user_message}`
 }
 
 /** 测评用例的 context 是「user: …\nassistant: …」文本，拆回对话行。 */

@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
-import type { On, TurnStepInput } from 'claude-code'
+import type { On, SessionMessage, TurnStepInput } from 'claude-code'
 import type { Decision } from '../hooks/core'
 
 const MODEL = 'claude-opus-5-5'
@@ -20,11 +20,12 @@ function setup(on: On, model = MODEL, env: Record<string, string> = {}, entries:
   let delay = 0
   let usage = { ...USAGE }
   let sessionId = 'test-session'
+  let history: Pick<SessionMessage, 'role' | 'text'>[] = []
   let beforeStep = async () => {}
   let skipCompact = false
   on('session.model', () => ({ value: model }))
   on('session.id', () => ({ value: sessionId }))
-  on('session.messages', () => ({ value: [] }))
+  on('session.messages', () => ({ value: history.map(row => ({ ...row, toolUses: [] })) }))
   on('command.register', () => ({ value: { command: 'auto-effort' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))
@@ -53,6 +54,7 @@ function setup(on: On, model = MODEL, env: Record<string, string> = {}, entries:
   })
   return { clock, calls, statuses, toasts, prompts, configWrites, tail: () => tail,
     sessionId: (id: string) => { sessionId = id },
+    history: (value: typeof history) => { history = value },
     model: (value: string) => { model = value },
     skipCompact: () => { skipCompact = true },
     holdStep: (wait: () => Promise<void>) => { beforeStep = wait },
@@ -105,19 +107,27 @@ test('进程恢复从持久决策找回档位、来源和摘要，低置信度�
   await submit($, m.clock, '下一项')
   await step($)
   expect(m.calls.at(-1)?.effort).toBe('low')
-  expect(m.prompts[0]).toMatch('工具调用次数=3；是否被中断=是')
-  expect((await report($)).decisions.at(-1)?.previousFinal).toBe('low')
+  expect(m.prompts[0]).toMatch('工具调用次数=3；用户中断=是')
+  expect(m.prompts.length).toBe(1)
+  expect((await report($)).decisions.at(-1)?.previousFinal).toBe(restored.lastFinal)
 })
 
-test('旧格式决策没有摘要仍可恢复，Fable 继续使用恢复的档位升档', async ($, on) => {
-  const m = setup(on, 'claude-fable-5-2', {}, { decisions: [savedDecision()] })
-  expect((await report($)).summary).toEqual({ effort: 'low', toolCalls: 0, interrupted: false })
-  await submit($, m.clock, '继续')
-  await step($, 't1', 0, 'medium', undefined, 'claude-fable-5-2')
-  expect(m.calls.at(-1)?.effort).toBe('high')
-  expect(m.prompts.length).toBe(0)
-  expect((await report($)).decisions.at(-1)?.reason).toBe('Fable 继续任务升档')
-})
+for (const text of ['下一项', '继续'])
+  test(`旧格式决策没有摘要仍可恢复，Fable「${text}」正常判档`, async ($, on) => {
+    const m = setup(on, 'claude-fable-5-2', {}, { decisions: [savedDecision()] })
+    const restored = await report($)
+    expect(restored.summary).toEqual({ effort: 'low', toolCalls: 0, interrupted: false })
+    m.answer('{"effort":"medium","confidence":0.9,"reason":"常规","suggestModel":false}')
+    await submit($, m.clock, text)
+    await step($, 't1', 0, 'medium', undefined, 'claude-fable-5-2')
+    expect(m.calls.at(-1)?.effort).toBe('medium')
+    expect(m.prompts.length).toBe(1)
+    expect(m.prompts[0]).toMatch('会话当前档位：low\n上一轮摘要：档位=low；工具调用次数=0；用户中断=否')
+    const decision = (await report($)).decisions.at(-1)
+    expect(decision?.judge).toBe('haiku')
+    expect(decision?.judged).toBe('medium')
+    expect(decision?.previousFinal).toBe(restored.lastFinal)
+  })
 
 test('/clear 删除本会话持久状态，保留其他会话，新 id 不沿用旧状态', async ($, on) => {
   const saved = savedDecision()
@@ -331,19 +341,27 @@ test('低置信度沿用也遵守新设置的上限', async ($, on) => {
   expect(m.calls.at(-1)?.effort).toBe('low')
 })
 
-test('Fable 的继续消息从 low 或 medium 直接升 high', async ($, on) => {
-  const m = setup(on, 'claude-fable-5-2')
-  m.answer('{"effort":"low","confidence":0.9,"reason":"简单","suggestModel":false}')
-  await submit($, m.clock, '事实问答')
-  let stream = $.turn.step({ turnId: 't1', index: 0, effort: 'medium', model: 'claude-fable-5-2', messageCount: 2 })
-  while (!(await stream.next()).done) {}
-  await complete($)
-  await submit($, m.clock, '继续', 't2')
-  stream = $.turn.step({ turnId: 't2', index: 0, effort: 'medium', model: 'claude-fable-5-2', messageCount: 4 })
-  while (!(await stream.next()).done) {}
-  expect(m.calls.map(c => c.effort)).toEqual(['low', 'high'])
-  expect(m.prompts.length).toBe(1)
-})
+for (const initial of ['low', 'medium'])
+  test(`Fable 在 ${initial} 后收到继续，结合近期对话按判档结果改档`, async ($, on) => {
+    const m = setup(on, 'claude-fable-5-2')
+    m.answer(JSON.stringify({ effort: initial, confidence: 0.9, reason: '常规', suggestModel: false }))
+    await submit($, m.clock, '任务')
+    await step($, 't1', 0, 'medium', undefined, 'claude-fable-5-2')
+    await complete($)
+    m.history([{ role: 'user', text: '按计划整理文档，再补常规测试。' }, { role: 'assistant', text: '文档整理完成，下一步补常规测试。' }, { role: 'user', text: '继续' }])
+    m.answer('{"effort":"medium","confidence":0.9,"reason":"常规","suggestModel":false}')
+    await submit($, m.clock, '继续', 't2')
+    await step($, 't2', 0, 'medium', undefined, 'claude-fable-5-2')
+    expect(m.calls.map(c => c.effort)).toEqual([initial, 'medium'])
+    expect(m.prompts.length).toBe(2)
+    expect(m.prompts.at(-1)).toMatch('近期对话：\n用户: 按计划整理文档，再补常规测试。\n助手: 文档整理完成，下一步补常规测试。')
+    expect(m.prompts.at(-1)?.endsWith('当前用户消息：\n继续')).toBe(true)
+    expect(m.prompts.at(-1)?.includes('用户: 继续')).toBe(false)
+    const decision = (await report($)).decisions.at(-1)
+    expect(decision?.judge).toBe('haiku')
+    expect(decision?.judged).toBe('medium')
+    expect(decision?.previousFinal).toBe(initial)
+  })
 
 test('运行中插入消息可在后续工具步改档', async ($, on) => {
   const m = setup(on)
@@ -476,6 +494,9 @@ test('OpenRouter HTTP 错误回退 Haiku 且不泄露原文', { options: { judge
   expect(m.toasts.filter(t => t === '已回退 Haiku：认证失败').length).toBe(1)
   expect(JSON.stringify(await report($)).includes('secret-server-original')).toBe(false)
   expect(JSON.stringify(requests[0])).toMatch('typesafe/jev-1.14')
+  expect(m.prompts.length).toBe(2)
+  expect(m.prompts[0]?.startsWith('会话当前档位：')).toBe(true)
+  expect(m.prompts[0]?.includes('当前模型')).toBe(false)
 })
 
 for (const kind of ['missing', 'invalid', 'low', 'timeout', 'network'] as const)
@@ -494,14 +515,43 @@ for (const kind of ['missing', 'invalid', 'low', 'timeout', 'network'] as const)
     expect(m.toasts.length).toBe(1)
   })
 
-test('System One 成功不调用 Haiku，概率才是置信度', { options: { judge: 'jev', openrouterApiKey: 'fake' } }, async ($, on) => {
-  const m = setup(on)
-  on('http.fetch', () => ({ value: { status: 200, ok: true, headers: {}, text: JSON.stringify({ answers: { effort: { type: 'choice', choice: 'low', probabilities: { low: 0.9 }, confidence: 0.1 } } }) } }))
-  await submit($, m.clock, '任务')
-  await step($)
-  expect(m.prompts.length).toBe(0)
-  expect(m.calls.at(-1)?.effort).toBe('low')
-})
+for (const result of [
+  { choice: 'low', probabilities: { low: 0.9 }, confidence: 0.9 },
+  { choice: 'high', probabilities: { high: 0.46, xhigh: 0.45 }, confidence: 0.91 },
+])
+  test(`System One ${result.choice} 概率 ${result.confidence} 直接通过，发送结构化 state 并记录 usage`, { options: { judge: 'jev', openrouterApiKey: 'fake' } }, async ($, on) => {
+    const saved = { ...savedDecision(), summary: { effort: 'low' as const, toolCalls: 3, interrupted: true } }
+    const m = setup(on, MODEL, {}, { decisions: [saved] })
+    const history = [{ role: 'user' as const, text: '按计划执行。' }, { role: 'assistant' as const, text: '下一步开始实现。' }]
+    m.history([...history, { role: 'user', text: '继续' }])
+    let requests = 0
+    on('http.fetch', (_, e) => {
+      requests += 1
+      const body = JSON.parse(e.init!.body as string)
+      expect(e.url).toBe('https://openrouter.ai/api/v1/systemone')
+      expect(body.model).toBe('typesafe/jev-1.14')
+      expect(body.state).toEqual({ model: MODEL, current_effort: 'low',
+        last_turn: { effort: 'low', tool_calls: 3, user_interrupted: true }, recent_messages: history, user_message: '继续' })
+      expect(body.questions.effort.type).toBe('choice')
+      expect(body.questions.effort.instructions.includes('suggestModel')).toBe(false)
+      expect(body.questions.effort.instructions.includes('JSON')).toBe(false)
+      return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify({
+        answers: { effort: { type: 'choice', choice: result.choice, probabilities: result.probabilities, confidence: 0.1 } },
+        usage: { input_tokens: 120, output_tokens: 18, input_tokens_details: { cached_tokens: 80 } },
+      }) } }
+    })
+    await submit($, m.clock, '继续')
+    await step($)
+    expect(requests).toBe(1)
+    expect(m.prompts.length).toBe(0)
+    expect(m.toasts).toEqual([])
+    expect(m.calls.at(-1)?.effort).toBe(result.choice)
+    const decision = (await report($)).decisions.at(-1)
+    expect(decision?.judge).toBe('jev')
+    expect(decision?.confidence).toBe(result.confidence)
+    expect(decision?.judgeUsage).toEqual({ input_tokens: 120, output_tokens: 18, cache_read_input_tokens: 80, cache_creation_input_tokens: 0 })
+    expect(JSON.stringify(decision).includes('按计划执行。')).toBe(false)
+  })
 
 test('Fable 收尾提示是稳定会话段落', { options: { fableFinishPrompt: true } }, async ($, on) => {
   on('prompt.compose', () => ({ sections: [{ id: 'intro', text: '固定前缀', scope: 'shared' }] }))

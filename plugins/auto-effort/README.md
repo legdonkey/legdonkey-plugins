@@ -19,9 +19,10 @@ claude plugin install auto-effort@legdonkey
 
 - `prompt.submit` 后台判档，不改用户文本。首步等待剩余判档时间；超时不改写，沿用引擎档位。
 - 斜杠命令和 `isMeta` 消息不判档。包含独立单词 `ultrathink` 的消息交给引擎。
-- 确认、批准、选择等短回复和普通消息一样交给判档器，按近期对话里这条回复将要启动的工作判断（参照 Pi 的 inline-effort）。唯一的规则捷径：Fable 在 low/medium 后收到整条 `继续`、`continue`、`go on`、`keep going` 时直接升至 high（官方：Fable 5.2 在低档更容易提前收工）。
+- 确认、批准、选择、继续等短回复和普通消息一样交给判档器，结合近期对话判断下一轮实际执行的工作（参照 Pi 的 inline-effort）。Fable 的继续消息也不跳过判档器，不再硬编码升档。
+- 上下文已齐全但结果仍不对时，换更强模型的提示仅由默认的 Haiku 判档器提供（包括回退到 Haiku 的结果）；System One 直接判档不提供此提示。
 - 判档无效或置信度低于 0.5 时沿用上一轮。没有上一轮时不改写。结果受上下限与 max 开关约束；上下限冲突时以上限为准。
-- `--resume` 按 session id 从持久决策恢复上一轮最终档位和摘要；低置信度沿用与 Fable「继续」升档照常使用恢复出的档位。`/clear` 删除本会话的持久决策和内存状态，其他会话不受影响。
+- `--resume` 按 session id 从持久决策恢复上一轮最终档位和摘要；新轮次正常判档，判档输入与低置信度沿用都使用恢复出的档位，继续消息也一样。`/clear` 删除本会话的持久决策和内存状态，其他会话不受影响。
 - 每轮首步比较引擎原始 effort。相邻非 ultrathink 轮的档位发生变化时，视为用户手动改档并暂停。用 `/auto-effort on` 恢复。
 - Bedrock、Vertex/Agent Platform、Foundry、自定义 `ANTHROPIC_BASE_URL` 或设置 `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` 时暂停，状态栏说明「会重建缓存，已暂停」。官方 `https://api.anthropic.com` 地址不算自定义网关。
 - 只在改写过档位的轮次检查缓存：上一轮读取大于 0，且本次读取减少时，提示「检测到缓存读取减少，可能是切档导致缓存重建」。写入变大不计数。每轮最多计一次，同一会话累计两次后暂停；`/auto-effort on` 恢复并清零。
@@ -45,7 +46,9 @@ claude plugin install auto-effort@legdonkey
 | `fableFinishPrompt` | `false` | 为 Fable 追加官方收尾提示 |
 | `debugLogPath` | 空 | JSON Lines 请求摘要日志的绝对路径；相对路径忽略 |
 
-OpenRouter 模型：Jev 为 `typesafe/jev-1.14`，D1 Ultra 为 `liquid/d1-ultra`，Mammoth 为 `baseten/mammoth-1`，Decider 为 `perplexity/pplx-decider-v1.2`。调用 `https://openrouter.ai/api/v1/systemone`。失败、超时、无 key、无效结果或低置信度时，回退 Haiku 一次。会话中只提示首次回退原因。OpenRouter 等待最多占用总时限的一半，且不超过 2 秒。
+OpenRouter 模型：Jev 为 `typesafe/jev-1.14`，D1 Ultra 为 `liquid/d1-ultra`，Mammoth 为 `baseten/mammoth-1`，Decider 为 `perplexity/pplx-decider-v1.2`。调用 `https://openrouter.ai/api/v1/systemone`（Decisions API），请求以结构化 `state` 发送 `model`、`current_effort`、`last_turn`、`recent_messages` 和 `user_message`，不再把整段提示塞进 `state.prompt`；`questions.effort` 用 `choice` 和每档 `criteria` 定义判档问题，不要求输出 JSON 或 `suggestModel`。Haiku 则使用独立系统提示和格式化文本输入。
+
+System One 的赢家概率至少为 0.35 时，将它与较大的相邻档位概率相加（上限 1）作为置信度；更低时只用赢家自身概率。失败、超时、无 key、无效结果或置信度低于 0.5 时，回退 Haiku 一次。会话中只提示首次回退原因。OpenRouter 等待最多占用总时限的一半，且不超过 2 秒。
 
 `fableFinishPrompt` 是稳定的会话级系统段落。中途切换这个开关会改变系统提示，并在引擎重载提示时重建缓存。请在会话开始前设置。
 
@@ -67,7 +70,7 @@ OpenRouter 模型：Jev 为 `typesafe/jev-1.14`，D1 Ultra 为 `liquid/d1-ultra`
 
 输入 `/auto-effort ` 后，命令名旁会灰显可用子命令；再敲子命令或取值的首字母，补全列表会列出候选和中文说明，Tab 选中。
 
-`status` 返回开关、判档器、上下限和本会话最近 10 次决策。`lastFinal` 是上一轮最终档位；`lastDecision` 用时间、`turnId` 和步数标识来源决策；`summary` 是上一轮档位、工具次数与中断标记，不含消息原文。决策含时间、模型、判档器、判出档位、最终档位、置信度、中文理由、耗时与该次请求的缓存读写。`previousFinal` 记录决策使用的上一轮档位。修改开关、判档器和上下限会通过 `$.config.set` 写回 userConfig。
+`status` 返回开关、判档器、上下限和本会话最近 10 次决策。`lastFinal` 是上一轮最终档位；`lastDecision` 用时间、`turnId` 和步数标识来源决策；`summary` 是上一轮档位、工具次数与中断标记，不含消息原文。决策含时间、模型、判档器、判出档位、最终档位、置信度、中文理由、耗时与该次请求的缓存读写。`previousFinal` 记录决策使用的上一轮档位。`judgeUsage` 记录判档器 token 用量；System One 返回合法 `usage` 时提取输入、输出及 `input_tokens_details.cached_tokens`，缺少缓存计数时按 0，缓存创建计数为 0。`test` 的 `usage` 和 `bench` 的汇总 `usage` 也包含这些用量。修改开关、判档器和上下限会通过 `$.config.set` 写回 userConfig。
 
 `test` 只判档，不改主会话 effort。`bench` 对插件内 `bench/judge-cases.json` 判档，返回全部与 holdout 命中率、偏低数、偏高数、无效数及中位耗时。明细写入 `bench/results/<时间戳>-<judge>.json`，不复制用例文本。测评直接比较判档器的原始结果，不用运行时上下限调整答案。
 
@@ -93,7 +96,7 @@ python3 -I scripts/e2e.py claude-opus-5-5 --insertion
 python3 -I scripts/e2e.py claude-fable-5-2 --resume
 ```
 
-模拟测试不调用真实模型。e2e、bench 和 `test` 会产生费用。`$.model.complete` 的费用不包含在 headless 的 `total_cost_usd` 中，决策与测评结果另记 `usage`，核算时必须加上这些 Haiku token 的费用。
+模拟测试不调用真实模型。e2e、bench 和 `test` 会产生费用。`$.model.complete` 和 OpenRouter 请求的费用不包含在 headless 的 `total_cost_usd` 中；决策另记 `judgeUsage`，测试与测评结果另记 `usage`，核算时必须加上对应判档器的费用。
 
 运行中插入的普通消息会后台判档，并在主会话下一个 `turn.step` 应用一次，可以是非首步。Claude Code 2.1.323 实测在 `index=1` 追加逐消息 effort，证据见下方验收记录。
 
@@ -111,20 +114,20 @@ Haiku 判档器：
 
 | 模型 | 全部命中 | holdout 命中 | 偏低 | 偏高 | 中位耗时 |
 | --- | --- | --- | --- | --- | --- |
-| `claude-opus-5-5` | 75/75（100.0%） | 20/20 | 0 | 0 | 817 ms |
-| `claude-fable-5-2` | 71/75（94.7%） | 20/20 | 3 | 1 | 841 ms |
-| `claude-sonnet-5-5` | 70/75（93.3%） | 18/20 | 4 | 1 | 844 ms |
+| `claude-opus-5-5` | 75/75（100.0%） | 20/20 | 0 | 0 | 764 ms |
+| `claude-fable-5-2` | 72/75（96.0%） | 20/20 | 3 | 0 | 742 ms |
+| `claude-sonnet-5-5` | 72/75（96.0%） | 20/20 | 3 | 0 | 802 ms |
 
-明细见 [测评 JSON](bench/results/2026-11-13T17-14-39-062Z-haiku.json)。
+明细见 [测评 JSON](bench/results/2026-11-14T00-59-51-756Z-haiku.json)。
 
-Jev 判档器（225 次中 5 次因置信度不足回退 Haiku）：
+Jev 判档器（225 次全部由 Jev 直接完成，0 次回退 Haiku）：
 
 | 模型 | 全部命中 | holdout 命中 | 偏低 | 偏高 | 中位耗时 |
 | --- | --- | --- | --- | --- | --- |
-| `claude-opus-5-5` | 75/75（100.0%） | 20/20 | 0 | 0 | 418 ms |
-| `claude-fable-5-2` | 71/75（94.7%） | 20/20 | 3 | 1 | 409 ms |
-| `claude-sonnet-5-5` | 68/75（90.7%） | 18/20 | 5 | 2 | 407 ms |
+| `claude-opus-5-5` | 75/75（100.0%） | 20/20 | 0 | 0 | 408 ms |
+| `claude-fable-5-2` | 72/75（96.0%） | 20/20 | 3 | 0 | 407 ms |
+| `claude-sonnet-5-5` | 72/75（96.0%） | 20/20 | 3 | 0 | 407 ms |
 
-明细见 [测评 JSON](bench/results/2026-11-13T17-16-25-429Z-jev.json)。「批准计划」类用例（a08–a10）在 Fable 和 Sonnet 上判为 medium，派生标注要求 high/xhigh；这些标注按「Sonnet 比 Opus 高一档」推出，而 Sonnet 5.5 官方起点是 agent 编程用 medium，标注可能偏严，未据此修改规则。
+明细见 [测评 JSON](bench/results/2026-11-14T00-58-20-224Z-jev.json)。两套判档器剩余未命中的各 6 项完全相同，均为「批准计划」类用例（a08–a10）在 Fable 和 Sonnet 上判为 medium，而派生标注按「Sonnet/Fable 比 Opus 机械高一档」要求 high/xhigh；Sonnet 5.5 与 Fable 5.2 官方起点是常规/agent 编程用 medium，标注偏严，保持基准不变。
 
 端到端实测（Opus、Sonnet、Fable 各五轮，含运行中插入消息与 `--resume` 恢复）均通过：第 2 轮以后每轮缓存写入小于 2000 token，变档不重建缓存。运行记录不随仓库发布，可用上文 `scripts/e2e.py` 在本机重跑（会产生费用）。
