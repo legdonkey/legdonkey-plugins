@@ -1,17 +1,17 @@
 import { EFFORTS, MODEL_RULES } from './policy-text'
-import type { Effort, SupportedModel } from './policy-text'
+import type { Effort, SelectableEffort, SupportedModel } from './policy-text'
 import type { PluginOptions, PromptAutocompleteInput, PromptAutocompleteSuggestion, SessionMessage } from 'claude-code'
 
 export const JUDGES = ['haiku', 'jev', 'd1-ultra', 'mammoth-27b', 'decider'] as const
 export type Judge = typeof JUDGES[number]
 export type Config = ReturnType<typeof configOf>
-export type Classification = { effort: Effort; confidence: number; reason: string; suggestModel: boolean }
+export type Classification = { effort: SelectableEffort; confidence: number; reason: string; suggestModel: boolean }
 export type JudgeResult = { result?: Classification; judge: Judge; ms: number; failure?: string; usage?: Usage }
 export type Usage = { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number }
 export type JudgeState = {
   model: SupportedModel
-  current_effort: Effort | null
-  last_turn: { effort: Effort | null; tool_calls: number; user_interrupted: boolean }
+  current_effort: SelectableEffort | null
+  last_turn: { effort: SelectableEffort | null; tool_calls: number; user_interrupted: boolean }
   recent_messages: Pick<SessionMessage, 'role' | 'text'>[]
   user_message: string
 }
@@ -45,8 +45,16 @@ export function retainedDecisions(value: unknown): Decision[] {
   return kept.reverse()
 }
 
+export function isSelectableEffort(value: unknown): value is SelectableEffort {
+  return EFFORTS.some(effort => effort === value)
+}
+
 export function isEffort(value: unknown): value is Effort {
-  return typeof value === 'string' && EFFORTS.includes(value as Effort)
+  return value === 'low' || isSelectableEffort(value)
+}
+
+function normalizeEffort(effort: Effort): SelectableEffort {
+  return effort === 'low' ? 'medium' : effort
 }
 
 const VERBS: [string, string][] = [
@@ -91,8 +99,8 @@ export function configOf(options: PluginOptions) {
     enabled: options.enabled !== false,
     judge: JUDGES.includes(options.judge as Judge) ? options.judge as Judge : 'haiku' as Judge,
     openrouterApiKey: typeof options.openrouterApiKey === 'string' ? options.openrouterApiKey : '',
-    floor: isEffort(options.floor) ? options.floor : 'low' as Effort,
-    ceiling: isEffort(options.ceiling) ? options.ceiling : 'xhigh' as Effort,
+    floor: isEffort(options.floor) ? normalizeEffort(options.floor) : 'medium' as const,
+    ceiling: isEffort(options.ceiling) ? normalizeEffort(options.ceiling) : 'xhigh' as const,
     allowMax: options.allowMax === true,
     judgeTimeoutMs: typeof options.judgeTimeoutMs === 'number' && Number.isFinite(options.judgeTimeoutMs)
       ? Math.max(1, Math.min(60000, options.judgeTimeoutMs)) : 5000,
@@ -101,10 +109,11 @@ export function configOf(options: PluginOptions) {
   }
 }
 
-export function clampEffort(effort: Effort, config: Pick<Config, 'floor' | 'ceiling' | 'allowMax'>): Effort {
-  const top = Math.min(EFFORTS.indexOf(config.ceiling), config.allowMax ? 4 : 3)
+export function clampEffort(effort: Effort, config: Pick<Config, 'floor' | 'ceiling' | 'allowMax'>): SelectableEffort {
+  const ceiling = !config.allowMax && config.ceiling === 'max' ? 'xhigh' : config.ceiling
+  const top = EFFORTS.indexOf(ceiling)
   const bottom = Math.min(EFFORTS.indexOf(config.floor), top)
-  return EFFORTS[Math.min(top, Math.max(bottom, EFFORTS.indexOf(effort)))]!
+  return EFFORTS[Math.min(top, Math.max(bottom, EFFORTS.indexOf(normalizeEffort(effort))))]!
 }
 
 export function isUltra(text: string): boolean {
@@ -153,9 +162,12 @@ export function parseHaiku(text: string): Classification | undefined {
     if (!record(value) || !isEffort(value.effort) || typeof value.confidence !== 'number'
       || !Number.isFinite(value.confidence) || value.confidence < 0 || value.confidence > 1
       || typeof value.reason !== 'string' || typeof value.suggestModel !== 'boolean') return undefined
-    return { effort: value.effort, confidence: value.confidence, reason: safeReason(value.effort, value.reason), suggestModel: value.suggestModel }
+    return { effort: normalizeEffort(value.effort), confidence: value.confidence, reason: safeReason(value.effort, value.reason), suggestModel: value.suggestModel }
   } catch { return undefined }
 }
+
+// 按原始选项计算相邻概率，兼容旧响应，再归一赢家档位。
+const RESPONSE_EFFORTS: readonly Effort[] = ['low', ...EFFORTS]
 
 export function parseSystemOne(text: string): Classification | undefined {
   try {
@@ -166,15 +178,15 @@ export function parseSystemOne(text: string): Classification | undefined {
     const probabilities = value.probabilities
     const own = probabilities[value.choice]
     if (typeof own !== 'number' || !Number.isFinite(own) || own < 0 || own > 1) return undefined
-    const idx = EFFORTS.indexOf(value.choice)
-    const leftEffort = EFFORTS[idx - 1]
-    const rightEffort = EFFORTS[idx + 1]
+    const idx = RESPONSE_EFFORTS.indexOf(value.choice)
+    const leftEffort = RESPONSE_EFFORTS[idx - 1]
+    const rightEffort = RESPONSE_EFFORTS[idx + 1]
     const left = leftEffort !== undefined && Object.hasOwn(probabilities, leftEffort) ? probabilities[leftEffort] : 0
     const right = rightEffort !== undefined && Object.hasOwn(probabilities, rightEffort) ? probabilities[rightEffort] : 0
     if (typeof left !== 'number' || !Number.isFinite(left) || left < 0 || left > 1
       || typeof right !== 'number' || !Number.isFinite(right) || right < 0 || right > 1) return undefined
     const confidence = own >= 0.35 ? Math.min(1, own + Math.max(left, right)) : own
-    return { effort: value.choice, confidence, reason: safeReason(value.choice, ''), suggestModel: false }
+    return { effort: normalizeEffort(value.choice), confidence, reason: safeReason(value.choice, ''), suggestModel: false }
   } catch { return undefined }
 }
 
@@ -215,8 +227,8 @@ export function judgeState(model: SupportedModel, current: Effort | undefined,
     left -= part.length
     if (left === 0) break
   }
-  return { model, current_effort: current ?? null,
-    last_turn: { effort: summary.effort ?? null, tool_calls: summary.toolCalls, user_interrupted: summary.interrupted },
+  return { model, current_effort: current ? normalizeEffort(current) : null,
+    last_turn: { effort: summary.effort ? normalizeEffort(summary.effort) : null, tool_calls: summary.toolCalls, user_interrupted: summary.interrupted },
     recent_messages, user_message: text.slice(0, 12000) }
 }
 

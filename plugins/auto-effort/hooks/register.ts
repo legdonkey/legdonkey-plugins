@@ -1,8 +1,8 @@
 import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { AutoEffortSession } from '../types/index'
 import { FABLE_FINISH_PROMPT } from './policy-text'
-import type { Effort, SupportedModel } from './policy-text'
-import { cacheRebuilt, clampEffort, commandCompletions, configOf, isEffort, isUltra, JUDGES, judgeState, retainedDecisions, supportedModel } from './core'
+import type { SelectableEffort, SupportedModel } from './policy-text'
+import { cacheRebuilt, clampEffort, commandCompletions, configOf, isEffort, isSelectableEffort, isUltra, JUDGES, judgeState, retainedDecisions, supportedModel } from './core'
 import type { Config, Decision, JudgeResult } from './core'
 import { classify } from './judge'
 import { runBench } from './bench'
@@ -234,7 +234,7 @@ export const register: Register = (on, options) => {
     }
     const job = pending
     const eligible = job && job.model === model && (e.index === 0 || (job.midTurn && job.turnId === e.turnId))
-    let wanted: Effort | undefined
+    let wanted: SelectableEffort | undefined
     let decision: Decision | undefined
     if (eligible) {
       pending = undefined
@@ -389,7 +389,7 @@ export const register: Register = (on, options) => {
       let value: boolean | string
       if ((verb === 'on' || verb === 'off') && !arg) { field = 'enabled'; value = verb === 'on' }
       else if (verb === 'judge' && JUDGES.includes(arg as typeof JUDGES[number]) && !extra) { field = 'judge'; value = arg! }
-      else if ((verb === 'floor' || verb === 'ceiling') && isEffort(arg) && !extra) { field = verb; value = arg }
+      else if ((verb === 'floor' || verb === 'ceiling') && isSelectableEffort(arg) && !extra) { field = verb; value = arg }
       else if (verb === 'max' && (arg === 'on' || arg === 'off') && !extra) { field = 'allowMax'; value = arg === 'on' }
       else return { text: '用法：/auto-effort [status|on|off|judge <haiku|jev|d1-ultra|mammoth-27b|decider>|floor <档位>|ceiling <档位>|max on|off|test <文本>|bench [opus|sonnet|fable|all] [holdout]]' }
       const changed = await $.config.set({ key: `auto-effort.${field}`, value })

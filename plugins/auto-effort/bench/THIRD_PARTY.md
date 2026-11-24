@@ -1,6 +1,6 @@
 # 第三方内容
 
-`bench/effortless-judge-cases.json` 是 [HeyCubit/effortless](https://github.com/HeyCubit/effortless) 仓库 `bench/judge-cases.json` 的原样副本（2026-11-14 获取）。`bench/judge-cases.json` 由 `scripts/derive-cases.py` 从它派生，改为按模型标注。
+`bench/effortless-judge-cases.json` 是 [HeyCubit/effortless](https://github.com/HeyCubit/effortless) 仓库 `bench/judge-cases.json` 的原样副本（2026-11-14 获取）。`bench/judge-cases.json` 由 `scripts/derive-cases.py` 从它派生，按模型标注，最后将当前档和可接受档中的 `low` 归一为 `medium`。原始标注保存在 `source`。
 
 原许可证：
 

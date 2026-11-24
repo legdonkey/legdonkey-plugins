@@ -1,5 +1,5 @@
 {
- "about": "派生自 HeyCubit/effortless 的 bench/judge-cases.json（MIT，见 bench/THIRD_PARTY.md）。ok 按模型列出可接受的档位，第一个是最低可接受档；派生规则见 scripts/derive-cases.py。holdout 用例不用于调整提示词。",
+ "about": "派生自 HeyCubit/effortless 的 bench/judge-cases.json（MIT，见 bench/THIRD_PARTY.md）。ok 按模型列出可接受的档位，第一个是最低可接受档；当前档和可接受档中的 low 归一为 medium；派生规则见 scripts/derive-cases.py。holdout 用例不用于调整提示词。",
  "cases": [
   {
    "id": "t01",
@@ -8,13 +8,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -31,13 +31,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -54,13 +54,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -77,13 +77,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -100,13 +100,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -123,13 +123,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -146,13 +146,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -169,13 +169,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -196,7 +196,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -217,13 +216,12 @@
    "id": "n02",
    "kind": "normal",
    "message": "write unit tests for the parseDate helper in utils/date.ts",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "medium"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
@@ -244,15 +242,12 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low",
      "medium"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
-     "low",
      "medium"
     ]
    },
@@ -275,7 +270,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -303,7 +297,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -327,15 +320,12 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low",
      "medium"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
-     "low",
      "medium"
     ]
    },
@@ -357,7 +347,6 @@
      "medium"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
@@ -378,15 +367,12 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low",
      "medium"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
-     "low",
      "medium"
     ]
    },
@@ -405,15 +391,12 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low",
      "medium"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
-     "low",
      "medium"
     ]
    },
@@ -429,14 +412,13 @@
    "id": "n10",
    "kind": "normal",
    "message": "why is this test flaky? it passes locally but fails in CI about 1 in 5 runs",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "medium",
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -538,7 +520,7 @@
    "id": "b04",
    "kind": "big",
    "message": "design the database schema and sync protocol for offline-first multi-device editing",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "high",
@@ -619,14 +601,13 @@
    "id": "s01",
    "kind": "short-but-big",
    "message": "clean up my whole drive",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "medium",
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -647,7 +628,7 @@
    "id": "s02",
    "kind": "short-but-big",
    "message": "migrate everything to typescript",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "high",
@@ -674,7 +655,7 @@
    "id": "s03",
    "kind": "short-but-big",
    "message": "make it production ready",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "high",
@@ -701,14 +682,13 @@
    "id": "s04",
    "kind": "short-but-big",
    "message": "gör om hela sajten mobilanpassad",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "medium",
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -729,14 +709,13 @@
    "id": "s05",
    "kind": "short-but-big",
    "message": "fix all failing tests",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "medium",
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -765,7 +744,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -790,13 +768,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -818,7 +796,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -843,13 +820,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -895,13 +872,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -916,14 +893,13 @@
    "kind": "answer",
    "context": "user: the dashboard is slow\nassistant: I found the cause: every widget refetches all data on each render. Should I rewrite the data layer to a shared cache with subscriptions? It touches about 25 components.",
    "message": "do it",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "medium",
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -969,16 +945,16 @@
    "kind": "follow-up",
    "context": "user: rename x to count\nassistant: Renamed in 3 places. Also rename it in the tests?",
    "message": "yes",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1047,7 +1023,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
@@ -1097,14 +1072,12 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low",
      "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low",
      "medium"
     ]
    },
@@ -1119,7 +1092,7 @@
    "id": "o04",
    "kind": "model-relative",
    "message": "refactor the payment module into separate services, there are 40 files touching it",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "high",
@@ -1149,15 +1122,12 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low",
      "medium"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
-     "low",
      "medium"
     ]
    },
@@ -1180,7 +1150,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -1204,13 +1173,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1224,14 +1193,13 @@
    "id": "x04",
    "kind": "non-code",
    "message": "plan our next three product drops with deadlines, assets and who does what",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "medium",
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -1255,13 +1223,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1278,13 +1246,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1301,13 +1269,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1321,7 +1289,7 @@
    "id": "m03",
    "kind": "meta",
    "message": "think really hard about this: why does our churn spike every March? here's 2 years of data in data/churn.csv",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "high",
@@ -1352,13 +1320,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1376,13 +1344,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1400,13 +1368,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1427,7 +1395,6 @@
      "medium"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
@@ -1453,7 +1420,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -1478,15 +1444,12 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low",
      "medium"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
-     "low",
      "medium"
     ]
    },
@@ -1531,7 +1494,7 @@
    "kind": "big",
    "holdout": true,
    "message": "port the whole iOS app's networking layer to async/await, ~60 files",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "high",
@@ -1559,7 +1522,7 @@
    "kind": "short-but-big",
    "holdout": true,
    "message": "rewrite the backend in Go",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "high",
@@ -1587,14 +1550,13 @@
    "kind": "short-but-big",
    "holdout": true,
    "message": "audit all our dependencies",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "medium",
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -1620,13 +1582,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1649,7 +1611,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -1675,13 +1636,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1704,7 +1665,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -1758,7 +1718,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium"
     ],
     "claude-fable-5-2": [
@@ -1782,13 +1741,13 @@
    "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
@@ -1810,7 +1769,6 @@
      "high"
     ],
     "claude-opus-5-5": [
-     "low",
      "medium",
      "high"
     ],
@@ -1832,7 +1790,7 @@
    "kind": "meta",
    "holdout": true,
    "message": "ultrathink: is our caching strategy going to survive 10x traffic? look at src/cache and the infra config",
-   "currentEffort": "low",
+   "currentEffort": "medium",
    "ok": {
     "claude-sonnet-5-5": [
      "high",
@@ -1863,13 +1821,13 @@
    "currentEffort": "high",
    "ok": {
     "claude-sonnet-5-5": [
-     "low"
+     "medium"
     ],
     "claude-opus-5-5": [
-     "low"
+     "medium"
     ],
     "claude-fable-5-2": [
-     "low"
+     "medium"
     ]
    },
    "source": {
