@@ -15,7 +15,7 @@
       "name": "bailian-tts",
       "source": "./plugins/bailian-tts",
       "description": "阿里百炼 Qwen-Audio-3.1-TTS 语音合成：自然语言指令与文本内情感标签控制语气、方言与多语种音色、按脚本批量生成配音与字幕、复刻自己的声音。跨 Claude Code、Codex 与 Pi。",
-      "version": "2.13.1"
+      "version": "2.14.0"
     },
     {
       "name": "explainer-video",
@@ -33,7 +33,7 @@
       "name": "auto-effort",
       "source": "./plugins/auto-effort",
       "description": "Claude Code mod：每条用户消息由 Haiku 5.5（或 OpenRouter System One）按官方指南判档，逐轮自动切换 Opus 5.5、Sonnet 5.5、Fable 5.2 的 effort，保留提示缓存，支持会话恢复。仅支持 Claude Code。",
-      "version": "0.3.1"
+      "version": "0.3.2"
     }
   ]
 }

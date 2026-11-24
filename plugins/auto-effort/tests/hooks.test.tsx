@@ -1,7 +1,8 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
-import type { On, TurnStepInput } from 'claude-code'
+import type { On, SessionMessage, TurnStepInput } from 'claude-code'
 import type { Decision } from '../hooks/core'
+import { MODEL_RULES } from '../hooks/policy-text'
 
 const MODEL = 'claude-opus-5-5'
 const USAGE = { input_tokens: 5, output_tokens: 5, cache_read_input_tokens: 10000, cache_creation_input_tokens: 100 }
@@ -20,11 +21,12 @@ function setup(on: On, model = MODEL, env: Record<string, string> = {}, entries:
   let delay = 0
   let usage = { ...USAGE }
   let sessionId = 'test-session'
+  let history: Pick<SessionMessage, 'role' | 'text'>[] = []
   let beforeStep = async () => {}
   let skipCompact = false
   on('session.model', () => ({ value: model }))
   on('session.id', () => ({ value: sessionId }))
-  on('session.messages', () => ({ value: [] }))
+  on('session.messages', () => ({ value: history.map(row => ({ ...row, toolUses: [] })) }))
   on('command.register', () => ({ value: { command: 'auto-effort' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))
@@ -53,6 +55,7 @@ function setup(on: On, model = MODEL, env: Record<string, string> = {}, entries:
   })
   return { clock, calls, statuses, toasts, prompts, configWrites, tail: () => tail,
     sessionId: (id: string) => { sessionId = id },
+    history: (value: typeof history) => { history = value },
     model: (value: string) => { model = value },
     skipCompact: () => { skipCompact = true },
     holdStep: (wait: () => Promise<void>) => { beforeStep = wait },
@@ -104,20 +107,30 @@ test('进程恢复从持久决策找回档位、来源和摘要，低置信度�
   m.answer('{"effort":"xhigh","confidence":0.2,"reason":"不确定","suggestModel":false}')
   await submit($, m.clock, '下一项')
   await step($)
-  expect(m.calls.at(-1)?.effort).toBe('low')
-  expect(m.prompts[0]).toMatch('工具调用次数=3；是否被中断=是')
-  expect((await report($)).decisions.at(-1)?.previousFinal).toBe('low')
+  expect(m.calls.at(-1)?.effort).toBe('medium')
+  expect(m.prompts[0]).toMatch('会话当前档位：medium\n上一轮摘要：档位=medium；工具调用次数=3；用户中断=是')
+  expect(m.prompts.length).toBe(1)
+  const rows = (await report($)).decisions
+  expect(rows[0]).toEqual(saved)
+  expect(rows.at(-1)?.previousFinal).toBe(restored.lastFinal)
 })
 
-test('旧格式决策没有摘要仍可恢复，Fable 继续使用恢复的档位升档', async ($, on) => {
-  const m = setup(on, 'claude-fable-5-2', {}, { decisions: [savedDecision()] })
-  expect((await report($)).summary).toEqual({ effort: 'low', toolCalls: 0, interrupted: false })
-  await submit($, m.clock, '继续')
-  await step($, 't1', 0, 'medium', undefined, 'claude-fable-5-2')
-  expect(m.calls.at(-1)?.effort).toBe('high')
-  expect(m.prompts.length).toBe(0)
-  expect((await report($)).decisions.at(-1)?.reason).toBe('Fable 继续任务升档')
-})
+for (const text of ['下一项', '继续'])
+  test(`旧格式决策没有摘要仍可恢复，Fable「${text}」正常判档`, async ($, on) => {
+    const m = setup(on, 'claude-fable-5-2', {}, { decisions: [savedDecision()] })
+    const restored = await report($)
+    expect(restored.summary).toEqual({ effort: 'low', toolCalls: 0, interrupted: false })
+    m.answer('{"effort":"medium","confidence":0.9,"reason":"常规","suggestModel":false}')
+    await submit($, m.clock, text)
+    await step($, 't1', 0, 'medium', undefined, 'claude-fable-5-2')
+    expect(m.calls.at(-1)?.effort).toBe('medium')
+    expect(m.prompts.length).toBe(1)
+    expect(m.prompts[0]).toMatch('会话当前档位：medium\n上一轮摘要：档位=medium；工具调用次数=0；用户中断=否')
+    const decision = (await report($)).decisions.at(-1)
+    expect(decision?.judge).toBe('haiku')
+    expect(decision?.judged).toBe('medium')
+    expect(decision?.previousFinal).toBe(restored.lastFinal)
+  })
 
 test('/clear 删除本会话持久状态，保留其他会话，新 id 不沿用旧状态', async ($, on) => {
   const saved = savedDecision()
@@ -180,6 +193,33 @@ test('后台判档不阻塞提交，只改写主会话首步，短回复也结�
   expect((await report($)).decisions.length).toBe(2)
 })
 
+for (const model of Object.keys(MODEL_RULES)) {
+  for (const judge of ['haiku', 'jev'] as const) {
+    test(`${model} ${judge} 判出的 low 写为 medium，较高档位不变`,
+      { options: { judge, openrouterApiKey: 'fake-test-key', ceiling: 'max', allowMax: true } }, async ($, on) => {
+        const m = setup(on, model)
+        let effort = 'low'
+        on('http.fetch', () => ({ value: { status: 200, ok: true, headers: {}, text: JSON.stringify({
+          answers: { effort: { type: 'choice', choice: effort, probabilities: { [effort]: 0.9 } } },
+        }) } }))
+        const levels = ['low', 'medium', 'high', 'xhigh', 'max']
+        for (const level of levels) {
+          effort = level
+          m.answer(JSON.stringify({ effort, confidence: 0.9, reason: '测试', suggestModel: false }))
+          await submit($, m.clock, '测试判档', level)
+          await step($, level, 0, 'high', undefined, model)
+          await complete($, level)
+        }
+        const expected = ['medium', 'medium', 'high', 'xhigh', 'max']
+        expect(m.calls.map(c => c.effort)).toEqual(expected)
+        const decisions = (await report($)).decisions
+        expect(decisions.map(d => d.judge)).toEqual(levels.map(() => judge))
+        expect(decisions.map(d => d.judged)).toEqual(expected)
+        expect(decisions.map(d => d.final)).toEqual(expected)
+      })
+  }
+}
+
 test('OpenRouter 复用 Pi 的 key，模板变量取自条目的 env', { options: { judge: 'jev' } }, async ($, on) => {
   const m = setup(on, MODEL, { HOME: '/home/tester' })
   const reads: string[] = []
@@ -199,7 +239,7 @@ test('OpenRouter 复用 Pi 的 key，模板变量取自条目的 env', { options
   expect(reads[0]).toBe('/home/tester/.pi/agent/auth.json')
   expect(auth).toEqual(['Bearer pi-literal-key', 'Bearer from-env'])
   expect(m.prompts.length).toBe(0)
-  expect(m.calls.map(c => c.effort)).toEqual(['low', 'low'])
+  expect(m.calls.map(c => c.effort)).toEqual(['medium', 'medium'])
 })
 
 test('ultrathink、斜杠命令和隐藏消息不判档', async ($, on) => {
@@ -319,31 +359,44 @@ test('无效和低置信度沿用上一轮，首轮无结果不改写', async ($
   expect(m.calls.at(-1)?.effort).toBe('medium')
 })
 
-test('低置信度沿用也遵守新设置的上限', async ($, on) => {
+test('上下限命令不接受 low，低置信度沿用也遵守新设置的上限', async ($, on) => {
   const m = setup(on)
+  const command = { command: 'auto-effort', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } }
+  for (const field of ['floor', 'ceiling']) {
+    expect((await $.command.run({ ...command, args: `${field} low` })).text).toMatch('用法：')
+  }
+  expect(m.configWrites).toEqual([])
   await submit($, m.clock, '第一项')
   await step($)
   await complete($)
-  await $.command.run({ command: 'auto-effort', args: 'ceiling low', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  await $.command.run({ ...command, args: 'ceiling medium' })
   m.answer('{"effort":"xhigh","confidence":0.3,"reason":"验证","suggestModel":false}')
   await submit($, m.clock, '第二项', 't2')
   await step($, 't2')
-  expect(m.calls.at(-1)?.effort).toBe('low')
+  expect(m.calls.at(-1)?.effort).toBe('medium')
 })
 
-test('Fable 的继续消息从 low 或 medium 直接升 high', async ($, on) => {
-  const m = setup(on, 'claude-fable-5-2')
-  m.answer('{"effort":"low","confidence":0.9,"reason":"简单","suggestModel":false}')
-  await submit($, m.clock, '事实问答')
-  let stream = $.turn.step({ turnId: 't1', index: 0, effort: 'medium', model: 'claude-fable-5-2', messageCount: 2 })
-  while (!(await stream.next()).done) {}
-  await complete($)
-  await submit($, m.clock, '继续', 't2')
-  stream = $.turn.step({ turnId: 't2', index: 0, effort: 'medium', model: 'claude-fable-5-2', messageCount: 4 })
-  while (!(await stream.next()).done) {}
-  expect(m.calls.map(c => c.effort)).toEqual(['low', 'high'])
-  expect(m.prompts.length).toBe(1)
-})
+for (const [initial, applied] of [['low', 'medium'], ['high', 'high']])
+  test(`Fable 在 ${initial} 后收到继续，结合近期对话按判档结果改档`, async ($, on) => {
+    const m = setup(on, 'claude-fable-5-2')
+    m.answer(JSON.stringify({ effort: initial, confidence: 0.9, reason: '常规', suggestModel: false }))
+    await submit($, m.clock, '任务')
+    await step($, 't1', 0, 'medium', undefined, 'claude-fable-5-2')
+    await complete($)
+    m.history([{ role: 'user', text: '按计划整理文档，再补常规测试。' }, { role: 'assistant', text: '文档整理完成，下一步补常规测试。' }, { role: 'user', text: '继续' }])
+    m.answer('{"effort":"medium","confidence":0.9,"reason":"常规","suggestModel":false}')
+    await submit($, m.clock, '继续', 't2')
+    await step($, 't2', 0, 'medium', undefined, 'claude-fable-5-2')
+    expect(m.calls.map(c => c.effort)).toEqual([applied, 'medium'])
+    expect(m.prompts.length).toBe(2)
+    expect(m.prompts.at(-1)).toMatch('近期对话：\n用户: 按计划整理文档，再补常规测试。\n助手: 文档整理完成，下一步补常规测试。')
+    expect(m.prompts.at(-1)?.endsWith('当前用户消息：\n继续')).toBe(true)
+    expect(m.prompts.at(-1)?.includes('用户: 继续')).toBe(false)
+    const decision = (await report($)).decisions.at(-1)
+    expect(decision?.judge).toBe('haiku')
+    expect(decision?.judged).toBe('medium')
+    expect(decision?.previousFinal).toBe(applied)
+  })
 
 test('运行中插入消息可在后续工具步改档', async ($, on) => {
   const m = setup(on)
@@ -353,7 +406,7 @@ test('运行中插入消息可在后续工具步改档', async ($, on) => {
   await submit($, m.clock, '简短问题', 't1', { midTurn: true })
   await step($, 't1', 2)
   await step($, 't1', 3)
-  expect(m.calls.map(c => c.effort)).toEqual(['high', 'low', 'medium'])
+  expect(m.calls.map(c => c.effort)).toEqual(['high', 'medium', 'medium'])
   expect((await report($)).decisions.at(-1)?.index).toBe(2)
 })
 
@@ -476,6 +529,9 @@ test('OpenRouter HTTP 错误回退 Haiku 且不泄露原文', { options: { judge
   expect(m.toasts.filter(t => t === '已回退 Haiku：认证失败').length).toBe(1)
   expect(JSON.stringify(await report($)).includes('secret-server-original')).toBe(false)
   expect(JSON.stringify(requests[0])).toMatch('typesafe/jev-1.14')
+  expect(m.prompts.length).toBe(2)
+  expect(m.prompts[0]?.startsWith('会话当前档位：')).toBe(true)
+  expect(m.prompts[0]?.includes('当前模型')).toBe(false)
 })
 
 for (const kind of ['missing', 'invalid', 'low', 'timeout', 'network'] as const)
@@ -494,14 +550,43 @@ for (const kind of ['missing', 'invalid', 'low', 'timeout', 'network'] as const)
     expect(m.toasts.length).toBe(1)
   })
 
-test('System One 成功不调用 Haiku，概率才是置信度', { options: { judge: 'jev', openrouterApiKey: 'fake' } }, async ($, on) => {
-  const m = setup(on)
-  on('http.fetch', () => ({ value: { status: 200, ok: true, headers: {}, text: JSON.stringify({ answers: { effort: { type: 'choice', choice: 'low', probabilities: { low: 0.9 }, confidence: 0.1 } } }) } }))
-  await submit($, m.clock, '任务')
-  await step($)
-  expect(m.prompts.length).toBe(0)
-  expect(m.calls.at(-1)?.effort).toBe('low')
-})
+for (const result of [
+  { choice: 'low', probabilities: { low: 0.9 }, confidence: 0.9, expected: 'medium' },
+  { choice: 'high', probabilities: { high: 0.46, xhigh: 0.45 }, confidence: 0.91, expected: 'high' },
+])
+  test(`System One ${result.choice} 概率 ${result.confidence} 直接通过，发送结构化 state 并记录 usage`, { options: { judge: 'jev', openrouterApiKey: 'fake' } }, async ($, on) => {
+    const saved = { ...savedDecision(), summary: { effort: 'low' as const, toolCalls: 3, interrupted: true } }
+    const m = setup(on, MODEL, {}, { decisions: [saved] })
+    const history = [{ role: 'user' as const, text: '按计划执行。' }, { role: 'assistant' as const, text: '下一步开始实现。' }]
+    m.history([...history, { role: 'user', text: '继续' }])
+    let requests = 0
+    on('http.fetch', (_, e) => {
+      requests += 1
+      const body = JSON.parse(e.init!.body as string)
+      expect(e.url).toBe('https://openrouter.ai/api/v1/systemone')
+      expect(body.model).toBe('typesafe/jev-1.14')
+      expect(body.state).toEqual({ model: MODEL, current_effort: 'medium',
+        last_turn: { effort: 'medium', tool_calls: 3, user_interrupted: true }, recent_messages: history, user_message: '继续' })
+      expect(body.questions.effort.type).toBe('choice')
+      expect(body.questions.effort.instructions.includes('suggestModel')).toBe(false)
+      expect(body.questions.effort.instructions.includes('JSON')).toBe(false)
+      return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify({
+        answers: { effort: { type: 'choice', choice: result.choice, probabilities: result.probabilities, confidence: 0.1 } },
+        usage: { input_tokens: 120, output_tokens: 18, input_tokens_details: { cached_tokens: 80 } },
+      }) } }
+    })
+    await submit($, m.clock, '继续')
+    await step($)
+    expect(requests).toBe(1)
+    expect(m.prompts.length).toBe(0)
+    expect(m.toasts).toEqual([])
+    expect(m.calls.at(-1)?.effort).toBe(result.expected)
+    const decision = (await report($)).decisions.at(-1)
+    expect(decision?.judge).toBe('jev')
+    expect(decision?.confidence).toBe(result.confidence)
+    expect(decision?.judgeUsage).toEqual({ input_tokens: 120, output_tokens: 18, cache_read_input_tokens: 80, cache_creation_input_tokens: 0 })
+    expect(JSON.stringify(decision).includes('按计划执行。')).toBe(false)
+  })
 
 test('Fable 收尾提示是稳定会话段落', { options: { fableFinishPrompt: true } }, async ($, on) => {
   on('prompt.compose', () => ({ sections: [{ id: 'intro', text: '固定前缀', scope: 'shared' }] }))
@@ -525,20 +610,24 @@ test('更强模型提示每个会话只显示一次', async ($, on) => {
   expect(m.toasts.length).toBe(1)
 })
 
-test('test 不改会话档位或决策，bench 输出脱敏明细', async ($, on) => {
+test('test 与 bench 归一 low，不改会话档位或决策，bench 不套用上下限', { options: { floor: 'high' } }, async ($, on) => {
   const m = setup(on)
+  m.answer('{"effort":"low","confidence":0.9,"reason":"简单","suggestModel":false}')
   const files = new Map<string, string>()
   on('fs.read', () => ({ value: JSON.stringify({ cases: [{ id: 'case1', message: '不得记录的消息', currentEffort: 'medium', holdout: true,
-    ok: { 'claude-opus-5-5': ['high'], 'claude-sonnet-5-5': ['high'], 'claude-fable-5-2': ['high'] } }] }) }))
+    ok: { 'claude-opus-5-5': ['medium'], 'claude-sonnet-5-5': ['high'], 'claude-fable-5-2': ['medium', 'high'] } }] }) }))
   on('fs.write', (_, e) => { files.set(e.path, e.text); return { value: undefined } })
   const before = await report($)
   const command = { command: 'auto-effort', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } }
   const result = await $.command.run({ ...command, args: 'test 私密测试消息' })
-  expect(result.text).toMatch('high')
-  expect(await report($)).toEqual(before)
+  expect(JSON.parse(result.text!).result.effort).toBe('medium')
   const bench = await $.command.run({ ...command, args: 'bench all holdout' })
   expect(JSON.parse(bench.text!).summaries.length).toBe(3)
+  expect(await report($)).toEqual(before)
   expect(m.prompts.length).toBe(4)
   expect(files.size).toBe(1)
-  expect([...files.values()][0]!.includes('不得记录的消息')).toBe(false)
+  const detail = [...files.values()][0]!
+  expect(detail.includes('不得记录的消息')).toBe(false)
+  expect(JSON.parse(detail).rows.map((r: { actual: string; direction: string }) => [r.actual, r.direction]))
+    .toEqual([['medium', 'hit'], ['medium', 'hit'], ['medium', 'low']])
 })

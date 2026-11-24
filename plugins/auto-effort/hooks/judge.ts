@@ -1,8 +1,8 @@
 import type { EngineInterface } from 'claude-code'
 import type { SupportedModel } from './policy-text'
 import { haikuSystemPrompt, systemOneQuestion } from './policy-text'
-import { expandPiKey, httpFailure, parseHaiku, parseSystemOne, record } from './core'
-import type { Config, JudgeResult } from './core'
+import { expandPiKey, formatJudgeInput, httpFailure, parseHaiku, parseSystemOne, parseSystemOneUsage, record } from './core'
+import type { Config, JudgeResult, JudgeState } from './core'
 
 /** 复用 Pi 为 OpenRouter 保存的 key（`<agent 目录>/auth.json` 的 openrouter 条目）。只读，不写回，不记录。 */
 async function piOpenRouterKey($: EngineInterface): Promise<string | undefined> {
@@ -23,7 +23,7 @@ export const SYSTEM_ONE_MODELS = {
   'mammoth-27b': 'baseten/mammoth-1', decider: 'perplexity/pplx-decider-v1.2',
 } as const
 
-export async function classify($: EngineInterface, config: Config, model: SupportedModel, prompt: string,
+export async function classify($: EngineInterface, config: Config, model: SupportedModel, state: JudgeState,
   fallback: (reason: string) => Promise<void>, signal?: AbortSignal): Promise<JudgeResult> {
   const started = await $.clock.now()
   let failure: string | undefined
@@ -39,13 +39,13 @@ export async function classify($: EngineInterface, config: Config, model: Suppor
         })
         const response = await Promise.race([$.http.fetch('https://openrouter.ai/api/v1/systemone', {
           method: 'POST', headers: { Authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-          body: JSON.stringify({ model: SYSTEM_ONE_MODELS[config.judge], state: { prompt }, questions: { effort: systemOneQuestion(model) } }),
+          body: JSON.stringify({ model: SYSTEM_ONE_MODELS[config.judge], state, questions: { effort: systemOneQuestion(model) } }),
         }), timeout])
         if (!response) failure = '服务请求超时'
         else if (!response.ok) failure = httpFailure(response.status)
         else {
           const result = parseSystemOne(response.text)
-          if (result && result.confidence >= 0.5) return { result, judge: config.judge, ms: await $.clock.now() - started }
+          if (result && result.confidence >= 0.5) return { result, judge: config.judge, ms: await $.clock.now() - started, usage: parseSystemOneUsage(response.text) }
           failure = result ? '判档置信度不足' : '分类响应格式无效'
         }
       } catch { failure = '网络连接失败' }
@@ -57,7 +57,7 @@ export async function classify($: EngineInterface, config: Config, model: Suppor
   try {
     const remaining = Math.max(1, config.judgeTimeoutMs - (await $.clock.now() - started))
     const reply = await $.model.complete({ model: 'claude-haiku-5-5', system: haikuSystemPrompt(model),
-      prompt, maxTokens: 200, effort: 'low', timeoutMs: remaining }, { signal })
+      prompt: formatJudgeInput(state), maxTokens: 200, effort: 'low', timeoutMs: remaining }, { signal })
     const result = reply.isAnswered ? parseHaiku(reply.text) : undefined
     const reason = reply.isAnswered ? result ? result.confidence < 0.5 ? '判档置信度不足' : undefined : '判档结果无效'
       : reply.reason === 'aborted' ? '判档超时' : reply.reason === 'api-error' ? httpFailure(reply.status ?? 0) : '判档无回答'

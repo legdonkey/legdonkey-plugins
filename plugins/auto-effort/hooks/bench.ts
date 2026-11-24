@@ -1,11 +1,11 @@
 import type { EngineInterface } from 'claude-code'
-import type { Effort, SupportedModel } from './policy-text'
+import type { SelectableEffort, SupportedModel } from './policy-text'
 import { EFFORTS, MODEL_RULES } from './policy-text'
 import { classify } from './judge'
-import { isEffort, judgeInput, parseContext } from './core'
+import { isSelectableEffort, judgeState, parseContext } from './core'
 import type { Config, Usage } from './core'
 
-type Case = { id: string; message: string; context?: string; currentEffort: Effort; holdout?: boolean; ok: Record<SupportedModel, Effort[]> }
+type Case = { id: string; message: string; context?: string; currentEffort: SelectableEffort; holdout?: boolean; ok: Record<SupportedModel, SelectableEffort[]> }
 
 export async function runBench($: EngineInterface, config: Config, args: string[], fallback: (reason: string) => Promise<void>): Promise<string> {
   const aliases = { opus: 'claude-opus-5-5', sonnet: 'claude-sonnet-5-5', fable: 'claude-fable-5-2' } as const
@@ -13,17 +13,17 @@ export async function runBench($: EngineInterface, config: Config, args: string[
   if (!(target === 'all' || Object.hasOwn(aliases, target)) || args.length > 2 || (args[1] !== undefined && args[1] !== 'holdout'))
     return '用法：/auto-effort bench [opus|sonnet|fable|all] [holdout]'
   const raw = JSON.parse(await $.fs.read(`${$.plugin.root}/bench/judge-cases.json`)) as { cases: Case[] }
-  if (!Array.isArray(raw.cases) || raw.cases.some(c => typeof c.id !== 'string' || typeof c.message !== 'string' || !isEffort(c.currentEffort)))
+  if (!Array.isArray(raw.cases) || raw.cases.some(c => typeof c.id !== 'string' || typeof c.message !== 'string' || !isSelectableEffort(c.currentEffort)))
     return '测评用例格式无效'
   const models: SupportedModel[] = target === 'all' ? Object.keys(MODEL_RULES) as SupportedModel[] : [aliases[target as keyof typeof aliases]]
   const cases = raw.cases.filter(c => args[1] !== 'holdout' || c.holdout)
-  const rows: { id: string; model: SupportedModel; holdout: boolean; expected: Effort[]; actual: Effort | null; hit: boolean; direction: string; confidence?: number; reason?: string; ms: number; judge: string }[] = []
+  const rows: { id: string; model: SupportedModel; holdout: boolean; expected: SelectableEffort[]; actual: SelectableEffort | null; hit: boolean; direction: string; confidence?: number; reason?: string; ms: number; judge: string }[] = []
   const usage: Usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
   for (const model of models) {
     for (const c of cases) {
       const history = c.context ? parseContext(c.context) : []
-      const prompt = judgeInput(model, c.currentEffort, { effort: c.currentEffort, toolCalls: 0, interrupted: false }, history, c.message)
-      const answer = await classify($, config, model, prompt, fallback)
+      const state = judgeState(model, c.currentEffort, { effort: c.currentEffort, toolCalls: 0, interrupted: false }, history, c.message)
+      const answer = await classify($, config, model, state, fallback)
       if (answer.usage) for (const key of Object.keys(usage) as (keyof Usage)[]) usage[key] += answer.usage[key]
       const actual = answer.result && answer.result.confidence >= 0.5 ? answer.result.effort : undefined
       const expected = c.ok[model]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""语音合成工作台(所有文本合成跟随默认模型；声音复刻保留 Flash)。
+"""语音合成工作台(文本合成跟随默认模型；百炼音色管理与复刻支持 Flash / Plus)。
 
 - voices:  列出系统音色(与官方对齐);--mine 列出账号下全部复刻音色,标出哪些本模型可用
 - preview: 合成一句并播放(试听)
@@ -25,8 +25,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elevenlabs_api as eleven
 
 MODEL = "qwen-audio-3.1-tts-flash"
+PLUS_MODEL = "qwen-audio-3.1-tts-plus"
+BAILIAN_VOICE_MODELS = (MODEL, PLUS_MODEL)
 NEXT_MODEL = "qwen-audio-3.1-tts-next"
-READ_LIMIT_CAPS = {MODEL: 20000, NEXT_MODEL: 2800, eleven.MODEL: 2000, eleven.TURBO_MODEL: 2000}
+READ_LIMIT_CAPS = {MODEL: 20000, PLUS_MODEL: 20000, NEXT_MODEL: 2800, eleven.MODEL: 2000, eleven.TURBO_MODEL: 2000}
 DEFAULT_READ_LIMIT = 1500
 SETTINGS_PATH = os.path.expanduser("~/.config/bailian-tts/settings.json")
 DEFAULT_VOICE = "longanhuan_v3.1"
@@ -39,6 +41,7 @@ TAG = re.compile(r"\[[^\[\]]*\]")
 
 _CATALOG_PATH = os.path.join(os.path.dirname(__file__), "..", "references", "voices.json")
 FAV_PATH = os.path.expanduser("~/.config/bailian-tts/favorites.txt")
+PLUS_FAV_PATH = os.path.expanduser("~/.config/bailian-tts/plus-favorites.txt")
 KEY_PATH = os.path.expanduser("~/.dashscope_key")
 KEY_CONSOLE = "https://bailian.console.aliyun.com/cn-beijing/model/settings/api-key"
 
@@ -55,7 +58,7 @@ def load_settings():
 
 def save_settings(data):
     settings = {k: str(data.get(k, "")).strip() for k in ("model", "workspace_id", "description")}
-    if settings["model"] not in (MODEL, NEXT_MODEL, *eleven.MODELS):
+    if settings["model"] not in (MODEL, PLUS_MODEL, NEXT_MODEL, *eleven.MODELS):
         raise ValueError("不支持的模型")
     if settings["workspace_id"] and not re.fullmatch(r"[A-Za-z0-9-]{1,100}", settings["workspace_id"]):
         raise ValueError("业务空间 ID 只能包含字母、数字和连字符，不要填写完整 URL")
@@ -129,26 +132,40 @@ def synth_next(text, settings, rate=1.0, volume=50):
         return response.read()
 
 
-def load_catalog():
+def bailian_voice_model(settings=None):
+    """百炼管理入口只接受当前 Flash / Plus，不代替其他模型选择 Flash。"""
+    model = (settings or load_settings())["model"]
+    if model not in BAILIAN_VOICE_MODELS:
+        sys.exit("当前默认模型不支持百炼音色管理或声音复刻，请先在顶部切换为 Flash 或 Plus")
+    return model
+
+
+def load_catalog(model=None):
     with open(_CATALOG_PATH, encoding="utf-8") as f:
-        return json.load(f)["voices"]
+        voices = json.load(f)["voices"]
+    return [v for v in voices if v.get("plus")] if model == PLUS_MODEL else voices
 
 
-def voice_entry(voice):
-    for v in load_catalog():
+def voice_entry(voice, model=None):
+    for v in load_catalog(model):
         if v["voice"] == voice:
             return v
     return None
 
 
-def check_voice(voice):
+def check_voice(voice, model=MODEL):
     """音色必须属于本模型,否则服务端只回 411。系统音色查 catalog,复刻音色看 ID 前缀。"""
-    if voice_entry(voice) or voice.startswith(MODEL + "-"):
+    if voice_entry(voice, model) or voice.startswith(model + "-"):
         return
     m = re.match(r"(.+)-[A-Za-z0-9]{1,10}-[0-9a-f]{16,}$", voice)  # 复刻音色 ID:{target_model}-{prefix}-{hex}
     if m:
-        sys.exit(f"音色 {voice} 是为 {m.group(1)} 创建的复刻音色,不能用于 {MODEL}。需要用本模型重新 clone。")
-    print(f"⚠ {voice} 不在 {MODEL} 的音色 catalog 中(系统音色以 _v3.1 结尾)。"
+        sys.exit(f"音色 {voice} 是为 {m.group(1)} 创建的复刻音色,不能用于 {model}。需要用本模型重新 clone。")
+    for other in BAILIAN_VOICE_MODELS:
+        if other != model and voice.startswith(other + "-"):
+            sys.exit(f"音色 {voice} 属于 {other},不能用于 {model}。")
+    if model == PLUS_MODEL and voice_entry(voice, MODEL):
+        sys.exit(f"系统音色 {voice} 仅 {MODEL} 支持,不能用于 {PLUS_MODEL}。Plus 系统音色仅支持 {' / '.join(v['voice'] for v in load_catalog(PLUS_MODEL))},或使用本模型的复刻音色。")
+    print(f"⚠ {voice} 不在 {model} 的音色 catalog 中(系统音色以 _v3.1 结尾)。"
           "若是官方新增音色可继续;报 411 即音色不属于本模型。", file=sys.stderr)
 
 
@@ -276,10 +293,10 @@ def _clamp(x, lo, hi):
     return max(lo, min(hi, x))
 
 
-def synth(voice, text, instruction=None, rate=1.0, pitch=1.0, volume=50):
+def synth(voice, text, instruction=None, rate=1.0, pitch=1.0, volume=50, model=MODEL):
     from dashscope.audio.tts_v2 import SpeechSynthesizer, AudioFormat
     init_dashscope()
-    kw: dict = dict(model=MODEL, voice=voice, format=AudioFormat.WAV_24000HZ_MONO_16BIT,
+    kw: dict = dict(model=model, voice=voice, format=AudioFormat.WAV_24000HZ_MONO_16BIT,
               speech_rate=_clamp(rate, 0.5, 2.0), pitch_rate=_clamp(pitch, 0.5, 2.0),
               volume=int(_clamp(volume, 0, 100)))
     if instruction:
@@ -320,52 +337,59 @@ def synth_to_file(voice, text, instr, a, out_path):
     elif settings["model"] == NEXT_MODEL:
         raw = synth_next(text, settings, a.rate, a.volume)
     else:
-        raw = synth(voice, text, instr, a.rate, a.pitch, a.volume)
+        raw = synth(voice, text, instr, a.rate, a.pitch, a.volume, settings["model"])
     if not raw:
         sys.exit("✗ 合成失败(411 = 音色不属于本模型;指令过长或格式异常也会失败)")
     normalize(raw, out_path)
     return duration(out_path)
 
 
-def load_favorites():
-    try:
-        with open(FAV_PATH, encoding="utf-8") as f:
+def fav_path(model=MODEL):
+    return PLUS_FAV_PATH if model == PLUS_MODEL else FAV_PATH
+
+
+def load_favorites(model=MODEL):
+    if os.path.exists(fav_path(model)):
+        with open(fav_path(model), encoding="utf-8") as f:
             return [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        return []
+    if model == PLUS_MODEL:
+        return [v for v in load_favorites(MODEL) if voice_entry(v, PLUS_MODEL)]
+    return []
 
 
-def save_favorites(favs):
-    os.makedirs(os.path.dirname(FAV_PATH), exist_ok=True)
-    with open(FAV_PATH, "w", encoding="utf-8") as f:
+def save_favorites(favs, model=MODEL):
+    path = fav_path(model)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
         f.write("".join(v + "\n" for v in favs))
 
 
-def default_voice():
-    favs = load_favorites()
-    return (favs[0], "收藏第 1 个") if favs else (DEFAULT_VOICE, "内置默认")
+def default_voice(model=MODEL):
+    favs = load_favorites(model)
+    return (favs[0], "Plus 收藏第 1 个" if model == PLUS_MODEL else "收藏第 1 个") if favs else (DEFAULT_VOICE, "内置默认")
 
 
 def cmd_fav(a):
-    favs = load_favorites()
+    model = getattr(a, "target_model", MODEL)
+    favs = load_favorites(model)
     if a.action == "add":
         for v in a.voices:
-            check_voice(v)
+            check_voice(v, model)
             if v not in favs:
                 favs.append(v)
-        save_favorites(favs)
+        save_favorites(favs, model)
     elif a.action == "rm":
         missing = [v for v in a.voices if v not in favs]
         if missing:
             print(f"⚠ 不在收藏中:{' '.join(missing)}", file=sys.stderr)
         favs = [v for v in favs if v not in a.voices]
-        save_favorites(favs)
+        save_favorites(favs, model)
     if not favs:
-        print(f"收藏为空。未指定 -v 时使用内置默认 {DEFAULT_VOICE}。用 fav add <音色> 添加。")
+        print(f"收藏为空({fav_path(model)})。未指定 -v 时使用内置默认 {DEFAULT_VOICE}。用 fav add <音色> 添加。")
         return
-    print(f"收藏音色({FAV_PATH}):第 1 个为未指定 -v 时的默认音色\n")
+    print(f"收藏音色({fav_path(model)}):第 1 个为未指定 -v 时的默认音色\n")
     for i, v in enumerate(favs, 1):
-        e = voice_entry(v)
+        e = voice_entry(v, model)
         info = f"{e['name']} {e['gender']} {e.get('trait', '')}" if e else "复刻/catalog 外音色"
         print(f"  {i}. {v:20s} {info}" + ("  ← 默认" if i == 1 else ""))
 
@@ -378,15 +402,16 @@ def describe(voice):
 # ---------- voices / clone / delete ----------
 
 def cmd_voices(a):
+    target_model = getattr(a, "target_model", MODEL)
     if a.mine:
-        return list_mine()
-    cat = [v for v in load_catalog()
+        return list_mine(target_model)
+    cat = [v for v in load_catalog(target_model)
            if (not a.gender or v["gender"] == a.gender) and (not a.scene or a.scene in v["scene"] + v.get("usage", ""))]
     groups = {}
     for v in cat:
         groups.setdefault(v["scene"], []).append(v)
-    favs = set(load_favorites())
-    print(f"{MODEL} 系统音色(共 {len(cat)} 个;全部支持自然语言指令;★ = 已收藏)\n")
+    favs = set(load_favorites(target_model))
+    print(f"{target_model} 系统音色(共 {len(cat)} 个;全部支持自然语言指令;★ = 已收藏)\n")
     for scene, vs in groups.items():
         print(f"【{scene}】")
         for v in vs:
@@ -413,21 +438,21 @@ def fetch_custom_voices():
     return rows
 
 
-def list_mine():
+def list_mine(target_model=MODEL):
     rows = fetch_custom_voices()
-    usable = [r for r in rows if r.get("target_model") == MODEL]
-    others = [r for r in rows if r.get("target_model") != MODEL]
+    usable = [r for r in rows if r.get("target_model") == target_model]
+    others = [r for r in rows if r.get("target_model") != target_model]
     print(f"账号共 {len(rows)} 个自定义音色(上限 1000):本模型可用 {len(usable)} 个,其它模型 {len(others)} 个\n")
-    for title, group in [(f"【可用 · {MODEL}】", usable), ("【不可用 · 属于其它模型】", others)]:
+    for title, group in [(f"【可用 · {target_model}】", usable), ("【不可用 · 属于其它模型】", others)]:
         if not group:
             continue
         print(title)
         for r in group:
-            model = "" if r.get("target_model") == MODEL else f"  模型 {r.get('target_model')}"
+            model = "" if r.get("target_model") == target_model else f"  模型 {r.get('target_model')}"
             print(f"  {r['voice_id']}  [{r.get('status')}]  创建于 {r.get('gmt_create')}{model}")
         print()
     if others:
-        print("其它模型的音色本插件无法合成;不再需要可用 delete <voice_id> 释放配额。")
+        print(f"其它模型的音色不能用于 {target_model};不再需要可用 delete <voice_id> 释放配额。")
 
 
 def prepare_recording(path):
@@ -456,7 +481,7 @@ def upload_recording(path):
     return url
 
 
-def clone_voice(source, prefix, lang="zh", max_seconds=10.0, denoise=False):
+def clone_voice(source, prefix, lang="zh", max_seconds=10.0, denoise=False, target_model=MODEL):
     """复刻音色:source 为本地录音路径或公网 URL。返回 (voice_id, 是否已可用);出错时 sys.exit。"""
     from dashscope.audio.tts_v2 import VoiceEnrollmentService
     prefix = prefix.lower()  # SDK 约定前缀为小写字母和数字
@@ -476,7 +501,7 @@ def clone_voice(source, prefix, lang="zh", max_seconds=10.0, denoise=False):
             os.unlink(wav)
         # oss:// 临时地址必须带这个请求头,服务端才会去解析
         svc = VoiceEnrollmentService(headers={"X-DashScope-OssResourceResolve": "enable"})
-    kw: dict = dict(target_model=MODEL, prefix=prefix, url=url, language_hints=[lang],
+    kw: dict = dict(target_model=target_model, prefix=prefix, url=url, language_hints=[lang],
                     max_prompt_audio_length=max_seconds)
     if denoise:
         kw["enable_preprocess"] = True
@@ -494,7 +519,8 @@ def clone_voice(source, prefix, lang="zh", max_seconds=10.0, denoise=False):
 
 
 def cmd_clone(a):
-    voice_id, ready = clone_voice(a.source, a.prefix, a.lang, a.max_seconds, a.denoise)
+    voice_id, ready = clone_voice(a.source, a.prefix, a.lang, a.max_seconds, a.denoise,
+                                  target_model=getattr(a, "target_model", MODEL))
     print(f"✅ 可用。合成时用 -v {voice_id}" if ready else f"仍未就绪,稍后用 voices --mine 查看:{voice_id}")
 
 
@@ -512,17 +538,18 @@ class LocalUI:
         self.audio, self._ids = {}, itertools.count()  # 页面并发请求时编号也不冲突
         self.workdir = tempfile.mkdtemp(prefix="bailian_ui_")
 
-    def say(self, voice, text, instruction=None, settings=None):
+    def say(self, voice, text, instruction=None, settings=None, model=None):
         """合成并暂存在内存,返回 (页面可用的音频地址, 时长秒)。"""
         import types
         key = str(next(self._ids))
         path = os.path.join(self.workdir, f"say_{key}.wav")
-        if settings and settings["model"] in (NEXT_MODEL, *eleven.MODELS):
+        if model is None and settings and settings["model"] in (NEXT_MODEL, *eleven.MODELS):
             raw = eleven.synth(text, voice, settings["model"]) if settings["model"] in eleven.MODELS else synth_next(text, settings)
             normalize(raw, path)
             secs = duration(path)
         else:
-            secs = synth_to_file(voice, text, instruction, types.SimpleNamespace(rate=1.0, pitch=1.0, volume=50, synth_settings={"model": MODEL}), path)
+            use_model = model or (settings["model"] if settings and settings.get("model") in BAILIAN_VOICE_MODELS else MODEL)
+            secs = synth_to_file(voice, text, instruction, types.SimpleNamespace(rate=1.0, pitch=1.0, volume=50, synth_settings={"model": use_model}), path)
         self.audio[key] = open(path, "rb").read()
         return f"/audio?t={self.token}&k={key}", round(secs, 2)
 
@@ -648,27 +675,37 @@ class LocalUI:
             import shutil; shutil.rmtree(self.workdir, ignore_errors=True)
 
 
-def print_favorites_summary():
-    favs = load_favorites()
+def print_favorites_summary(model=MODEL):
+    favs = load_favorites(model)
     print("当前收藏:" + (" ".join(favs) if favs else "无") + (f"(默认 {favs[0]})" if favs else ""))
 
 
 def cmd_status(a):
     """不联网的快速自查:依赖、ffmpeg、API key。未配置 key 时最后一行提示打开引导页。"""
-    deps, key = deps_status(), key_status()
+    settings = load_settings()
+    is_eleven = settings["model"] in eleven.MODELS
+    deps, key = deps_status(), eleven.key_status() if is_eleven else key_status()
+    print(f"默认模型:{settings['model']}")
     yes = lambda ok: "✓" if ok else "✗"
     print(f"{yes(deps['dashscope'])} Python 依赖 dashscope" + ("" if deps["dashscope"] else
           "(缺失:python3 -m venv ~/.bailian-tts-venv && ~/.bailian-tts-venv/bin/pip install "
           "-i https://mirrors.aliyun.com/pypi/simple/ dashscope)"))
     print(f"{yes(deps['ffmpeg'])} ffmpeg" + ("" if deps["ffmpeg"] else "(缺失:macOS 用 brew install ffmpeg)"))
+    key_name = "ElevenLabs API key" if is_eleven else "百炼 API key"
     if key["configured"]:
-        where = "环境变量 DASHSCOPE_API_KEY" if key["source"] == "env" else KEY_PATH
-        print(f"✓ API key {key['masked']}(来自 {where})" + (",⚠ 文件权限过宽,建议 chmod 600" if key.get("loose") else ""))
+        env_name = "ELEVENLABS_API_KEY" if is_eleven else "DASHSCOPE_API_KEY"
+        where = f"环境变量 {env_name}" if key["source"] == "env" else (eleven.KEY_PATH if is_eleven else KEY_PATH)
+        print(f"✓ {key_name} {key['masked']}(来自 {where})" + (",⚠ 文件权限过宽,建议 chmod 600" if key.get("loose") else ""))
     else:
-        print("✗ API key 未配置")
-    favs = load_favorites()
-    print(f"收藏音色:{len(favs)} 个" + (f",默认 {favs[0]}" if favs else ""))
-    print("onboarding: " + ("不需要" if key["configured"] else "需要,运行 ui 打开「开始」页配置 API key"))
+        print(f"✗ {key_name} 未配置")
+    if settings["model"] == NEXT_MODEL:
+        print("业务空间 ID:" + ("已配置" if settings["workspace_id"] else "未配置"))
+        print(f"声音描述:{settings['description'] or '未设置'}")
+    else:
+        favs = [v["voice"] for v in eleven.favorites()] if is_eleven else load_favorites(settings["model"])
+        print(f"收藏音色:{len(favs)} 个" + (f",默认 {favs[0]}" if favs else ""))
+    print("onboarding: " + ("不需要" if key["configured"] else
+          "需要,运行 ui 在顶部模型设置中配置 ElevenLabs API Key" if is_eleven else "需要,运行 ui 打开「开始」页配置 API key"))
 
 
 def cmd_key(a):
@@ -699,14 +736,19 @@ def cmd_ui(a):
     还没配置 key 时总是先打开「开始」页。"""
     ui = LocalUI("studio.html")
     created, takes, log = [], {}, {"key_saved": False, "say_installed": False, "openlogi": "", "hotkey": ""}  # takes:(音色, 句子, 指令) → (音频地址, 时长),本次会话内不重复合成
-    page = a.page if key_status()["configured"] or (load_settings()["model"] in eleven.MODELS and eleven.key_status()["configured"]) else "home"
+    current = load_settings()
+    active_key = eleven.key_status() if current["model"] in eleven.MODELS else key_status()
+    page = a.page if active_key["configured"] else "home"
 
     def state(q, body, ctype):
         manifest = os.path.join(os.path.dirname(__file__), "..", "..", "..", ".claude-plugin", "plugin.json")
         with open(manifest, encoding="utf-8") as f:
             version = json.load(f)["version"]
-        return {"version": version, "settings": load_settings(), "model": MODEL, "key": key_status(), "deps": deps_status(), "console": KEY_CONSOLE,
-                "catalog": load_catalog(), "favorites": load_favorites(), "sample": DEFAULT_SAMPLE,
+        current = load_settings()
+        model = current["model"]
+        return {"version": version, "settings": current, "model": model, "key": key_status(), "deps": deps_status(), "console": KEY_CONSOLE,
+                "catalog": load_catalog(model) if model in BAILIAN_VOICE_MODELS else [],
+                "favorites": load_favorites(model) if model in BAILIAN_VOICE_MODELS else [], "sample": DEFAULT_SAMPLE,
                 "platform": sys.platform, "eleven_key": eleven.key_status(), "eleven_favorites": eleven.favorites(), "read_limit_caps": READ_LIMIT_CAPS}
 
     def key(q, body, ctype):
@@ -734,21 +776,26 @@ def cmd_ui(a):
         return {"key": key_status()}
 
     def mine(q, body, ctype):
-        rows = [r for r in fetch_custom_voices() if r.get("target_model") == MODEL]
+        vmodel = bailian_voice_model(load_settings())
+        rows = [r for r in fetch_custom_voices() if r.get("target_model") == vmodel]
         return {"voices": [{"voice": r["voice_id"], "status": r.get("status"), "created": r.get("gmt_create")}
                            for r in rows]}
 
     def say(q, body, ctype):
         d = json.loads(body)
+        settings = load_settings()
+        if d.get("clone"):
+            bailian_voice_model(settings)
         voice, text = d["voice"], d["text"].strip()[:200]
         if not text:
             return {"error": "请先写一句要试听的话。"}
-        settings = load_settings()
         if d.get("model", settings["model"]) != settings["model"]:
             return {"error": "默认模型已在其他工作台更改，请刷新页面后重试。"}
+        if settings["model"] in eleven.MODELS and (voice_entry(voice, MODEL) or any(voice.startswith(m + "-") for m in BAILIAN_VOICE_MODELS)):
+            return {"error": "ElevenLabs 不能使用百炼音色 ID"}
         is_next = settings["model"] in (NEXT_MODEL, *eleven.MODELS)
         if not is_next:
-            check_voice(voice)
+            check_voice(voice, settings["model"])
         instr = None if is_next else resolve_instruction((d.get("instruct") or "").strip() or None, None)
         k = (voice, text, instr, json.dumps(settings, sort_keys=True))
         cached = k in takes
@@ -760,27 +807,31 @@ def cmd_ui(a):
     def fav(q, body, ctype):
         d = json.loads(body)
         voice, action = d["voice"], d["action"]
-        old = load_favorites()
+        vmodel = bailian_voice_model(load_settings())
+        if action in ("add", "default"):
+            check_voice(voice, vmodel)
+        old = load_favorites(vmodel)
         if action == "default":
             favs = [voice] + [v for v in old if v != voice]
         elif action == "add":
             favs = old if voice in old else old + [voice]
         else:
             favs = [v for v in old if v != voice]
-        save_favorites(favs)
+        save_favorites(favs, vmodel)
         return {"favorites": favs}
 
     def clone(q, body, ctype):
+        vmodel = bailian_voice_model(load_settings())
         ext = {"audio/webm": ".webm", "audio/mp4": ".m4a", "audio/ogg": ".ogg", "audio/wav": ".wav",
                "audio/mpeg": ".mp3", "audio/x-m4a": ".m4a"}.get(ctype, ".bin")
         src = os.path.join(ui.workdir, f"recording_{len(created)}{ext}")
         open(src, "wb").write(body)
-        voice_id, ready = clone_voice(src, q.get("prefix", ""), denoise=q.get("denoise") == "1")
+        voice_id, ready = clone_voice(src, q.get("prefix", ""), denoise=q.get("denoise") == "1", target_model=vmodel)
         created.append(voice_id)
         if not ready:
             return {"voice_id": voice_id, "error": "音色仍在处理中,请稍后再试听"}
         return {"voice_id": voice_id,
-                "audio": ui.say(voice_id, "大家好，这是用我自己的声音复刻出来的音色，听起来像不像我本人？")[0]}
+                "audio": ui.say(voice_id, "大家好，这是用我自己的声音复刻出来的音色，听起来像不像我本人？", model=vmodel)[0]}
 
     def delete(q, body, ctype):
         from dashscope.audio.tts_v2 import VoiceEnrollmentService
@@ -788,7 +839,13 @@ def cmd_ui(a):
         init_dashscope(); VoiceEnrollmentService().delete_voice(d["voice"])
         if d["voice"] in created:
             created.remove(d["voice"])
-        save_favorites([v for v in load_favorites() if v != d["voice"]])
+        favs = load_favorites(MODEL)
+        if d["voice"] in favs:
+            save_favorites([v for v in favs if v != d["voice"]], MODEL)
+        if os.path.exists(PLUS_FAV_PATH):
+            favs = load_favorites(PLUS_MODEL)
+            if d["voice"] in favs:
+                save_favorites([v for v in favs if v != d["voice"]], PLUS_MODEL)
         return {"deleted": d["voice"]}
 
     def say_state(q, body, ctype):
@@ -796,8 +853,10 @@ def cmd_ui(a):
         if settings["model"] in eleven.MODELS:
             favs = eleven.favorites()
             voice = favs[0] if favs else {"voice": "", "name": "请先收藏 ElevenLabs 音色"}
+        elif settings["model"] == NEXT_MODEL:
+            voice = {"voice": "", "name": f"Next 描述声音（{settings['description'] or '未设置'}）"}
         else:
-            vid = default_voice()[0]
+            vid = default_voice(settings["model"])[0]
             voice = {"voice": vid, "name": describe(vid)}
         trig = last_triggers()
         return {"wrapper": say_wrapper_status(), "openlogi": openlogi_status(), "workflow": OPENLOGI_WORKFLOW,
@@ -859,9 +918,15 @@ def cmd_ui(a):
                           ("POST", "/eleven-key"): eleven_key, ("POST", "/eleven-fav"): eleven_fav,
                           ("POST", "/say"): say, ("POST", "/fav"): fav, ("POST", "/clone"): clone,
                           ("POST", "/delete"): delete}, a, page)
-    st = key_status()
-    print("API key:" + (f"已配置 {st['masked']}" + (",本次新保存" if log["key_saved"] else "") if st["configured"] else "未配置"))
-    print("本次创建的音色:" + (" ".join(created) if created else "无"))
+    current = load_settings()
+    is_eleven = current["model"] in eleven.MODELS
+    st = eleven.key_status() if is_eleven else key_status()
+    print(f"默认模型:{current['model']}")
+    print(("ElevenLabs API key:" if is_eleven else "百炼 API key:") +
+          (f"已配置 {st['masked']}" + (",本次新保存" if log["key_saved"] and not is_eleven else "") if st["configured"] else "未配置"))
+    if current["model"] in BAILIAN_VOICE_MODELS:
+        current_created = [v for v in created if v.startswith(current["model"] + "-")]
+        print("本次创建的音色:" + (" ".join(current_created) if current_created else "无"))
     print(f"本次试听 {len({k[0] for k in takes})} 个音色,合成 {len(takes)} 次")
     if log["say_installed"] or log["openlogi"] or log["hotkey"]:
         hk = hotkey_status()
@@ -870,7 +935,15 @@ def cmd_ui(a):
               + ((f";全局快捷键 {hk['label']}" + ("" if hk["running"] else "(小助手没在运行)")
                   + ("" if hk["trusted"] else ",还差辅助功能权限") if hk["installed"] else ";全局快捷键已移除")
                  if log["hotkey"] else ""))
-    print_favorites_summary()
+    if current["model"] in BAILIAN_VOICE_MODELS:
+        print_favorites_summary(current["model"])
+    elif current["model"] == NEXT_MODEL:
+        print("业务空间 ID:" + ("已配置" if current["workspace_id"] else "未配置"))
+        print(f"声音描述:{current['description'] or '未设置'}")
+    else:
+        favs = eleven.favorites()
+        print("当前收藏:" + (" ".join(v["voice"] for v in favs) if favs else "无") +
+              (f"(默认 {favs[0]['voice']})" if favs else ""))
 
 
 def cmd_delete(a):
@@ -894,16 +967,18 @@ def read_text(a, allow_default):
 
 def validate_synthesis(voice, text, instr, a):
     model = a.synth_settings["model"]
-    if model == MODEL:
-        check_voice(voice)
+    if model in BAILIAN_VOICE_MODELS:
+        check_voice(voice, model)
         resolve_instruction(instr, a.emotion)
+        if len(text) > READ_LIMIT_CAPS[model]:
+            sys.exit(f"{model} 单段正文不能超过 {READ_LIMIT_CAPS[model]} 字符；请自行拆段，不会自动截断")
         return
     if instr or a.emotion or a.pitch != 1.0:
         sys.exit("当前模型不支持 --instruct / --emotion / --pitch 或 @instruct；请移除这些设置。Next 请在工作台设置声音描述。")
     if model in eleven.MODELS:
         if not voice:
             sys.exit("请先在工作台收藏 ElevenLabs 音色，或用 -v 指定 ElevenLabs voice_id")
-        if voice_entry(voice) or voice.startswith(MODEL + "-"):
+        if voice_entry(voice, MODEL) or any(voice.startswith(m + "-") for m in BAILIAN_VOICE_MODELS):
             sys.exit("ElevenLabs 不能使用百炼音色 ID")
         if a.rate != 1.0 or a.volume != 50:
             sys.exit("ElevenLabs 不支持 --rate / --volume，请使用文本内音频标签")
@@ -953,8 +1028,8 @@ def parse_script(path, voice, instruct, model=MODEL):
     if not segs:
         sys.exit(f"{path} 里没有可合成的文本行")
     for s in segs:
-        if model == MODEL:
-            check_voice(s["voice"])
+        if model in BAILIAN_VOICE_MODELS:
+            check_voice(s["voice"], model)
         resolve_instruction(s["instruction"], None)  # 先校验长度,避免跑到一半才失败
     return segs
 
@@ -1186,7 +1261,7 @@ def speak_segments(parts, voice, instr, a):
                 print(f"{a.synth_settings['model']} 合成失败: {e}", file=sys.stderr, flush=True)
                 return None
         else:
-            raw = synth(voice, parts[i], instr, a.rate, a.pitch, a.volume)
+            raw = synth(voice, parts[i], instr, a.rate, a.pitch, a.volume, a.synth_settings["model"])
         if not raw:
             return None
         path = os.path.join(tmp, f"{i}.wav")
@@ -1575,9 +1650,30 @@ def cmd_say(a):
         text = text[:cap - 2] + "……"
     if not text:
         return notify("没有可朗读的文字")
-    if a.synth_settings["model"] == MODEL:
-        check_voice(a.voice)
-    instr = resolve_instruction(a.instruct, a.emotion)
+    model = a.synth_settings["model"]
+    rate, pitch, volume = getattr(a, "rate", 1.0), getattr(a, "pitch", 1.0), getattr(a, "volume", 50)
+    try:
+        if model in BAILIAN_VOICE_MODELS:
+            check_voice(a.voice, model)
+            instr = resolve_instruction(a.instruct, a.emotion)
+        else:
+            if a.instruct or a.emotion or pitch != 1.0:
+                sys.exit("当前模型不支持 --instruct / --emotion / --pitch；请移除这些设置。Next 请在工作台设置声音描述。")
+            if model in eleven.MODELS:
+                if not a.voice:
+                    sys.exit("请先在工作台收藏 ElevenLabs 音色，或用 -v 指定 ElevenLabs voice_id")
+                if voice_entry(a.voice, MODEL) or any(a.voice.startswith(m + "-") for m in BAILIAN_VOICE_MODELS):
+                    sys.exit("ElevenLabs 不能使用百炼音色 ID")
+                if rate != 1.0 or volume != 50:
+                    sys.exit("ElevenLabs 不支持 --rate / --volume，请使用文本内音频标签")
+            elif getattr(a, "explicit_voice", False):
+                sys.exit("Next 使用工作台声音描述，不支持 -v")
+            instr = None
+    except SystemExit as e:
+        if a.clipboard:
+            say_log(f"校验失败:{e}")
+            return notify(str(e))
+        raise
     parts = [text]
     os.makedirs(os.path.dirname(SAY_LOG), exist_ok=True)
     with open(SAY_LOG, "a", encoding="utf-8") as log:
@@ -1606,6 +1702,7 @@ def main():
     sp.add_argument("--gender", choices=["女", "男"])
     sp.add_argument("--scene", help="按分组或适用场景筛选,如 精品中文 / 新闻播报 / 方言")
     sp.add_argument("--mine", action="store_true", help="列出账号下全部复刻音色(分本模型可用 / 属于其它模型)")
+    sp.add_argument("--model", choices=list(BAILIAN_VOICE_MODELS), help="指定百炼音色模型(默认仅跟随工作台的 Flash/Plus;Next/Eleven 须显式指定)")
     sp.set_defaults(func=cmd_voices)
 
     sp = sub.add_parser("preview", help="合成一句并试听"); add_synth_opts(sp)
@@ -1629,6 +1726,7 @@ def main():
     sp.add_argument("--lang", choices=CLONE_LANGS, default="zh", help="录音语种(默认 zh)")
     sp.add_argument("--max-seconds", type=float, default=10.0, dest="max_seconds", help="参考音频最大时长 3-30 秒")
     sp.add_argument("--denoise", action="store_true", help="开启降噪/增强(录音有底噪时用)")
+    sp.add_argument("--model", choices=list(BAILIAN_VOICE_MODELS), help="指定百炼音色模型(默认仅跟随工作台的 Flash/Plus;Next/Eleven 须显式指定)")
     sp.set_defaults(func=cmd_clone)
 
     sp = sub.add_parser("delete", help="删除一个复刻音色")
@@ -1669,6 +1767,7 @@ def main():
     sp = sub.add_parser("fav", help="管理收藏音色(第 1 个为默认音色)")
     sp.add_argument("action", nargs="?", choices=["list", "add", "rm"], default="list")
     sp.add_argument("voices", nargs="*", help="音色(add / rm 时必填,可多个)")
+    sp.add_argument("--model", choices=list(BAILIAN_VOICE_MODELS), help="指定百炼音色模型(默认仅跟随工作台的 Flash/Plus;Next/Eleven 须显式指定)")
     sp.set_defaults(func=cmd_fav)
 
     a = p.parse_args()
@@ -1677,8 +1776,13 @@ def main():
     if a.cmd in ("gen", "preview", "script", "say"):
         a.synth_settings = load_settings()
         print(f"使用模型:{a.synth_settings['model']}", file=sys.stderr)
-    if a.cmd in ("clone", "delete", "voices", "fav"):
-        print(f"百炼音色管理使用:{MODEL}", file=sys.stderr)
+    if a.cmd in ("clone", "voices", "fav"):
+        a.target_model = a.model or load_settings()["model"]
+        if a.target_model not in BAILIAN_VOICE_MODELS:
+            cur = a.target_model
+            sys.exit(f"当前默认模型 {cur} 不使用百炼音色库与声音复刻；请在工作台切换为 {MODEL} 或 {PLUS_MODEL}，或显式传 --model 指定。")
+        print(f"百炼音色管理使用:{a.target_model}", file=sys.stderr)
+    a.explicit_voice = bool(getattr(a, "voice", None))
     if getattr(a, "voice", "") is None and not (getattr(a, "save", False) or getattr(a, "install", False)):
         if a.cmd in ("gen", "preview", "script", "say") and a.synth_settings["model"] in eleven.MODELS:
             favs = eleven.favorites()
@@ -1686,7 +1790,7 @@ def main():
         elif a.cmd in ("gen", "preview", "script", "say") and a.synth_settings["model"] == NEXT_MODEL:
             a.voice, source = "", "Next 声音描述"
         else:
-            a.voice, source = default_voice()
+            a.voice, source = default_voice(a.synth_settings["model"])
         print(f"未指定音色,使用{source}:{a.voice}", file=sys.stderr)
     a.func(a)
 

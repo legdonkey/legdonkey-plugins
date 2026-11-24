@@ -1,8 +1,8 @@
 import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { AutoEffortSession } from '../types/index'
 import { FABLE_FINISH_PROMPT } from './policy-text'
-import type { Effort, SupportedModel } from './policy-text'
-import { cacheRebuilt, clampEffort, commandCompletions, configOf, isContinue, isEffort, isUltra, JUDGES, judgeInput, retainedDecisions, supportedModel } from './core'
+import type { SelectableEffort, SupportedModel } from './policy-text'
+import { cacheRebuilt, clampEffort, commandCompletions, configOf, isEffort, isSelectableEffort, isUltra, JUDGES, judgeState, retainedDecisions, supportedModel } from './core'
 import type { Config, Decision, JudgeResult } from './core'
 import { classify } from './judge'
 import { runBench } from './bench'
@@ -13,7 +13,7 @@ const CACHE_EXPIRY_GUARD_MS = 5 * 60 * 1000
 type Pending = {
   model: SupportedModel; midTurn: boolean; ultra: boolean; skip: boolean
   started: number; promise?: Promise<JudgeResult>; result?: JudgeResult; timer?: Timer; abort: AbortController
-  fableContinue?: boolean; turnId?: string
+  turnId?: string
 }
 
 function freshSession(sessionId: string): AutoEffortSession {
@@ -168,13 +168,11 @@ export const register: Register = (on, options) => {
     pending?.abort.abort()
     pending?.timer?.cancel()
     const job: Pending = { model, midTurn: e.turnId !== undefined, ultra: isUltra(e.text), skip: false,
-      started: await $.clock.now(), abort: new AbortController(), turnId: e.turnId,
-      // 官方：Fable 5.2 在 low/medium 下长任务更容易提前收工，用户要求继续时直接给 high，不等判档。
-      fableContinue: model === 'claude-fable-5-2' && isContinue(e.text) && (s.lastFinal === 'low' || s.lastFinal === 'medium') }
+      started: await $.clock.now(), abort: new AbortController(), turnId: e.turnId }
     pending = job
     s.skipTurn = false
     const environment = await providerPause($)
-    if (environment || s.paused || !config.enabled || job.ultra || job.fableContinue) {
+    if (environment || s.paused || !config.enabled || job.ultra) {
       status($, s, config, environment, job.ultra ? '🧠 ultrathink · 引擎决定' : undefined)
       return next(e)
     }
@@ -185,8 +183,8 @@ export const register: Register = (on, options) => {
           const history = await $.session.messages()
           // 某些宿主在提交事件前已存入当前消息，剔除末尾这一条。
           if (history.at(-1)?.role === 'user' && history.at(-1)?.text === e.text) history.pop()
-          const prompt = judgeInput(model, s.lastFinal, s.summary, history, e.text)
-          const result = await classify($, config, model, prompt, reason => fallback($, runtime, reason), job.abort.signal)
+          const state = judgeState(model, s.lastFinal, s.summary, history, e.text)
+          const result = await classify($, config, model, state, reason => fallback($, runtime, reason), job.abort.signal)
           return await $.clock.now() - job.started > config.judgeTimeoutMs
             ? { ...result, result: undefined, failure: '判档超时' } : result
         })().then(result => { job.result = result; resolve(result) }, () => {
@@ -236,7 +234,7 @@ export const register: Register = (on, options) => {
     }
     const job = pending
     const eligible = job && job.model === model && (e.index === 0 || (job.midTurn && job.turnId === e.turnId))
-    let wanted: Effort | undefined
+    let wanted: SelectableEffort | undefined
     let decision: Decision | undefined
     if (eligible) {
       pending = undefined
@@ -245,9 +243,6 @@ export const register: Register = (on, options) => {
       if (environment || s.paused || !config.enabled || s.skipTurn || s.currentUltra || job.ultra) {
         reason = job.ultra || s.currentUltra ? 'ultrathink 交给引擎' : environment ?? s.paused ?? '自动选档已关闭'
         job.abort.abort(); job.timer?.cancel()
-      } else if (job.fableContinue) {
-        wanted = clampEffort('high', config)
-        reason = 'Fable 继续任务升档'
       } else if (job.promise) {
         let timer: Timer | undefined
         const remaining = config.judgeTimeoutMs - (await $.clock.now() - job.started)
@@ -281,7 +276,7 @@ export const register: Register = (on, options) => {
       // ultrathink 只作用于本轮，不让后续确认消息沿用它的档位。
       else if (isEffort(e.effort) && !s.currentUltra && !job.ultra) s.lastFinal = e.effort
       decision = { at: new Date(await $.clock.now()).toISOString(), sessionId: s.sessionId, turn: s.turnNo,
-        turnId: e.turnId, index: e.index, model, judge: job.fableContinue ? '规则' : answer?.judge ?? config.judge,
+        turnId: e.turnId, index: e.index, model, judge: answer?.judge ?? config.judge,
         judged: answer?.result?.effort, final: s.lastFinal, confidence: answer?.result?.confidence,
         reason, ms: answer?.ms ?? await $.clock.now() - job.started, rewritten: wanted !== undefined, judgeUsage: answer?.usage,
         previousFinal }
@@ -386,15 +381,15 @@ export const register: Register = (on, options) => {
         if (!text) return { text: '用法：/auto-effort test <文本>' }
         const model = supportedModel(await $.session.model())
         if (!model) return { text: '当前模型不支持自动选档' }
-        const prompt = judgeInput(model, s.lastFinal, s.summary, await $.session.messages(), text)
-        return { text: JSON.stringify(await classify($, config, model, prompt, async () => {})) }
+        const state = judgeState(model, s.lastFinal, s.summary, await $.session.messages(), text)
+        return { text: JSON.stringify(await classify($, config, model, state, async () => {})) }
       }
       if (verb === 'bench') return { text: await runBench($, config, [arg, extra, ...rest].filter((v): v is string => v !== undefined), reason => fallback($, runtime, reason)) }
       let field: 'enabled' | 'judge' | 'floor' | 'ceiling' | 'allowMax'
       let value: boolean | string
       if ((verb === 'on' || verb === 'off') && !arg) { field = 'enabled'; value = verb === 'on' }
       else if (verb === 'judge' && JUDGES.includes(arg as typeof JUDGES[number]) && !extra) { field = 'judge'; value = arg! }
-      else if ((verb === 'floor' || verb === 'ceiling') && isEffort(arg) && !extra) { field = verb; value = arg }
+      else if ((verb === 'floor' || verb === 'ceiling') && isSelectableEffort(arg) && !extra) { field = verb; value = arg }
       else if (verb === 'max' && (arg === 'on' || arg === 'off') && !extra) { field = 'allowMax'; value = arg === 'on' }
       else return { text: '用法：/auto-effort [status|on|off|judge <haiku|jev|d1-ultra|mammoth-27b|decider>|floor <档位>|ceiling <档位>|max on|off|test <文本>|bench [opus|sonnet|fable|all] [holdout]]' }
       const changed = await $.config.set({ key: `auto-effort.${field}`, value })

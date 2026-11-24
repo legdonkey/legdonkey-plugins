@@ -89,7 +89,7 @@ def status_of(session):
 
 
 def resume_check(model, run, options, summary_path):
-    """两个独立进程验证恢复与 Fable 继续升档；仅保存脱敏状态。"""
+    """两个独立进程验证会话恢复与新轮次判档；仅保存脱敏状态。"""
     sessions = []
     rows = []
     failed = []
@@ -106,8 +106,8 @@ def resume_check(model, run, options, summary_path):
         _, before = status_of(first)
         rows.append({"before": before})
         session_id = rows[0]["session_id"]
-        if len(before["decisions"]) != 2 or before["lastFinal"] not in ("low", "medium"):
-            raise RuntimeError("首进程未产生两次可升档决策")
+        if len(before["decisions"]) != 2 or before.get("lastFinal") is None:
+            raise RuntimeError("首进程未产生两次有效决策")
         first.close()
         second = Session(model, run, options, 0.55, resume=session_id)
         sessions.append(second)
@@ -124,10 +124,12 @@ def resume_check(model, run, options, summary_path):
         rows.append({"after": after, "total_cost_usd": result.get("total_cost_usd"),
                      "usage": result.get("usage"), "is_error": result.get("is_error")})
         decision = after["decisions"][-1]
-        if result.get("is_error") or decision.get("reason") != "Fable 继续任务升档" or decision.get("final") != "high":
-            failed.append("恢复后未触发 Fable 继续升档")
+        if (result.get("is_error") or len(after["decisions"]) != len(restored["decisions"]) + 1
+                or after.get("lastDecision") == restored.get("lastDecision") or decision.get("judge") != "haiku"
+                or not decision.get("judged") or decision.get("confidence", 0) < 0.5 or not decision.get("rewritten")):
+            failed.append("恢复后新轮次判档未正常完成")
         if decision.get("previousFinal") != restored.get("lastFinal"):
-            failed.append("继续升档没有使用恢复出的档位")
+            failed.append("新轮次判档没有使用恢复出的档位")
     except (RuntimeError, queue.Empty, json.JSONDecodeError, OSError, ValueError, KeyError, IndexError):
         failed.append("恢复实测的会话、命令或断言失败")
     finally:
@@ -149,7 +151,7 @@ def main():
     parser.add_argument("--bench", action="store_true", help="在 headless 会话执行 /auto-effort bench all")
     parser.add_argument("--jev", action="store_true", help="用 /auto-effort test 实测 Jev")
     parser.add_argument("--insertion", action="store_true", help="实测工具运行期间插入消息")
-    parser.add_argument("--resume", action="store_true", help="使用两个进程实测 Fable 恢复与继续升档")
+    parser.add_argument("--resume", action="store_true", help="使用两个进程实测 Fable 会话恢复与新轮次判档")
     parser.add_argument("--judge", default="haiku", choices=["haiku", "jev", "d1-ultra", "mammoth-27b", "decider"], help="--bench 使用的判档器")
     args = parser.parse_args()
     if args.resume and (args.model != "claude-fable-5-2" or args.bench or args.jev or args.insertion):
